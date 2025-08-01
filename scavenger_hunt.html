@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disney Scavenger Hunt</title>
+    <!-- Use a fun, Disney-like font from Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a Disney theme */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to bottom right, #87CEEB, #F0F8FF); /* Sky blue gradient */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #E63946; /* A bright, Disney-like red */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .clue-display {
+            font-size: 1.25rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            background-color: #f7fcfd;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #a8dadc;
+        }
+
+        #message {
+            margin-top: 20px;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .correct {
+            color: #2a9d8f; /* A positive green */
+        }
+
+        .incorrect {
+            color: #e76f51; /* A warning orange */
+        }
+
+        input[type="text"] {
+            border: 2px solid #a8dadc;
+            padding: 15px;
+            font-size: 1.2rem;
+            width: 100%;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #457b9d;
+            box-shadow: 0 0 8px rgba(69, 123, 157, 0.5);
+        }
+
+        button {
+            background-color: #E63946;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #d12e3a;
+            transform: translateY(-2px);
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #FFD700; /* Gold */
+            animation: confetti-fall 2s forwards;
+            opacity: 0;
+            border-radius: 50%;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="title">Mickey's Magical Scavenger Hunt</h1>
+        
+        <!-- Display the current clue -->
+        <p class="clue-display" id="clueText"></p>
+        
+        <div class="flex flex-col gap-4">
+            <!-- Input for the QR code answer -->
+            <input type="text" id="answerInput" placeholder="Enter the code you found..." class="p-3 text-lg border rounded-lg focus:outline-none focus:ring-2">
+            
+            <!-- Button to submit the answer -->
+            <button id="submitButton">Submit Answer</button>
+        </div>
+
+        <!-- Area for feedback messages -->
+        <p id="message"></p>
+    </div>
+
+    <script>
+        // Use a self-executing function to avoid polluting the global scope.
+        (function() {
+            // Arrays with the clues and correct answers in the order you provided.
+            const clues = [
+                'Hop or skip, have some fun! You\'ll find Mickey #1.',
+                'The best stories are found in books. Find another Mickey when you take a look.',
+                'You\'re doing great, finding Mickey\'s with no trouble! The next one is hiding near a bubble.',
+                'Where pink flowers bloom, but do not grow, you\'ll find this Mickey hiding low.',
+                'The next Mickey that you\'ll see is hiding right next to a bee.',
+                'Standing on one leg, they don\'t get far. This Mickey is by the Mini Bar.',
+                'We\'ll tell you a secret that we heard, the next Mickey is hiding by an angry bird.',
+                'Ohana means family. That\'s the clue. This lemon Mickey is waiting for you.',
+                'The map will help you find your way when you hunt for Mickey\'s today.',
+                'Order tacos, burritos, and nachos too! That\'s where this Mickey is waiting for you.',
+                'Fill up your bottle or take a drink. Mickey\'s hiding by the sink.',
+                'This Mickey is hiding by the loo. Look by the calendar and you\'ll find him too!',
+            ];
+
+            const correctAnswers = [
+                'HopSkip',
+                'Books',
+                'Bubble',
+                'Flowers',
+                'Bee',
+                'MiniBar',
+                'AngryBird',
+                'Ohana',
+                'Map',
+                'TacoStand',
+                'Sink',
+                'Calendar',
+            ];
+
+            // Get references to DOM elements
+            const clueTextElement = document.getElementById('clueText');
+            const answerInput = document.getElementById('answerInput');
+            const submitButton = document.getElementById('submitButton');
+            const messageElement = document.getElementById('message');
+
+            let currentClueIndex = 0;
+
+            // Function to update the clue display
+            function displayCurrentClue() {
+                if (currentClueIndex < clues.length) {
+                    clueTextElement.textContent = clues[currentClueIndex];
+                } else {
+                    // This handles the "all done" state
+                    clueTextElement.textContent = 'Congratulations! You have completed the Disney Scavenger Hunt!';
+                    submitButton.style.display = 'none'; // Hide the button
+                    answerInput.style.display = 'none'; // Hide the input
+                    messageElement.textContent = 'You found all the Mickey\'s!';
+                    messageElement.className = 'correct';
+                    // Add a fun confetti effect!
+                    createConfetti();
+                }
+            }
+
+            // Function to check the submitted answer
+            function checkAnswer() {
+                const submittedAnswer = answerInput.value.trim();
+                const correctAnswer = correctAnswers[currentClueIndex];
+
+                if (submittedAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+                    messageElement.textContent = `That's correct! Get ready for your next clue...`;
+                    messageElement.className = 'correct';
+                    
+                    // Move to the next clue
+                    currentClueIndex++;
+                    answerInput.value = ''; // Clear the input field
+                    
+                    // Wait a moment before showing the next clue
+                    setTimeout(displayCurrentClue, 1500);
+                } else {
+                    messageElement.textContent = `Oops, that's not the right code. Please try again!`;
+                    messageElement.className = 'incorrect';
+                }
+            }
+
+            // Function to create a confetti effect (for the final screen)
+            function createConfetti() {
+                for (let i = 0; i < 50; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.classList.add('confetti');
+                    confetti.style.left = `${Math.random() * 100}vw`;
+                    confetti.style.animationDelay = `${Math.random() * 2}s`;
+                    document.body.appendChild(confetti);
+                }
+            }
+
+            // Event listeners
+            submitButton.addEventListener('click', checkAnswer);
+            answerInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    checkAnswer();
+                }
+            });
+
+            // Initialize the game
+            window.onload = displayCurrentClue;
+
+        })();
+    </script>
+</body>
+</html>
