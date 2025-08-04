@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -377,7 +376,7 @@
   </div>
 
   <!-- Final congratulatory banner -->
-  <div id="final-banner" class="hidden" aria-live="polite" role="alert">
+  <div id="final-banner" aria-live="polite" role="alert">
     <h1>🎉 You Found All the Magic! 🎉</h1>
     <p>Go to the Sandia Credit Union Booth for your Mickey Ears! 🐭✨</p>
   </div>
@@ -458,7 +457,6 @@
 
       // Load and play fanfare for final clue
       async function playFanfare() {
-        // Use a short fanfare sound URL or fallback to synth chord
         try {
           if (!fanfarePlayer) {
             fanfarePlayer = new Tone.Player(
@@ -487,7 +485,6 @@
           messageElement.textContent = "You found all the Mickey's!";
           messageElement.className = "correct";
 
-          // Final celebration
           createConfetti(200);
           playFanfare();
           showFinalBanner();
@@ -499,9 +496,7 @@
         const submittedAnswer = answerInput.value.trim();
         const correctAnswer = correctAnswers[currentClueIndex];
 
-        if (
-          submittedAnswer.toLowerCase() === correctAnswer.toLowerCase()
-        ) {
+        if (submittedAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
           messageElement.textContent = `That's correct! Get ready for your next clue...`;
           messageElement.className = "correct";
 
@@ -521,5 +516,80 @@
       // Disney animations: stars & Mickey heads
       function createDisneyAnimations() {
         const numAnimations = 20;
-        for (let i = 0;
+        for (let i = 0; i < numAnimations; i++) {
+          const type = Math.random() < 0.5 ? "star" : "mickey-head";
+          const element = document.createElement("div");
+          element.classList.add(type);
+
+          // Random size
+          const size =
+            Math.random() * (type === "star" ? 30 : 50) +
+            (type === "star" ? 15 : 30);
+          element.style.setProperty("--size", `${size}px`);
+
+          // Random color
+          const color =
+            type === "star"
+              ? starColors[Math.floor(Math.random() * starColors.length)]
+              : mickeyColors[Math.floor(Math.random() * mickeyColors.length)];
+          element.style.setProperty("--color", color);
+
+          // Random horizontal position
+          element.style.left = `${Math.random() * 100}vw`;
+
+          // Random animation duration and delay
+          element.style.setProperty(
+            "--duration",
+            `${Math.random() * 2 + 3}s`
+          );
+          element.style.animationDelay = `${Math.random() * 0.5}s`;
+
+          document.body.appendChild(element);
+
+          element.addEventListener("animationend", () => {
+            element.remove();
+          });
+        }
+      }
+
+      // Confetti burst for final celebration
+      function createConfetti(amount = 100) {
+        for (let i = 0; i < amount; i++) {
+          const confetti = document.createElement("div");
+          confetti.classList.add("confetti");
+          confetti.style.left = Math.random() * window.innerWidth + "px";
+          confetti.style.backgroundColor =
+            ["#ffd700", "#ff6347", "#40e0d0", "#ff69b4"][
+              Math.floor(Math.random() * 4)
+            ];
+          confetti.style.animationDelay = Math.random() * 2 + "s";
+          document.body.appendChild(confetti);
+
+          confetti.addEventListener("animationend", () => {
+            confetti.remove();
+          });
+        }
+      }
+
+      // Show final banner with fade in
+      function showFinalBanner() {
+        finalBanner.classList.add("show");
+      }
+
+      submitButton.addEventListener("click", checkAnswer);
+
+      answerInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          checkAnswer();
+        }
+      });
+
+      // Show the first clue on load
+      displayCurrentClue();
+    })();
+  </script>
+</body>
+</html>
+
+
 
