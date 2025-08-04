@@ -131,6 +131,43 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
+        /* ----- Mobile Optimizations ----- */
+        @media (max-width: 640px) {
+            body {
+                padding: 10px; /* Less padding on very small screens */
+            }
+
+            .game-container {
+                padding: 20px; /* Reduced padding for container */
+                border-radius: 15px;
+            }
+
+            .title {
+                font-size: 2.2rem; /* Smaller title on mobile */
+                margin-bottom: 15px;
+            }
+
+            .clue-display {
+                font-size: 1.1rem; /* Smaller clue text on mobile */
+                padding: 15px;
+                margin-bottom: 25px;
+            }
+
+            #message {
+                font-size: 1rem; /* Smaller message text */
+            }
+
+            input[type="text"] {
+                padding: 12px; /* Smaller input padding */
+                font-size: 1.1rem; /* Smaller input font */
+            }
+
+            button {
+                padding: 12px 25px; /* Smaller button padding */
+                font-size: 1.1rem; /* Smaller button font */
+            }
+        }
+
         /* ----- Animation Styles ----- */
         .confetti {
             position: absolute;
