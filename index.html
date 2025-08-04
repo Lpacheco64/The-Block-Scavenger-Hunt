@@ -1,438 +1,525 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hidden Mickey Hunt</title>
-    <!-- Use fun, Disney-like fonts from Google Fonts -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;700&display=swap">
-    <!-- Tailwind CSS for utility classes -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Tone.js for Web Audio API - for celebration sound -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
-    <style>
-        /* Define Disney-inspired color palette */
-        :root {
-            --disney-blue-light: #B0E0E6; /* Powder Blue */
-            --disney-blue-dark: #6A5ACD; /* Slate Blue */
-            --disney-gold: #FFD700; /* Gold */
-            --disney-red: #E63946; /* Imperial Red */
-            --disney-green: #2ECC71; /* Emerald Green */
-            --disney-purple: #9B59B6; /* Amethyst */
-            --disney-pink: #FF69B4; /* Hot Pink */
-            --text-dark: #333;
-            --text-light: #fff;
-            --card-bg: rgba(255, 255, 255, 0.95);
-            --border-color: #A8DADC;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hidden Mickey Hunt</title>
+  <!-- Google Fonts -->
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;700&display=swap"
+  />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tone.js for sounds -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+  <style>
+    /* Disney color palette */
+    :root {
+      --disney-blue-light: #b0e0e6;
+      --disney-blue-dark: #6a5acd;
+      --disney-gold: #ffd700;
+      --disney-red: #e63946;
+      --disney-green: #2ecc71;
+      --disney-purple: #9b59b6;
+      --disney-pink: #ff69b4;
+      --text-dark: #333;
+      --text-light: #fff;
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --border-color: #a8dadc;
+    }
 
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, var(--disney-blue-light) 0%, var(--disney-blue-dark) 100%);
-            color: var(--text-dark);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            overflow: hidden; /* Hide overflow from animations */
-            position: relative; /* For animations to position correctly */
-        }
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(
+        135deg,
+        var(--disney-blue-light) 0%,
+        var(--disney-blue-dark) 100%
+      );
+      color: var(--text-dark);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      overflow: hidden;
+      position: relative;
+    }
 
-        .game-container {
-            background-color: var(--card-bg);
-            padding: 30px;
-            border-radius: 25px; /* More rounded */
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3); /* Stronger shadow */
-            text-align: center;
-            max-width: 650px; /* Slightly wider */
-            width: 100%;
-            border: 3px solid var(--disney-gold); /* Gold border */
-            position: relative;
-            z-index: 10; /* Ensure container is above animations */
-            animation: fadeIn 1s ease-out;
-        }
+    .game-container {
+      background-color: var(--card-bg);
+      padding: 30px;
+      border-radius: 25px;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      max-width: 650px;
+      width: 100%;
+      border: 3px solid var(--disney-gold);
+      position: relative;
+      z-index: 10;
+      animation: fadeIn 1s ease-out;
+    }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-        .title {
-            font-family: 'Pacifico', cursive; /* Playful font for title */
-            font-size: 3rem; /* Larger title */
-            font-weight: 700;
-            color: var(--disney-red);
-            text-shadow: 3px 3px 5px rgba(0,0,0,0.2); /* Enhanced shadow */
-            margin-bottom: 25px;
-            line-height: 1.1;
-        }
+    .title {
+      font-family: "Pacifico", cursive;
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--disney-red);
+      text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.2);
+      margin-bottom: 25px;
+      line-height: 1.1;
+    }
 
-        .clue-display {
-            font-size: 1.35rem; /* Slightly larger clue text */
-            line-height: 1.7;
-            margin-bottom: 35px;
-            background-color: #fcfdff; /* Lighter background for clue */
-            padding: 25px;
-            border-radius: 15px;
-            border: 2px dashed var(--border-color); /* Dashed border for fun */
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
-        }
+    .clue-display {
+      font-size: 1.35rem;
+      line-height: 1.7;
+      margin-bottom: 35px;
+      background-color: #fcfdff;
+      padding: 25px;
+      border-radius: 15px;
+      border: 2px dashed var(--border-color);
+      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
 
-        #message {
-            margin-top: 25px;
-            font-size: 1.2rem;
-            font-weight: 700;
-            transition: color 0.3s ease;
-        }
+    #message {
+      margin-top: 25px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      transition: color 0.3s ease;
+    }
 
-        .correct {
-            color: var(--disney-green);
-        }
+    .correct {
+      color: var(--disney-green);
+    }
 
-        .incorrect {
-            color: var(--disney-red);
-        }
+    .incorrect {
+      color: var(--disney-red);
+    }
 
-        input[type="text"] {
-            border: 2px solid var(--border-color);
-            padding: 18px; /* Larger padding */
-            font-size: 1.3rem; /* Larger font */
-            width: 100%;
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            text-align: center; /* Center text */
-        }
+    input[type="text"] {
+      border: 2px solid var(--border-color);
+      padding: 18px;
+      font-size: 1.3rem;
+      width: 100%;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
 
-        input[type="text"]:focus {
-            outline: none;
-            border-color: var(--disney-blue-dark);
-            box-shadow: 0 0 10px rgba(106, 90, 205, 0.6);
-        }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--disney-blue-dark);
+      box-shadow: 0 0 10px rgba(106, 90, 205, 0.6);
+    }
 
-        button {
-            background-color: var(--disney-red);
-            color: var(--text-light);
-            padding: 18px 35px; /* Larger padding */
-            font-size: 1.3rem; /* Larger font */
-            font-weight: 700;
-            border-radius: 12px;
-            box-shadow: 0 6px 10px rgba(0,0,0,0.2); /* Stronger shadow */
-            transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
-            border: none; /* Remove default button border */
-            cursor: pointer;
-        }
+    button {
+      background-color: var(--disney-red);
+      color: var(--text-light);
+      padding: 18px 35px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      border-radius: 12px;
+      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+      border: none;
+      cursor: pointer;
+    }
 
-        button:hover {
-            background-color: #c92c39; /* Darker red on hover */
-            transform: translateY(-3px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.3);
-        }
+    button:hover {
+      background-color: #c92c39;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+    }
 
-        button:active {
-            transform: translateY(0);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
 
-        /* ----- Mobile Optimizations ----- */
-        @media (max-width: 640px) {
-            body {
-                padding: 10px; /* Less padding on very small screens */
-            }
+    /* Mobile */
+    @media (max-width: 640px) {
+      body {
+        padding: 10px;
+      }
 
-            .game-container {
-                padding: 20px; /* Reduced padding for container */
-                border-radius: 15px;
-            }
+      .game-container {
+        padding: 20px;
+        border-radius: 15px;
+      }
 
-            .title {
-                font-size: 2.2rem; /* Smaller title on mobile */
-                margin-bottom: 15px;
-            }
+      .title {
+        font-size: 2.2rem;
+        margin-bottom: 15px;
+      }
 
-            .clue-display {
-                font-size: 1.1rem; /* Smaller clue text on mobile */
-                padding: 15px;
-                margin-bottom: 25px;
-            }
+      .clue-display {
+        font-size: 1.1rem;
+        padding: 15px;
+        margin-bottom: 25px;
+      }
 
-            #message {
-                font-size: 1rem; /* Smaller message text */
-            }
+      #message {
+        font-size: 1rem;
+      }
 
-            input[type="text"] {
-                padding: 12px; /* Smaller input padding */
-                font-size: 1.1rem; /* Smaller input font */
-            }
+      input[type="text"] {
+        padding: 12px;
+        font-size: 1.1rem;
+      }
 
-            button {
-                padding: 12px 25px; /* Smaller button padding */
-                font-size: 1.1rem; /* Smaller button font */
-            }
-        }
+      button {
+        padding: 12px 25px;
+        font-size: 1.1rem;
+      }
+    }
 
-        /* ----- Animation Styles ----- */
-        .confetti {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: var(--disney-gold); /* Gold */
-            animation: confetti-fall 2s forwards;
-            opacity: 0;
-            border-radius: 50%;
-            z-index: 20; /* Higher z-index to be in front */
-        }
+    /* ----- Animation Styles ----- */
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: var(--disney-gold);
+      animation: confetti-fall 2s forwards;
+      opacity: 0;
+      border-radius: 50%;
+      z-index: 20;
+    }
 
-        @keyframes confetti-fall {
-            0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(100vh) rotate(720deg); opacity: 0.5; }
-        }
+    @keyframes confetti-fall {
+      0% {
+        transform: translateY(-100px) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0.5;
+      }
+    }
 
-        /* Star animation */
-        .star {
-            position: absolute;
-            width: var(--size);
-            height: var(--size);
-            background-color: var(--color);
-            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-            animation: star-sparkle var(--duration) ease-out forwards;
-            opacity: 0;
-            z-index: 20; /* Higher z-index to be in front */
-            filter: drop-shadow(0 0 5px var(--color)); /* Glow effect */
-        }
+    /* Star animation */
+    .star {
+      position: absolute;
+      width: var(--size);
+      height: var(--size);
+      background-color: var(--color);
+      clip-path: polygon(
+        50% 0%,
+        61% 35%,
+        98% 35%,
+        68% 57%,
+        79% 91%,
+        50% 70%,
+        21% 91%,
+        32% 57%,
+        2% 35%,
+        39% 35%
+      );
+      animation: star-sparkle var(--duration) ease-out forwards;
+      opacity: 0;
+      z-index: 20;
+      filter: drop-shadow(0 0 5px var(--color));
+    }
 
-        @keyframes star-sparkle {
-            0% { transform: translateY(0) scale(0.5) rotate(0deg); opacity: 0; }
-            20% { opacity: 1; }
-            100% { transform: translateY(-100vh) scale(1.5) rotate(360deg); opacity: 0; }
-        }
+    @keyframes star-sparkle {
+      0% {
+        transform: translateY(0) scale(0.5) rotate(0deg);
+        opacity: 0;
+      }
+      20% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-100vh) scale(1.5) rotate(360deg);
+        opacity: 0;
+      }
+    }
 
-        /* Mickey Head animation */
-        .mickey-head {
-            position: absolute;
-            width: var(--size);
-            height: var(--size);
-            background-color: var(--color); /* Use a color variable */
-            border-radius: 50%;
-            animation: mickey-rise var(--duration) ease-out forwards;
-            opacity: 0;
-            z-index: 20; /* Higher z-index to be in front */
-            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); /* Subtle shadow */
-        }
+    /* Mickey Head animation */
+    .mickey-head {
+      position: absolute;
+      width: var(--size);
+      height: var(--size);
+      background-color: var(--color);
+      border-radius: 50%;
+      animation: mickey-rise var(--duration) ease-out forwards;
+      opacity: 0;
+      z-index: 20;
+      filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
+    }
 
-        .mickey-head::before,
-        .mickey-head::after {
-            content: '';
-            position: absolute;
-            width: calc(var(--size) * 0.6); /* Ears proportional to head */
-            height: calc(var(--size) * 0.6);
-            background-color: var(--color);
-            border-radius: 50%;
-            top: calc(var(--size) * -0.25); /* Position ears above head */
-        }
+    .mickey-head::before,
+    .mickey-head::after {
+      content: "";
+      position: absolute;
+      width: calc(var(--size) * 0.6);
+      height: calc(var(--size) * 0.6);
+      background-color: var(--color);
+      border-radius: 50%;
+      top: calc(var(--size) * -0.25);
+    }
 
-        .mickey-head::before {
-            left: calc(var(--size) * -0.25);
-        }
+    .mickey-head::before {
+      left: calc(var(--size) * -0.25);
+    }
 
-        .mickey-head::after {
-            right: calc(var(--size) * -0.25);
-        }
+    .mickey-head::after {
+      right: calc(var(--size) * -0.25);
+    }
 
-        @keyframes mickey-rise {
-            0% { bottom: 0; transform: translateX(-50%) scale(0.5); opacity: 0.5; }
-            50% { opacity: 1; }
-            100% { bottom: 100vh; transform: translateX(-50%) scale(1.2); opacity: 0; }
-        }
-    </style>
+    @keyframes mickey-rise {
+      0% {
+        bottom: 0;
+        transform: translateX(-50%) scale(0.5);
+        opacity: 0.5;
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        bottom: 100vh;
+        transform: translateX(-50%) scale(1.2);
+        opacity: 0;
+      }
+    }
+
+    /* Final banner */
+    #final-banner {
+      background: rgba(0, 0, 0, 0.75);
+      padding: 2rem;
+      border-radius: 1rem;
+      width: 80%;
+      max-width: 600px;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      position: fixed;
+      top: 25%;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 50;
+      color: white;
+      pointer-events: none;
+    }
+
+    #final-banner.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Banner heading bounce */
+    @keyframes bounceInDown {
+      0% {
+        opacity: 0;
+        transform: translateY(-2000px);
+      }
+      60% {
+        opacity: 1;
+        transform: translateY(30px);
+      }
+      80% {
+        transform: translateY(-10px);
+      }
+      100% {
+        transform: translateY(0);
+      }
+    }
+
+    #final-banner h1 {
+      animation: bounceInDown 1s;
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: #ffdd55;
+      text-shadow: 0 0 10px #ffd700, 0 0 20px #ffb700;
+    }
+
+    #final-banner p {
+      margin-top: 1rem;
+      font-size: 1.5rem;
+      color: #fff;
+      text-shadow: 0 0 6px #222;
+    }
+  </style>
 </head>
 <body>
-    <div class="game-container">
-        <h1 class="title">Mickey's Magical Scavenger Hunt</h1>
-        
-        <!-- Display the current clue -->
-        <p class="clue-display" id="clueText"></p>
-        
-        <div class="flex flex-col gap-4">
-            <!-- Input for the QR code answer -->
-            <input type="text" id="answerInput" placeholder="Enter the code you found..." class="p-3 text-lg border rounded-lg focus:outline-none focus:ring-2">
-            
-            <!-- Button to submit the answer -->
-            <button id="submitButton">Submit Answer</button>
-        </div>
+  <div class="game-container">
+    <h1 class="title">Mickey's Magical Scavenger Hunt</h1>
 
-        <!-- Area for feedback messages -->
-        <p id="message"></p>
+    <!-- Display the current clue -->
+    <p class="clue-display" id="clueText"></p>
+
+    <div class="flex flex-col gap-4">
+      <!-- Input for the QR code answer -->
+      <input
+        type="text"
+        id="answerInput"
+        placeholder="Enter the code you found..."
+        class="p-3 text-lg border rounded-lg focus:outline-none focus:ring-2"
+      />
+
+      <!-- Button to submit the answer -->
+      <button id="submitButton">Submit Answer</button>
     </div>
 
-    <script>
-        // Use a self-executing function to avoid polluting the global scope.
-        (function() {
-            // Arrays with the clues and correct answers in the order you provided.
-            const clues = [
-                `Hop or skip, have some fun! You'll find Mickey #1.`,
-                'The best stories are found in books. Find another Mickey when you take a look.',
-                `You're doing great, finding Mickey's with no trouble! The next one is hiding near a bubble.`,
-                'Where pink flowers bloom, but do not grow, you\'ll find this Mickey hiding low.',
-                'The next Mickey that you\'ll see is hiding right next to a bee.',
-                'Standing on one leg, they don\'t get far. This Mickey is by the Mini Bar.',
-                `We'll tell you a secret that we heard, the next Mickey is hiding by an angry bird.`,
-                `Ohana means family. That's the clue. This lemon Mickey is waiting for you.`,
-                `The map will help you find your way when you hunt for Mickey's today.`,
-                'Order tacos, burritos, and nachos too! That\'s where this Mickey is waiting for you.',
-                'Fill up your bottle or take a drink. Mickey\'s hiding by the sink.',
-                `This Mickey is hiding by the loo. Look by the calendar and you'll find him too!`,
-            ];
+    <!-- Area for feedback messages -->
+    <p id="message"></p>
+  </div>
 
-            const correctAnswers = [
-                'Hop Skip',
-                'Books',
-                'Bubble',
-                'Flowers',
-                'Bee',
-                'Flamingo',
-                'Chicken',
-                'Lemonade',
-                'Map',
-                'Taco Stand',
-                'Fountain',
-                'Calendar',
-            ];
+  <!-- Final congratulatory banner -->
+  <div id="final-banner" class="hidden" aria-live="polite" role="alert">
+    <h1>🎉 You Found All the Magic! 🎉</h1>
+    <p>Go to the Sandia Credit Union Booth for your Mickey Ears! 🐭✨</p>
+  </div>
 
-            // Get references to DOM elements
-            const clueTextElement = document.getElementById('clueText');
-            const answerInput = document.getElementById('answerInput');
-            const submitButton = document.getElementById('submitButton');
-            const messageElement = document.getElementById('message');
+  <script>
+    (function () {
+      const clues = [
+        `Hop or skip, have some fun! You'll find Mickey #1.`,
+        "The best stories are found in books. Find another Mickey when you take a look.",
+        `You're doing great, finding Mickey's with no trouble! The next one is hiding near a bubble.`,
+        "Where pink flowers bloom, but do not grow, you'll find this Mickey hiding low.",
+        "The next Mickey that you'll see is hiding right next to a bee.",
+        "Standing on one leg, they don't get far. This Mickey is by the Mini Bar.",
+        `We'll tell you a secret that we heard, the next Mickey is hiding by an angry bird.`,
+        `Ohana means family. That's the clue. This lemon Mickey is waiting for you.`,
+        `The map will help you find your way when you hunt for Mickey's today.`,
+        "Order tacos, burritos, and nachos too! That's where this Mickey is waiting for you.",
+        "Fill up your bottle or take a drink. Mickey's hiding by the sink.",
+        `This Mickey is hiding by the loo. Look by the calendar and you'll find him too!`,
+      ];
 
-            let currentClueIndex = 0;
-            const starColors = ['var(--disney-gold)', 'yellow', 'var(--disney-blue-light)'];
-            const mickeyColors = ['#000', 'var(--disney-red)', 'var(--disney-purple)']; // Black, Red, Purple for Mickey heads
+      const correctAnswers = [
+        "Hop Skip",
+        "Books",
+        "Bubble",
+        "Flowers",
+        "Bee",
+        "Flamingo",
+        "Chicken",
+        "Lemonade",
+        "Map",
+        "Taco Stand",
+        "Fountain",
+        "Calendar",
+      ];
 
-            // Initialize Tone.js components
-            let synth;
+      const clueTextElement = document.getElementById("clueText");
+      const answerInput = document.getElementById("answerInput");
+      const submitButton = document.getElementById("submitButton");
+      const messageElement = document.getElementById("message");
+      const finalBanner = document.getElementById("final-banner");
 
-            // Function to initialize audio context and synth
-            function initAudio() {
-                // Only create synth once
-                if (!synth) {
-                    synth = new Tone.Synth().toDestination();
-                }
-                // Play a simple, cheerful melody/chord
-                const now = Tone.now();
-                synth.triggerAttackRelease("C5", "8n", now);
-                synth.triggerAttackRelease("E5", "8n", now + 0.1);
-                synth.triggerAttackRelease("G5", "8n", now + 0.2);
-                synth.triggerAttackRelease("C6", "4n", now + 0.3);
-            }
+      let currentClueIndex = 0;
 
-            // Function to update the clue display
-            function displayCurrentClue() {
-                if (currentClueIndex < clues.length) {
-                    clueTextElement.textContent = clues[currentClueIndex];
-                } else {
-                    // This handles the "all done" state with the new message
-                    clueTextElement.textContent = `Yay! you finished the Hidden Mickey Hunt. Grab your Mickey ears at the State Employees Credit Union booth- Limit one prize per child winner, while supplies last!`;
-                    submitButton.style.display = 'none'; // Hide the button
-                    answerInput.style.display = 'none'; // Hide the input
-                    messageElement.textContent = 'You found all the Mickey\'s!';
-                    messageElement.className = 'correct';
-                    // Add a fun confetti effect for the grand finale!
-                    createConfetti(200); // More confetti for the finale
-                    initAudio(); // Initialize and play sound
-                }
-            }
+      const starColors = [
+        "var(--disney-gold)",
+        "yellow",
+        "var(--disney-blue-light)",
+      ];
+      const mickeyColors = [
+        "#000",
+        "var(--disney-red)",
+        "var(--disney-purple)",
+      ];
 
-            // Function to check the submitted answer
-            function checkAnswer() {
-                const submittedAnswer = answerInput.value.trim();
-                const correctAnswer = correctAnswers[currentClueIndex];
+      // Tone.js synth for correct answer chime
+      let synth;
 
-                if (submittedAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-                    messageElement.textContent = `That's correct! Get ready for your next clue...`;
-                    messageElement.className = 'correct';
-                    
-                    // Show Disney-themed animations on correct answer
-                    createDisneyAnimations();
-                    
-                    // Move to the next clue
-                    currentClueIndex++;
-                    answerInput.value = ''; // Clear the input field
-                    
-                    // Wait a moment before showing the next clue
-                    setTimeout(displayCurrentClue, 1500);
-                } else {
-                    messageElement.textContent = `Oops, that's not the right code. Please try again!`;
-                    messageElement.className = 'incorrect';
-                }
-            }
-            
-            // Creates a mix of star and Mickey head animations
-            function createDisneyAnimations() {
-                const numAnimations = 20; // More animations
-                for (let i = 0; i < numAnimations; i++) {
-                    const type = Math.random() < 0.5 ? 'star' : 'mickey-head'; // Randomly choose between star and Mickey head
-                    const element = document.createElement('div');
-                    element.classList.add(type);
+      // Tone.js player for fanfare (final)
+      let fanfarePlayer;
 
-                    // Random size
-                    const size = Math.random() * (type === 'star' ? 30 : 50) + (type === 'star' ? 15 : 30); // Stars smaller than Mickeys
-                    element.style.setProperty('--size', `${size}px`);
+      // Initialize audio components
+      function initAudio() {
+        if (!synth) {
+          synth = new Tone.Synth().toDestination();
+        }
+      }
 
-                    // Random color
-                    const color = type === 'star' ? starColors[Math.floor(Math.random() * starColors.length)] : mickeyColors[Math.floor(Math.random() * mickeyColors.length)];
-                    element.style.setProperty('--color', color);
+      // Play correct answer chime
+      function playCorrectChime() {
+        initAudio();
+        const now = Tone.now();
+        synth.triggerAttackRelease("C5", "8n", now);
+        synth.triggerAttackRelease("E5", "8n", now + 0.1);
+        synth.triggerAttackRelease("G5", "8n", now + 0.2);
+        synth.triggerAttackRelease("C6", "4n", now + 0.3);
+      }
 
-                    // Random horizontal position
-                    element.style.left = `${Math.random() * 100}vw`; 
-                    
-                    // Random animation duration and delay
-                    element.style.setProperty('--duration', `${Math.random() * 2 + 3}s`); // Duration between 3s and 5s
-                    element.style.animationDelay = `${Math.random() * 0.5}s`; // Stagger animations
-                    
-                    document.body.appendChild(element);
+      // Load and play fanfare for final clue
+      async function playFanfare() {
+        // Use a short fanfare sound URL or fallback to synth chord
+        try {
+          if (!fanfarePlayer) {
+            fanfarePlayer = new Tone.Player(
+              "https://cdn.jsdelivr.net/gh/naptha/tone-fanfare@master/fanfare.mp3"
+            ).toDestination();
+            await fanfarePlayer.load();
+          }
+          fanfarePlayer.start();
+        } catch {
+          // Fallback chord
+          synth.triggerAttackRelease("C6", "2n");
+          synth.triggerAttackRelease("E6", "2n", "+0.2");
+          synth.triggerAttackRelease("G6", "2n", "+0.4");
+        }
+      }
 
-                    // Remove the element after its animation is done
-                    element.addEventListener('animationend', () => {
-                        element.remove();
-                    });
-                }
-            }
+      // Display the current clue or final message
+      function displayCurrentClue() {
+        if (currentClueIndex < clues.length) {
+          clueTextElement.textContent = clues[currentClueIndex];
+        } else {
+          clueTextElement.textContent =
+            "Yay! you finished the Hidden Mickey Hunt. Grab your Mickey ears at the State Employees Credit Union booth- Limit one prize per child winner, while supplies last!";
+          submitButton.style.display = "none";
+          answerInput.style.display = "none";
+          messageElement.textContent = "You found all the Mickey's!";
+          messageElement.className = "correct";
 
-            // Function to create a confetti effect (for the final screen)
-            function createConfetti(count = 100) { // Added count parameter for more control
-                const confettiColors = ['#FFD700', '#FF69B4', '#2ECC71', '#4A90E2', '#9B59B6']; // More vibrant colors
-                for (let i = 0; i < count; i++) {
-                    const confetti = document.createElement('div');
-                    confetti.classList.add('confetti');
-                    confetti.style.left = `${Math.random() * 100}vw`;
-                    confetti.style.backgroundColor = confettiColors[Math.floor(Math.random() * confettiColors.length)];
-                    confetti.style.animationDelay = `${Math.random() * 2}s`;
-                    document.body.appendChild(confetti);
-                }
-            }
+          // Final celebration
+          createConfetti(200);
+          playFanfare();
+          showFinalBanner();
+        }
+      }
 
-            // Event listeners
-            // This ensures the audio context starts on the first user interaction (button click)
-            submitButton.addEventListener('click', async () => {
-                if (Tone.context.state !== 'running') {
-                    await Tone.start();
-                    console.log("Audio context started!");
-                }
-                checkAnswer(); // Then proceed with checking the answer
-            });
+      // Check the submitted answer
+      function checkAnswer() {
+        const submittedAnswer = answerInput.value.trim();
+        const correctAnswer = correctAnswers[currentClueIndex];
 
-            // Trigger submit button click on Enter keypress
-            answerInput.addEventListener('keypress', (event) => {
-                if (event.key === 'Enter') {
-                    submitButton.click(); // Simulate a click to trigger the audio context start logic
-                }
-            });
+        if (
+          submittedAnswer.toLowerCase() === correctAnswer.toLowerCase()
+        ) {
+          messageElement.textContent = `That's correct! Get ready for your next clue...`;
+          messageElement.className = "correct";
 
-            // Initialize the game display when the window loads
-            window.onload = displayCurrentClue;
+          playCorrectChime();
+          createDisneyAnimations();
 
-        })();
-    </script>
-</body>
-</html>
+          currentClueIndex++;
+          answerInput.value = "";
+
+          setTimeout(displayCurrentClue, 1500);
+        } else {
+          messageElement.textContent = `Oops, that's not the right code. Please try again!`;
+          messageElement.className = "incorrect";
+        }
+      }
+
+      // Disney animations: stars & Mickey heads
+      function createDisneyAnimations() {
+        const numAnimations = 20;
+        for (let i = 0;
+
