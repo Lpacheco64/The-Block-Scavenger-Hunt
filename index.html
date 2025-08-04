@@ -171,7 +171,7 @@
 </head>
 <body>
     <div class="game-container">
-        <h1 class="title">Mickey's Magical Scavenger Hunt</h1>
+        <h1 class="title">Hidden Mickey Hunt</h1>
         
         <!-- Display the current clue -->
         <p class="clue-display" id="clueText"></p>
@@ -237,7 +237,7 @@
                     clueTextElement.textContent = clues[currentClueIndex];
                 } else {
                     // This handles the "all done" state
-                    clueTextElement.textContent = `Yay! you finished Mickey's Magic Hunt. Grab your Mickey ears at the Sandia Area Credit Union booth- one per guest while supplies last!`;
+                    clueTextElement.textContent = `Yay! you finished Hidden Mickey Hunt. Grab your Mickey ears at the Sandia Area Credit Union booth- one per guest while supplies last!`;
                     submitButton.style.display = 'none'; // Hide the button
                     answerInput.style.display = 'none'; // Hide the input
                     messageElement.textContent = 'You found all the Mickey\'s!';
@@ -320,3 +320,4 @@
     </script>
 </body>
 </html>
+
