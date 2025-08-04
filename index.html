@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mickey's Magical Scavenger Hunt</title>
+    <title>Hidden Mickey Hunt</title>
     <!-- Use fun, Disney-like fonts from Google Fonts -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;700&display=swap">
+    <!-- Tailwind CSS for utility classes -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for Web Audio API - for celebration sound -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <style>
         /* Define Disney-inspired color palette */
         :root {
@@ -306,6 +309,23 @@
             const starColors = ['var(--disney-gold)', 'yellow', 'var(--disney-blue-light)'];
             const mickeyColors = ['#000', 'var(--disney-red)', 'var(--disney-purple)']; // Black, Red, Purple for Mickey heads
 
+            // Initialize Tone.js components
+            let synth;
+
+            // Function to initialize audio context and synth
+            function initAudio() {
+                // Only create synth once
+                if (!synth) {
+                    synth = new Tone.Synth().toDestination();
+                }
+                // Play a simple, cheerful melody/chord
+                const now = Tone.now();
+                synth.triggerAttackRelease("C5", "8n", now);
+                synth.triggerAttackRelease("E5", "8n", now + 0.1);
+                synth.triggerAttackRelease("G5", "8n", now + 0.2);
+                synth.triggerAttackRelease("C6", "4n", now + 0.3);
+            }
+
             // Function to update the clue display
             function displayCurrentClue() {
                 if (currentClueIndex < clues.length) {
@@ -318,7 +338,8 @@
                     messageElement.textContent = 'You found all the Mickey\'s!';
                     messageElement.className = 'correct';
                     // Add a fun confetti effect for the grand finale!
-                    createConfetti();
+                    createConfetti(200); // More confetti for the finale
+                    initAudio(); // Initialize and play sound
                 }
             }
 
@@ -379,10 +400,9 @@
             }
 
             // Function to create a confetti effect (for the final screen)
-            function createConfetti() {
-                const numConfetti = 100; // More confetti
+            function createConfetti(count = 100) { // Added count parameter for more control
                 const confettiColors = ['#FFD700', '#FF69B4', '#2ECC71', '#4A90E2', '#9B59B6']; // More vibrant colors
-                for (let i = 0; i < numConfetti; i++) {
+                for (let i = 0; i < count; i++) {
                     const confetti = document.createElement('div');
                     confetti.classList.add('confetti');
                     confetti.style.left = `${Math.random() * 100}vw`;
@@ -393,18 +413,26 @@
             }
 
             // Event listeners
-            submitButton.addEventListener('click', checkAnswer);
+            // This ensures the audio context starts on the first user interaction (button click)
+            submitButton.addEventListener('click', async () => {
+                if (Tone.context.state !== 'running') {
+                    await Tone.start();
+                    console.log("Audio context started!");
+                }
+                checkAnswer(); // Then proceed with checking the answer
+            });
+
+            // Trigger submit button click on Enter keypress
             answerInput.addEventListener('keypress', (event) => {
                 if (event.key === 'Enter') {
-                    checkAnswer();
+                    submitButton.click(); // Simulate a click to trigger the audio context start logic
                 }
             });
 
-            // Initialize the game
+            // Initialize the game display when the window loads
             window.onload = displayCurrentClue;
 
         })();
     </script>
 </body>
 </html>
-
