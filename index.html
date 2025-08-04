@@ -193,22 +193,22 @@
         (function() {
             // Arrays with the clues and correct answers in the order you provided.
             const clues = [
-                'Hop or skip, have some fun! You\'ll find Mickey #1.',
+                `Hop or skip, have some fun! You'll find Mickey #1.`, // Changed to backticks
                 'The best stories are found in books. Find another Mickey when you take a look.',
-                'You\'re doing great, finding Mickey\'s with no trouble! The next one is hiding near a bubble.',
+                `You're doing great, finding Mickey's with no trouble! The next one is hiding near a bubble.`, // Changed to backticks
                 'Where pink flowers bloom, but do not grow, you\'ll find this Mickey hiding low.',
                 'The next Mickey that you\'ll see is hiding right next to a bee.',
                 'Standing on one leg, they don\'t get far. This Mickey is by the Mini Bar.',
-                'We\'ll tell you a secret that we heard, the next Mickey is hiding by an angry bird.',
-                'Ohana means family. That\'s the clue. This lemon Mickey is waiting for you.',
-                'The map will help you find your way when you hunt for Mickey\'s today.',
+                `We'll tell you a secret that we heard, the next Mickey is hiding by an angry bird.`, // Changed to backticks
+                `Ohana means family. That's the clue. This lemon Mickey is waiting for you.`, // Changed to backticks
+                `The map will help you find your way when you hunt for Mickey's today.`, // Changed to backticks
                 'Order tacos, burritos, and nachos too! That\'s where this Mickey is waiting for you.',
                 'Fill up your bottle or take a drink. Mickey\'s hiding by the sink.',
-                'This Mickey is hiding by the loo. Look by the calendar and you\'ll find him too!',
+                `This Mickey is hiding by the loo. Look by the calendar and you'll find him too!`, // Changed to backticks
             ];
 
             const correctAnswers = [
-                'HopSkip',
+                'Hop Skip',
                 'Books',
                 'Bubble',
                 'Flowers',
@@ -217,7 +217,7 @@
                 'Chicken',
                 'Lemonade',
                 'Map',
-                'TacoStand',
+                'Taco Stand',
                 'Fountain',
                 'Calendar',
             ];
@@ -237,8 +237,7 @@
                     clueTextElement.textContent = clues[currentClueIndex];
                 } else {
                     // This handles the "all done" state
-                    clueTextElement.textContent = 'Yay! You finished Mickey’s Magic Hunt! 🎉
-Grab your Mickey Ears at the Sandia Credit Union booth — one per guest, while they last!';
+                    clueTextElement.textContent = `Yay! you finished Mickey's Magic Hunt. Grab your Mickey ears at the Sandia Area Credit Union booth- one per guest while supplies last!`;
                     submitButton.style.display = 'none'; // Hide the button
                     answerInput.style.display = 'none'; // Hide the input
                     messageElement.textContent = 'You found all the Mickey\'s!';
@@ -321,4 +320,3 @@ Grab your Mickey Ears at the Sandia Credit Union booth — one per guest, while 
     </script>
 </body>
 </html>
-
