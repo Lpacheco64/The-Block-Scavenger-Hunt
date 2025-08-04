@@ -3,97 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Disney Scavenger Hunt</title>
-    <!-- Use a fun, Disney-like font from Google Fonts -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap">
+    <title>Mickey's Magical Scavenger Hunt</title>
+    <!-- Use fun, Disney-like fonts from Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;700&display=swap">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles for a Disney theme */
+        /* Define Disney-inspired color palette */
+        :root {
+            --disney-blue-light: #B0E0E6; /* Powder Blue */
+            --disney-blue-dark: #6A5ACD; /* Slate Blue */
+            --disney-gold: #FFD700; /* Gold */
+            --disney-red: #E63946; /* Imperial Red */
+            --disney-green: #2ECC71; /* Emerald Green */
+            --disney-purple: #9B59B6; /* Amethyst */
+            --disney-pink: #FF69B4; /* Hot Pink */
+            --text-dark: #333;
+            --text-light: #fff;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --border-color: #A8DADC;
+        }
+
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(to bottom right, #87CEEB, #F0F8FF); /* Sky blue gradient */
-            color: #333;
+            background: linear-gradient(135deg, var(--disney-blue-light) 0%, var(--disney-blue-dark) 100%);
+            color: var(--text-dark);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             padding: 20px;
             overflow: hidden; /* Hide overflow from animations */
+            position: relative; /* For animations to position correctly */
         }
 
         .game-container {
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: var(--card-bg);
             padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            border-radius: 25px; /* More rounded */
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3); /* Stronger shadow */
             text-align: center;
-            max-width: 600px;
+            max-width: 650px; /* Slightly wider */
             width: 100%;
-            position: relative; /* Needed for z-index of animations */
-            z-index: 1; /* Ensure container is above animations */
+            border: 3px solid var(--disney-gold); /* Gold border */
+            position: relative;
+            z-index: 10; /* Ensure container is above animations */
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .title {
-            font-size: 2.5rem;
+            font-family: 'Pacifico', cursive; /* Playful font for title */
+            font-size: 3rem; /* Larger title */
             font-weight: 700;
-            color: #E63946; /* A bright, Disney-like red */
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            color: var(--disney-red);
+            text-shadow: 3px 3px 5px rgba(0,0,0,0.2); /* Enhanced shadow */
+            margin-bottom: 25px;
+            line-height: 1.1;
         }
 
         .clue-display {
-            font-size: 1.25rem;
-            line-height: 1.6;
-            margin-bottom: 30px;
-            background-color: #f7fcfd;
-            padding: 20px;
-            border-radius: 10px;
-            border: 2px solid #a8dadc;
+            font-size: 1.35rem; /* Slightly larger clue text */
+            line-height: 1.7;
+            margin-bottom: 35px;
+            background-color: #fcfdff; /* Lighter background for clue */
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px dashed var(--border-color); /* Dashed border for fun */
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
         }
 
         #message {
-            margin-top: 20px;
-            font-size: 1.1rem;
+            margin-top: 25px;
+            font-size: 1.2rem;
             font-weight: 700;
+            transition: color 0.3s ease;
         }
 
         .correct {
-            color: #2a9d8f; /* A positive green */
+            color: var(--disney-green);
         }
 
         .incorrect {
-            color: #e76f51; /* A warning orange */
+            color: var(--disney-red);
         }
 
         input[type="text"] {
-            border: 2px solid #a8dadc;
-            padding: 15px;
-            font-size: 1.2rem;
+            border: 2px solid var(--border-color);
+            padding: 18px; /* Larger padding */
+            font-size: 1.3rem; /* Larger font */
             width: 100%;
-            border-radius: 10px;
-            transition: all 0.3s;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            text-align: center; /* Center text */
         }
 
         input[type="text"]:focus {
             outline: none;
-            border-color: #457b9d;
-            box-shadow: 0 0 8px rgba(69, 123, 157, 0.5);
+            border-color: var(--disney-blue-dark);
+            box-shadow: 0 0 10px rgba(106, 90, 205, 0.6);
         }
 
         button {
-            background-color: #E63946;
-            color: white;
-            padding: 15px 30px;
-            font-size: 1.2rem;
+            background-color: var(--disney-red);
+            color: var(--text-light);
+            padding: 18px 35px; /* Larger padding */
+            font-size: 1.3rem; /* Larger font */
             font-weight: 700;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.2s, background-color 0.2s;
+            border-radius: 12px;
+            box-shadow: 0 6px 10px rgba(0,0,0,0.2); /* Stronger shadow */
+            transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+            border: none; /* Remove default button border */
+            cursor: pointer;
         }
 
         button:hover {
-            background-color: #d12e3a;
-            transform: translateY(-2px);
+            background-color: #c92c39; /* Darker red on hover */
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
         /* ----- Animation Styles ----- */
@@ -101,7 +136,7 @@
             position: absolute;
             width: 10px;
             height: 10px;
-            background-color: #FFD700; /* Gold */
+            background-color: var(--disney-gold); /* Gold */
             animation: confetti-fall 2s forwards;
             opacity: 0;
             border-radius: 50%;
@@ -116,13 +151,14 @@
         /* Star animation */
         .star {
             position: absolute;
-            width: 20px;
-            height: 20px;
-            background-color: gold;
+            width: var(--size);
+            height: var(--size);
+            background-color: var(--color);
             clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-            animation: star-sparkle 2s ease-out forwards;
+            animation: star-sparkle var(--duration) ease-out forwards;
             opacity: 0;
             z-index: 0;
+            filter: drop-shadow(0 0 5px var(--color)); /* Glow effect */
         }
 
         @keyframes star-sparkle {
@@ -134,32 +170,33 @@
         /* Mickey Head animation */
         .mickey-head {
             position: absolute;
-            width: 40px;
-            height: 40px;
-            background-color: #000; /* Black for Mickey's head */
+            width: var(--size);
+            height: var(--size);
+            background-color: var(--color); /* Use a color variable */
             border-radius: 50%;
-            animation: mickey-rise 3s ease-out forwards;
+            animation: mickey-rise var(--duration) ease-out forwards;
             opacity: 0;
             z-index: 0;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); /* Subtle shadow */
         }
 
         .mickey-head::before,
         .mickey-head::after {
             content: '';
             position: absolute;
-            width: 25px;
-            height: 25px;
-            background-color: #000;
+            width: calc(var(--size) * 0.6); /* Ears proportional to head */
+            height: calc(var(--size) * 0.6);
+            background-color: var(--color);
             border-radius: 50%;
-            top: -10px; /* Position ears above head */
+            top: calc(var(--size) * -0.25); /* Position ears above head */
         }
 
         .mickey-head::before {
-            left: -10px;
+            left: calc(var(--size) * -0.25);
         }
 
         .mickey-head::after {
-            right: -10px;
+            right: calc(var(--size) * -0.25);
         }
 
         @keyframes mickey-rise {
@@ -171,7 +208,7 @@
 </head>
 <body>
     <div class="game-container">
-        <h1 class="title">Hidden Mickey Hunt</h1>
+        <h1 class="title">Mickey's Magical Scavenger Hunt</h1>
         
         <!-- Display the current clue -->
         <p class="clue-display" id="clueText"></p>
@@ -193,18 +230,18 @@
         (function() {
             // Arrays with the clues and correct answers in the order you provided.
             const clues = [
-                `Hop or skip, have some fun! You'll find Mickey #1.`, // Changed to backticks
+                `Hop or skip, have some fun! You'll find Mickey #1.`,
                 'The best stories are found in books. Find another Mickey when you take a look.',
-                `You're doing great, finding Mickey's with no trouble! The next one is hiding near a bubble.`, // Changed to backticks
+                `You're doing great, finding Mickey's with no trouble! The next one is hiding near a bubble.`,
                 'Where pink flowers bloom, but do not grow, you\'ll find this Mickey hiding low.',
                 'The next Mickey that you\'ll see is hiding right next to a bee.',
                 'Standing on one leg, they don\'t get far. This Mickey is by the Mini Bar.',
-                `We'll tell you a secret that we heard, the next Mickey is hiding by an angry bird.`, // Changed to backticks
-                `Ohana means family. That's the clue. This lemon Mickey is waiting for you.`, // Changed to backticks
-                `The map will help you find your way when you hunt for Mickey's today.`, // Changed to backticks
+                `We'll tell you a secret that we heard, the next Mickey is hiding by an angry bird.`,
+                `Ohana means family. That's the clue. This lemon Mickey is waiting for you.`,
+                `The map will help you find your way when you hunt for Mickey's today.`,
                 'Order tacos, burritos, and nachos too! That\'s where this Mickey is waiting for you.',
                 'Fill up your bottle or take a drink. Mickey\'s hiding by the sink.',
-                `This Mickey is hiding by the loo. Look by the calendar and you'll find him too!`, // Changed to backticks
+                `This Mickey is hiding by the loo. Look by the calendar and you'll find him too!`,
             ];
 
             const correctAnswers = [
@@ -229,14 +266,15 @@
             const messageElement = document.getElementById('message');
 
             let currentClueIndex = 0;
-            const starColors = ['gold', 'yellow', 'lightyellow']; // Colors for stars
+            const starColors = ['var(--disney-gold)', 'yellow', 'var(--disney-blue-light)'];
+            const mickeyColors = ['#000', 'var(--disney-red)', 'var(--disney-purple)']; // Black, Red, Purple for Mickey heads
 
             // Function to update the clue display
             function displayCurrentClue() {
                 if (currentClueIndex < clues.length) {
                     clueTextElement.textContent = clues[currentClueIndex];
                 } else {
-                    // This handles the "all done" state
+                    // This handles the "all done" state with the new message
                     clueTextElement.textContent = `Yay! you finished the Hidden Mickey Hunt. Grab your Mickey ears at the State Employees Credit Union booth- Limit one prize per child winner, while supplies last!`;
                     submitButton.style.display = 'none'; // Hide the button
                     answerInput.style.display = 'none'; // Hide the input
@@ -273,17 +311,26 @@
             
             // Creates a mix of star and Mickey head animations
             function createDisneyAnimations() {
-                const numAnimations = 15; // Number of stars/Mickey heads to create
+                const numAnimations = 20; // More animations
                 for (let i = 0; i < numAnimations; i++) {
                     const type = Math.random() < 0.5 ? 'star' : 'mickey-head'; // Randomly choose between star and Mickey head
                     const element = document.createElement('div');
                     element.classList.add(type);
-                    element.style.left = `${Math.random() * 100}vw`; // Random horizontal position
-                    element.style.animationDelay = `${Math.random() * 0.5}s`; // Stagger animations
 
-                    if (type === 'star') {
-                        element.style.backgroundColor = starColors[Math.floor(Math.random() * starColors.length)];
-                    }
+                    // Random size
+                    const size = Math.random() * (type === 'star' ? 30 : 50) + (type === 'star' ? 15 : 30); // Stars smaller than Mickeys
+                    element.style.setProperty('--size', `${size}px`);
+
+                    // Random color
+                    const color = type === 'star' ? starColors[Math.floor(Math.random() * starColors.length)] : mickeyColors[Math.floor(Math.random() * mickeyColors.length)];
+                    element.style.setProperty('--color', color);
+
+                    // Random horizontal position
+                    element.style.left = `${Math.random() * 100}vw`; 
+                    
+                    // Random animation duration and delay
+                    element.style.setProperty('--duration', `${Math.random() * 2 + 3}s`); // Duration between 3s and 5s
+                    element.style.animationDelay = `${Math.random() * 0.5}s`; // Stagger animations
                     
                     document.body.appendChild(element);
 
@@ -296,10 +343,13 @@
 
             // Function to create a confetti effect (for the final screen)
             function createConfetti() {
-                for (let i = 0; i < 50; i++) {
+                const numConfetti = 100; // More confetti
+                const confettiColors = ['#FFD700', '#FF69B4', '#2ECC71', '#4A90E2', '#9B59B6']; // More vibrant colors
+                for (let i = 0; i < numConfetti; i++) {
                     const confetti = document.createElement('div');
                     confetti.classList.add('confetti');
                     confetti.style.left = `${Math.random() * 100}vw`;
+                    confetti.style.backgroundColor = confettiColors[Math.floor(Math.random() * confettiColors.length)];
                     confetti.style.animationDelay = `${Math.random() * 2}s`;
                     document.body.appendChild(confetti);
                 }
@@ -320,5 +370,3 @@
     </script>
 </body>
 </html>
-
-
