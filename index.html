@@ -213,12 +213,12 @@
                 'Bubble',
                 'Flowers',
                 'Bee',
-                'MiniBar',
-                'AngryBird',
-                'Ohana',
+                'Flamingo',
+                'Chicken',
+                'Lemonade',
                 'Map',
                 'TacoStand',
-                'Sink',
+                'Fountain',
                 'Calendar',
             ];
 
@@ -237,7 +237,8 @@
                     clueTextElement.textContent = clues[currentClueIndex];
                 } else {
                     // This handles the "all done" state
-                    clueTextElement.textContent = 'Congratulations! You have completed the Disney Scavenger Hunt!';
+                    clueTextElement.textContent = 'Yay! You finished Mickey’s Magic Hunt! 🎉
+Grab your Mickey Ears at the Sandia Credit Union booth — one per guest, while they last!';
                     submitButton.style.display = 'none'; // Hide the button
                     answerInput.style.display = 'none'; // Hide the input
                     messageElement.textContent = 'You found all the Mickey\'s!';
@@ -320,3 +321,4 @@
     </script>
 </body>
 </html>
+
