@@ -177,7 +177,7 @@
             animation: confetti-fall 2s forwards;
             opacity: 0;
             border-radius: 50%;
-            z-index: 0;
+            z-index: 20; /* Higher z-index to be in front */
         }
 
         @keyframes confetti-fall {
@@ -194,7 +194,7 @@
             clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
             animation: star-sparkle var(--duration) ease-out forwards;
             opacity: 0;
-            z-index: 0;
+            z-index: 20; /* Higher z-index to be in front */
             filter: drop-shadow(0 0 5px var(--color)); /* Glow effect */
         }
 
@@ -213,7 +213,7 @@
             border-radius: 50%;
             animation: mickey-rise var(--duration) ease-out forwards;
             opacity: 0;
-            z-index: 0;
+            z-index: 20; /* Higher z-index to be in front */
             filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); /* Subtle shadow */
         }
 
@@ -407,3 +407,4 @@
     </script>
 </body>
 </html>
+
