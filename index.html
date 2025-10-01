@@ -6,17 +6,12 @@
   <title>Haunted Block Hunt</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap">
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- QR generator (for admin print sheet) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- ZXing QR scanner -->
   <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
   <style>
-    :root{
-      --block-bg:#0b0b0e;--block-card:#14141a;--block-ink:#f6f3ff;--block-muted:#b9b6c9;
-      --block-primary:#ff6600;--block-secondary:#ffffff;
-    }
+    :root{--block-bg:#0b0b0e;--block-card:#14141a;--block-ink:#f6f3ff;--block-primary:#ff6600;--block-secondary:#ffffff}
     body{background:linear-gradient(160deg,var(--block-bg),#171722);color:var(--block-ink);font-family:Poppins,system-ui,sans-serif;min-height:100svh}
-    .card{background:var(--block-card);border:1px solid #262433;border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+    .card{background:#14141a;border:1px solid #262433;border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
     .btn{border-radius:14px;padding:14px 18px;font-weight:700}
     .btn-primary{background:linear-gradient(135deg,var(--block-primary),var(--block-secondary));color:#000}
     .btn-muted{background:#272733;color:var(--block-ink)}
@@ -26,12 +21,9 @@
     video{border-radius:12px}
     .ghost{position:fixed;inset:auto 0 0 50%;translate:-50% 0;width:80px;height:80px;background:#fff;border-radius:40px 40px 16px 16px/50px 50px 16px 16px;box-shadow:0 8px 30px rgba(0,0,0,.35);opacity:.08;pointer-events:none;animation:float 6s ease-in-out infinite}
     @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-
-    /* ---- MEGA WIN FX ---- */
     .win-wrap{position:fixed;inset:0;pointer-events:none;z-index:80}
     .flash{position:fixed;inset:0;background:radial-gradient(circle at 50% 50%, rgba(255,140,0,.8), rgba(0,0,0,0) 60%);opacity:0}
-    .flash.show{animation:flashA .6s ease-out}
-    @keyframes flashA{0%{opacity:1}100%{opacity:0}}
+    .flash.show{animation:flashA .6s ease-out}@keyframes flashA{0%{opacity:1}100%{opacity:0}}
     .shake{animation:shakeA .45s cubic-bezier(.36,.07,.19,.97)}
     @keyframes shakeA{10%,90%{transform:translate3d(-2px,0,0)}20%,80%{transform:translate3d(4px,0,0)}30%,50%,70%{transform:translate3d(-6px,0,0)}40%,60%{transform:translate3d(6px,0,0)}}
     .win-center{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.7);opacity:0;filter:drop-shadow(0 0 24px rgba(255,120,0,.8))}
@@ -39,16 +31,12 @@
     @keyframes popA{0%{opacity:0;transform:translate(-50%,-50%) scale(.6) rotate(-6deg)}60%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
     .firework{position:fixed;width:8px;height:8px;border-radius:50%;background:#ffa500;mix-blend-mode:screen;pointer-events:none}
     .confetti{position:fixed;width:8px;height:12px;will-change:transform,opacity;pointer-events:none}
-    .bat{position:fixed;width:46px;aspect-ratio:2/1;background:conic-gradient(from 180deg,#000 0 180deg,transparent 0),
-         radial-gradient(50% 100% at 25% 50%,#000 60%,transparent 61%), radial-gradient(50% 100% at 75% 50%,#000 60%,transparent 61%);
-         filter:drop-shadow(0 0 6px rgba(0,0,0,.6));opacity:.9;transform:translate(-50%,-50%)}
-    .banner{position:fixed;left:50%;top:12%;transform:translateX(-50%);background:linear-gradient(135deg,#ff8c00,#ffd35c);
-      color:#000;font-weight:800;padding:.6rem 1rem;border-radius:999px;box-shadow:0 10px 30px rgba(255,140,0,.35);opacity:0}
+    .bat{position:fixed;width:46px;aspect-ratio:2/1;background:conic-gradient(from 180deg,#000 0 180deg,transparent 0),radial-gradient(50% 100% at 25% 50%,#000 60%,transparent 61%),radial-gradient(50% 100% at 75% 50%,#000 60%,transparent 61%);filter:drop-shadow(0 0 6px rgba(0,0,0,.6));opacity:.9;transform:translate(-50%,-50%)}
+    .banner{position:fixed;left:50%;top:12%;transform:translateX(-50%);background:linear-gradient(135deg,#ff8c00,#ffd35c);color:#000;font-weight:800;padding:.6rem 1rem;border-radius:999px;box-shadow:0 10px 30px rgba(255,140,0,.35);opacity:0}
     .banner.show{animation:bannerA .8s ease-out forwards}
     @keyframes bannerA{0%{transform:translateX(-50%) translateY(-12px);opacity:0}100%{transform:translateX(-50%) translateY(0);opacity:1}}
     .vignette{position:fixed;inset:0;box-shadow:inset 0 0 220px rgba(0,0,0,.7);opacity:0}
-    .vignette.show{animation:vigA .6s ease-out}
-    @keyframes vigA{0%{opacity:1}100%{opacity:0}}
+    .vignette.show{animation:vigA .6s ease-out}@keyframes vigA{0%{opacity:1}100%{opacity:0}}
     @media (prefers-reduced-motion:reduce){.shake,.flash.show,.win-center.show,.banner.show,.vignette.show{animation:none}}
   </style>
 </head>
@@ -65,20 +53,13 @@
     <div class="ghost"></div>
   </div>
 
-  <!-- MEGA WIN OVERLAYS -->
   <div class="win-wrap" aria-hidden="true">
     <div id="fx-flash" class="flash"></div>
     <div id="fx-vig" class="vignette"></div>
     <div id="fx-banner" class="banner">🎃 Spooktacular! +1 Stop</div>
     <div id="fx-center" class="win-center">
-      <!-- Glowing pumpkin -->
       <svg viewBox="0 0 128 128" width="180" aria-hidden="true">
-        <defs>
-          <radialGradient id="pg" cx="50%" cy="45%" r="60%">
-            <stop offset="0%" stop-color="#ffd35c"/><stop offset="70%" stop-color="#ff8c00"/>
-            <stop offset="100%" stop-color="#b34b00"/>
-          </radialGradient>
-        </defs>
+        <defs><radialGradient id="pg" cx="50%" cy="45%" r="60%"><stop offset="0%" stop-color="#ffd35c"/><stop offset="70%" stop-color="#ff8c00"/><stop offset="100%" stop-color="#b34b00"/></radialGradient></defs>
         <ellipse cx="64" cy="70" rx="50" ry="40" fill="url(#pg)" stroke="#3a1c00" stroke-width="3"/>
         <rect x="58" y="18" width="12" height="12" rx="2" fill="#3a1c00"/>
         <path d="M36 62 l14 -10 14 10 M64 62 l14 -10 14 10" stroke="#000" stroke-width="8" stroke-linecap="round"/>
@@ -87,7 +68,7 @@
     </div>
   </div>
 
-  <!-- One-time sound unlock banner (WebAudio handles playback) -->
+  <!-- Enable Sound banner -->
   <div id="audioGate" style="position:fixed;inset:auto 0 16px 0;display:flex;justify-content:center;pointer-events:none;z-index:90">
     <button id="audioGateBtn" onclick="enableSFX()" style="pointer-events:auto;background:#ff8c00;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,140,0,.35);border:none">
       🔊 Enable Sound Effects
@@ -95,151 +76,87 @@
   </div>
 
 <script>
-/* ---------- CONFIG ---------- */
+/* ===== Config ===== */
 const EVENT_ID = "haunted-block-2025";
-const ANALYTICS = { endpoint: "" }; // optional webhook URL
+const ANALYTICS = { endpoint: "" };
 
-/* ====== SFX via WebAudio + On-Screen Debug ====== */
-let sfxEnabled = false;
-let AC, masterGain;
-
-// Derive a safe base path for assets (works on GitHub Pages /repo/ and local)
-const BASE = (() => {
-  const p = location.pathname;
-  if (p.endsWith('/')) return p;
-  return p.slice(0, p.lastIndexOf('/') + 1);
-})();
-
-// ✅ Put your audio files next to index.html (or change names below)
-const SFX = {
-  thunder: { url: BASE + 'thunder.mp3', buffer: null, lastError: null },
-  witch:   { url: BASE + 'witch.mp3',   buffer: null, lastError: null },
-  // Built-in tiny beep so we can verify audio pipeline even if MP3 paths fail
-  beep:    { url: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYBAGZkAAAAAAAAPwAAAP8AAP8AAP8AAP8AAP8AAP8AAP8AAP8AAP8AAP8AAP8AAP8AAP8A', buffer: null, lastError: null }
-};
+/* ===== WebAudio SFX (no external files) ===== */
+let sfxEnabled=false, AC, masterGain;
 
 async function enableSFX(){
   if (sfxEnabled) return;
   sfxEnabled = true;
-  removeGate();
+  const gate=document.getElementById('audioGate'); if(gate) gate.remove();
 
-  const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!Ctx) { debug('No AudioContext available.'); return; }
-
+  const Ctx = window.AudioContext||window.webkitAudioContext;
+  if(!Ctx) return;
   AC = AC || new Ctx();
-  if (AC.state === 'suspended') { try { await AC.resume(); } catch(e){ debug('Resume failed: ' + e.message); } }
-
+  if(AC.state==='suspended'){ try{ await AC.resume(); }catch{} }
   masterGain = masterGain || AC.createGain();
-  masterGain.gain.value = 0.95;
-  masterGain.connect(AC.destination);
+  masterGain.gain.value = 0.95; masterGain.connect(AC.destination);
 
-  await Promise.all(Object.keys(SFX).map(k => loadSfx(k)));
-  refreshDebug();
+  // Prime quickly (some Androids like a short silent start)
+  const g=AC.createGain(); g.gain.value=0.0001; const o=AC.createOscillator(); o.connect(g); g.connect(masterGain); o.start(); o.stop(AC.currentTime+0.03);
 }
 
-async function loadSfx(key){
-  const s = SFX[key];
-  try {
-    // data: URL for beep doesn't need fetch; decode a minimal buffer instead
-    if (s.url.startsWith('data:')){
-      const buf = AC.createBuffer(1, Math.max(AC.sampleRate * 0.04|0, 1), AC.sampleRate);
-      s.buffer = buf;
-      s.lastError = null;
-      return;
-    }
-    const res = await fetch(s.url, { cache: 'force-cache' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const arr = await res.arrayBuffer();
-    s.buffer = await decode(arr);
-    s.lastError = null;
-  } catch (e) {
-    s.lastError = String(e);
+/* Generate thunder: filtered noise burst + low rumble */
+function playThunder(){
+  if(!sfxEnabled||!AC) return;
+  const dur = 1.8;
+  const noiseBuf = AC.createBuffer(1, AC.sampleRate*dur|0, AC.sampleRate);
+  const data = noiseBuf.getChannelData(0);
+  for(let i=0;i<data.length;i++){
+    const t=i/AC.sampleRate;
+    const envelope = Math.exp(-3*t); // quick decay
+    data[i] = (Math.random()*2-1)*envelope*0.7;
   }
-}
-function decode(buf){
-  return new Promise((resolve, reject)=> {
-    AC.decodeAudioData(buf.slice(0), resolve, reject);
-  });
-}
-function playBuf(buffer, vol=1, delay=0){
-  if (!AC || !buffer) return;
-  const src = AC.createBufferSource();
-  const g = AC.createGain();
-  g.gain.value = vol;
-  src.buffer = buffer;
-  src.connect(g); g.connect(masterGain);
-  try { src.start(AC.currentTime + delay); } catch(e) { debug('start() error: ' + e.message); }
-}
-function playWinSfx(){
-  if (!sfxEnabled) return;
-  const thunder = SFX.thunder.buffer || SFX.beep.buffer;
-  const witch   = SFX.witch.buffer   || SFX.beep.buffer;
-  playBuf(thunder, 0.95, 0.00);
-  playBuf(witch,   0.75, 0.35);
+  const noise = AC.createBufferSource(); noise.buffer = noiseBuf;
+  const biq = AC.createBiquadFilter(); biq.type='lowpass'; biq.frequency.value=1500;
+  const g = AC.createGain(); g.gain.setValueAtTime(0.9, AC.currentTime);
+  noise.connect(biq); biq.connect(g); g.connect(masterGain);
+  noise.start();
+
+  // low rumble sine that slides down
+  const osc = AC.createOscillator(); osc.type='sine'; osc.frequency.setValueAtTime(60, AC.currentTime);
+  const rg = AC.createGain(); rg.gain.setValueAtTime(0.7, AC.currentTime);
+  osc.connect(rg); rg.connect(masterGain);
+  osc.frequency.exponentialRampToValueAtTime(30, AC.currentTime+dur);
+  rg.gain.exponentialRampToValueAtTime(0.001, AC.currentTime+dur);
+  osc.start(); osc.stop(AC.currentTime+dur);
 }
 
-/* ====== UI Gate & Global Tap ====== */
-function removeGate(){ const gate = document.getElementById('audioGate'); if (gate) gate.remove(); }
-(function(){ const once = () => { if (!sfxEnabled) enableSFX(); window.removeEventListener('pointerdown', once, true); }; window.addEventListener('pointerdown', once, true); })();
+/* Generate witch laugh: FM-modulated cackle */
+function playWitch(){
+  if(!sfxEnabled||!AC) return;
+  const base=600, dur=1.2;
+  const carrier = AC.createOscillator(); carrier.type='square'; carrier.frequency.value=base;
+  const mod = AC.createOscillator(); mod.type='sine'; mod.frequency.value=6; // laugh pulses
+  const modGain = AC.createGain(); modGain.gain.value=220; // depth
+  const out = AC.createGain(); out.gain.value=0.0;
 
-/* ====== Tiny Debug Panel ====== */
-const DBG = { lines: [] };
-function debug(msg){ DBG.lines.push(String(msg)); refreshDebug(); }
-function refreshDebug(){
-  let panel = document.getElementById('sfxDebug');
-  if (!panel){
-    panel = document.createElement('div');
-    panel.id = 'sfxDebug';
-    panel.style.cssText = 'position:fixed;right:8px;bottom:8px;max-width:92vw;background:#111;border:1px solid #333;color:#eee;font:12px/1.4 system-ui, sans-serif;border-radius:8px;padding:8px;z-index:99';
-    panel.innerHTML = `
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-        <button id="dbgEnable" style="padding:6px 10px;border-radius:6px;border:1px solid #444;background:#ff8c00;color:#000;font-weight:800">Enable SFX</button>
-        <button id="dbgBeep"   style="padding:6px 10px;border-radius:6px;border:1px solid #444;background:#222;color:#eee">Test Beep</button>
-        <button id="dbgThun"   style="padding:6px 10px;border-radius:6px;border:1px solid #444;background:#222;color:#eee">Test Thunder</button>
-        <button id="dbgWit"    style="padding:6px 10px;border-radius:6px;border:1px solid #444;background:#222;color:#eee">Test Witch</button>
-      </div>
-      <div id="dbgStatus" style="white-space:pre-wrap;max-height:30vh;overflow:auto"></div>`;
-    document.body.appendChild(panel);
-    panel.querySelector('#dbgEnable').onclick = () => enableSFX();
-    panel.querySelector('#dbgBeep').onclick   = () => { if (!sfxEnabled) enableSFX(); playBuf(SFX.beep.buffer || null, 0.8, 0); };
-    panel.querySelector('#dbgThun').onclick   = () => { if (!sfxEnabled) enableSFX(); playBuf(SFX.thunder.buffer || SFX.beep.buffer, 0.9, 0); };
-    panel.querySelector('#dbgWit').onclick    = () => { if (!sfxEnabled) enableSFX(); playBuf(SFX.witch.buffer   || SFX.beep.buffer,   0.8, 0); };
-  }
-  const st = [
-    `AudioContext: ${AC ? AC.state : 'not created'}`,
-    `Base path: ${BASE}`,
-    `thunder: ${SFX.thunder.buffer ? 'loaded' : (SFX.thunder.lastError || 'pending')} (${SFX.thunder.url})`,
-    `witch:   ${SFX.witch.buffer   ? 'loaded' : (SFX.witch.lastError   || 'pending')} (${SFX.witch.url})`,
-    `beep:    ${SFX.beep.buffer ? 'built-in ready' : (SFX.beep.lastError || 'pending')}`,
-    ...(DBG.lines.slice(-6))
-  ].join('\n');
-  document.getElementById('dbgStatus').textContent = st;
-}
-// Preload a tiny silent buffer so "Test Beep" works even before enabling
-(async function preloadBeep(){
-  try{
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (Ctx){
-      AC = AC || new Ctx();
-      const buf = AC.createBuffer(1, Math.max(AC.sampleRate * 0.04|0, 1), AC.sampleRate);
-      SFX.beep.buffer = buf;
-      if (AC.state === 'suspended') { try { await AC.resume(); } catch {} }
-      if (!sfxEnabled) { try { AC.suspend(); } catch {} }
-    }
-  }catch(e){ SFX.beep.lastError = String(e); }
-  refreshDebug();
-})();
-</script>
+  mod.connect(modGain); modGain.connect(carrier.frequency);
+  carrier.connect(out); out.connect(masterGain);
 
-<script>
-/* ---------- ANALYTICS ---------- */
-function track(event, payload={}) {
-  if(!ANALYTICS.endpoint) return;
-  const body = JSON.stringify({event, ts: Date.now(), team, index, ...payload});
-  navigator.sendBeacon(ANALYTICS.endpoint, new Blob([body], {type:'application/json'}));
+  // giggle envelope
+  const t=AC.currentTime;
+  out.gain.linearRampToValueAtTime(0.0, t);
+  out.gain.linearRampToValueAtTime(0.8, t+0.08);
+  out.gain.exponentialRampToValueAtTime(0.001, t+dur);
+
+  // slight downward pitch
+  carrier.frequency.exponentialRampToValueAtTime(380, t+dur);
+
+  carrier.start(t); mod.start(t);
+  carrier.stop(t+dur); mod.stop(t+dur);
 }
 
-/* ---------- GAME DATA ---------- */
+/* One-tap auto-enable as backup */
+window.addEventListener('pointerdown',()=>{ if(!sfxEnabled) enableSFX(); }, {once:true, capture:true});
+
+/* ===== Analytics (optional) ===== */
+function track(event,payload={}){ if(!ANALYTICS.endpoint) return; const body=JSON.stringify({event,ts:Date.now(),team,index,...payload}); navigator.sendBeacon(ANALYTICS.endpoint,new Blob([body],{type:'application/json'})); }
+
+/* ===== Game Data ===== */
 const STOPS = [
   { id:"stop-el-chamo", business:"El Chamo", title:"Venezuelan Vampire Bites", riddle:"A hungry vampire craves arepas—follow the smell of sizzling corn cakes!" },
   { id:"stop-kukri", business:"Kukri", title:"Crispy Chicken Crown", riddle:"A raven guards a crispy crown—find the throne of the mighty chicken!" },
@@ -259,7 +176,7 @@ const STOPS = [
   { id:"stop-candy-bar", business:"The Candy Bar", title:"Trick-or-Treat Counter", riddle:"Count the sweets if you dare—trick-or-treats await your stare." }
 ];
 
-/* ---------- STATE / RENDER ---------- */
+/* ===== State / UI ===== */
 const KEY=(k)=>`${EVENT_ID}:${k}`, $=(s)=>document.querySelector(s);
 let team=localStorage.getItem(KEY('team'))||''; let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
 function save(){ localStorage.setItem(KEY('team'),team); localStorage.setItem(KEY('index'),String(index)); }
@@ -326,14 +243,10 @@ function renderAdmin(){
   STOPS.forEach(s=> new QRCode(document.getElementById(`qr-${s.id}`), { text:s.id, width:180, height:180, correctLevel: QRCode.CorrectLevel.M }));
 }
 function renderStats(){ $("#game").innerHTML=wrapCard(`<h1 class="text-xl font-bold">Stats</h1><p class="text-sm text-gray-400">Local-only counters on this device.</p>`); }
-function startTeam(){
-  enableSFX(); /* unlock WebAudio + preload */
-  const inp=$("#teamInput"); const newTeam=(inp.value||'').trim(); if(!newTeam) return;
-  team=newTeam; index=0; save(); render();
-}
+function startTeam(){ enableSFX(); const inp=$("#teamInput"); const t=(inp.value||'').trim(); if(!t) return; team=t; index=0; save(); render(); }
 function resetProgress(){ localStorage.removeItem(KEY('team')); localStorage.removeItem(KEY('index')); team=''; index=0; render(); }
 
-/* ---------- CELEBRATE (visual confetti) ---------- */
+/* ===== Visual Celebrate & FX ===== */
 function celebrate(){
   for(let i=0;i<120;i++){
     const d=document.createElement('div');
@@ -346,20 +259,17 @@ function celebrate(){
     setTimeout(()=>d.remove(),1400);
   }
 }
-
-/* ---------- MEGA WIN FX (visuals) ---------- */
 function rand(a,b){return a+Math.random()*(b-a)}
-function hsl(h,s,l){return `hsl(${h} ${s}% ${l}%)`}
+function hslc(h,s,l){return `hsl(${h} ${s}% ${l}%)`}
 function spawnConfettiBurst(n=140){
   for(let i=0;i<n;i++){
     const c=document.createElement('div'); c.className='confetti';
-    c.style.background=i%3? hsl(rand(15,45),90,60) : '#fff';
+    c.style.background=i%3? hslc(rand(15,45),90,60) : '#fff';
     c.style.left=innerWidth/2+'px'; c.style.top=innerHeight/2+'px';
     const dx=Math.cos(i/n*2*Math.PI+Math.random()*0.8)*rand(120,420);
     const dy=Math.sin(i/n*2*Math.PI+Math.random()*0.8)*rand(120,420);
     const rot=rand(-220,220), dur=rand(700,1400);
-    c.animate([{transform:`translate(0,0) rotate(0)`,opacity:1},{transform:`translate(${dx}px,${dy}px) rotate(${rot}deg)`,opacity:0}],
-              {duration:dur,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
+    c.animate([{transform:`translate(0,0) rotate(0)`,opacity:1},{transform:`translate(${dx}px,${dy}px) rotate(${rot}deg)`,opacity:0}],{duration:dur,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
     document.body.appendChild(c); setTimeout(()=>c.remove(),dur+40);
   }
 }
@@ -369,9 +279,8 @@ function spawnFireworks(count=5){
     for(let i=0;i<pellets;i++){
       const p=document.createElement('div'); p.className='firework'; p.style.left=cx+'px'; p.style.top=cy+'px';
       const a=i/pellets*2*Math.PI, d=rand(90,220), dx=Math.cos(a)*d, dy=Math.sin(a)*d, hue=rand(15,45), t=rand(700,1200);
-      p.style.background=hsl(hue,100,60);
-      p.animate([{transform:'translate(0,0) scale(.6)',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(0)`,opacity:0}],
-                {duration:t,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
+      p.style.background=hslc(hue,100,60);
+      p.animate([{transform:'translate(0,0) scale(.6)',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(0)`,opacity:0}],{duration:t,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
       document.body.appendChild(p); setTimeout(()=>p.remove(),t+30);
     }
   }
@@ -380,8 +289,7 @@ function spawnBats(count=6){
   for(let i=0;i<count;i++){
     const b=document.createElement('div'); b.className='bat';
     const y=rand(innerHeight*0.15,innerHeight*0.85); b.style.left='-50px'; b.style.top=y+'px';
-    b.animate([{transform:`translate(-50px,0) rotate(-8deg)`},{transform:`translate(${innerWidth+50}px,-20vh) rotate(12deg)`}],
-              {duration:rand(2500,4200),easing:'ease-in-out',fill:'forwards'});
+    b.animate([{transform:`translate(-50px,0) rotate(-8deg)`},{transform:`translate(${innerWidth+50}px,-20vh) rotate(12deg)`}],{duration:rand(2500,4200),easing:'ease-in-out',fill:'forwards'});
     document.body.appendChild(b); setTimeout(()=>b.remove(),4200);
   }
 }
@@ -395,7 +303,7 @@ function showMegaWinFX(){
   spawnConfettiBurst(140); spawnFireworks(5); spawnBats(6);
 }
 
-/* ---------- SCANNER ---------- */
+/* ===== Scanner ===== */
 let codeReader;
 async function getCameras(){
   if (ZXing?.BrowserMultiFormatReader?.listVideoInputDevices) return await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
@@ -405,8 +313,7 @@ async function getCameras(){
 async function startScanner(expectedId){
   stopScanner();
   if (location.protocol!=='https:' && location.hostname!=='localhost'){
-    document.getElementById('camera').insertAdjacentHTML('afterend',
-      `<div class="text-xs text-red-300 mt-2">Camera requires HTTPS. Open over https://… or test on localhost.</div>`);
+    document.getElementById('camera').insertAdjacentHTML('afterend', `<div class="text-xs text-red-300 mt-2">Camera requires HTTPS. Open over https://… or test on localhost.</div>`);
     return;
   }
   try{ await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'} } }); }catch(e){}
@@ -418,8 +325,12 @@ async function startScanner(expectedId){
       if(result){
         const text=result.getText();
         if(text===expectedId){
-          playWinSfx();         // <-- thunder + witch (or beep fallback)
-          showMegaWinFX();      // visuals
+          // SOUND (no 404s — fully synthesized)
+          playThunder();
+          setTimeout(()=>playWitch(), 350);
+          // VISUALS
+          showMegaWinFX();
+
           const cur=STOPS[index];
           track('scan',{event_id:EVENT_ID,business:cur.business,title:cur.title,stop_id:cur.id});
           index++; save();
@@ -436,10 +347,8 @@ async function startScanner(expectedId){
 }
 function stopScanner(){ try{ codeReader && codeReader.reset(); }catch(e){} }
 
-/* ---------- BOOT ---------- */
+/* ===== Boot ===== */
 render();
 </script>
 </body>
 </html>
-
-
