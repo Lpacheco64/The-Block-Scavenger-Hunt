@@ -2,594 +2,278 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hidden Mickey Hunt</title>
-  <!-- Google Fonts -->
-  <link
-    rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;700&display=swap"
-  />
-  <!-- Tailwind CSS -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Haunted Block Hunt</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap">
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Tone.js for sounds -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+  <!-- QR generator (for admin print sheet) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- ZXing QR scanner -->
+  <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
   <style>
-    /* Disney color palette */
-    :root {
-      --disney-blue-light: #b0e0e6;
-      --disney-blue-dark: #6a5acd;
-      --disney-gold: #ffd700;
-      --disney-red: #e63946;
-      --disney-green: #2ecc71;
-      --disney-purple: #9b59b6;
-      --disney-pink: #ff69b4;
-      --text-dark: #333;
-      --text-light: #fff;
-      --card-bg: rgba(255, 255, 255, 0.95);
-      --border-color: #a8dadc;
+    /* ================= BLOCK DARK BRAND ================= */
+    :root{
+      --block-bg: #0b0b0e;         /* dark background */
+      --block-card: #14141a;       /* dark cards */
+      --block-ink: #f6f3ff;        /* light text */
+      --block-muted: #b9b6c9;      /* secondary text */
+      --block-primary: #ff6600;    /* Block orange */
+      --block-secondary: #ffffff;  /* Block white */
     }
 
-    body {
-      font-family: "Poppins", sans-serif;
-      background: linear-gradient(
-        135deg,
-        var(--disney-blue-light) 0%,
-        var(--disney-blue-dark) 100%
-      );
-      color: var(--text-dark);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .game-container {
-      background-color: var(--card-bg);
-      padding: 30px;
-      border-radius: 25px;
-      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
-      text-align: center;
-      max-width: 650px;
-      width: 100%;
-      border: 3px solid var(--disney-gold);
-      position: relative;
-      z-index: 10;
-      animation: fadeIn 1s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .title {
-      font-family: "Pacifico", cursive;
-      font-size: 3rem;
-      font-weight: 700;
-      color: var(--disney-red);
-      text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.2);
-      margin-bottom: 25px;
-      line-height: 1.1;
-    }
-
-    .clue-display {
-      font-size: 1.35rem;
-      line-height: 1.7;
-      margin-bottom: 35px;
-      background-color: #fcfdff;
-      padding: 25px;
-      border-radius: 15px;
-      border: 2px dashed var(--border-color);
-      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
-    }
-
-    #message {
-      margin-top: 25px;
-      font-size: 1.2rem;
-      font-weight: 700;
-      transition: color 0.3s ease;
-    }
-
-    .correct {
-      color: var(--disney-green);
-    }
-
-    .incorrect {
-      color: var(--disney-red);
-    }
-
-    input[type="text"] {
-      border: 2px solid var(--border-color);
-      padding: 18px;
-      font-size: 1.3rem;
-      width: 100%;
-      border-radius: 12px;
-      transition: all 0.3s ease;
-      text-align: center;
-    }
-
-    input[type="text"]:focus {
-      outline: none;
-      border-color: var(--disney-blue-dark);
-      box-shadow: 0 0 10px rgba(106, 90, 205, 0.6);
-    }
-
-    button {
-      background-color: var(--disney-red);
-      color: var(--text-light);
-      padding: 18px 35px;
-      font-size: 1.3rem;
-      font-weight: 700;
-      border-radius: 12px;
-      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
-      transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
-      border: none;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #c92c39;
-      transform: translateY(-3px);
-      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
-    }
-
-    button:active {
-      transform: translateY(0);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Mobile */
-    @media (max-width: 640px) {
-      body {
-        padding: 10px;
-      }
-
-      .game-container {
-        padding: 20px;
-        border-radius: 15px;
-      }
-
-      .title {
-        font-size: 2.2rem;
-        margin-bottom: 15px;
-      }
-
-      .clue-display {
-        font-size: 1.1rem;
-        padding: 15px;
-        margin-bottom: 25px;
-      }
-
-      #message {
-        font-size: 1rem;
-      }
-
-      input[type="text"] {
-        padding: 12px;
-        font-size: 1.1rem;
-      }
-
-      button {
-        padding: 12px 25px;
-        font-size: 1.1rem;
-      }
-    }
-
-    /* ----- Animation Styles ----- */
-    .confetti {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      background-color: var(--disney-gold);
-      animation: confetti-fall 2s forwards;
-      opacity: 0;
-      border-radius: 50%;
-      z-index: 20;
-    }
-
-    @keyframes confetti-fall {
-      0% {
-        transform: translateY(-100px) rotate(0deg);
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(100vh) rotate(720deg);
-        opacity: 0.5;
-      }
-    }
-
-    /* Star animation */
-    .star {
-      position: absolute;
-      width: var(--size);
-      height: var(--size);
-      background-color: var(--color);
-      clip-path: polygon(
-        50% 0%,
-        61% 35%,
-        98% 35%,
-        68% 57%,
-        79% 91%,
-        50% 70%,
-        21% 91%,
-        32% 57%,
-        2% 35%,
-        39% 35%
-      );
-      animation: star-sparkle var(--duration) ease-out forwards;
-      opacity: 0;
-      z-index: 20;
-      filter: drop-shadow(0 0 5px var(--color));
-    }
-
-    @keyframes star-sparkle {
-      0% {
-        transform: translateY(0) scale(0.5) rotate(0deg);
-        opacity: 0;
-      }
-      20% {
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(-100vh) scale(1.5) rotate(360deg);
-        opacity: 0;
-      }
-    }
-
-    /* Mickey Head animation */
-    .mickey-head {
-      position: absolute;
-      width: var(--size);
-      height: var(--size);
-      background-color: var(--color);
-      border-radius: 50%;
-      animation: mickey-rise var(--duration) ease-out forwards;
-      opacity: 0;
-      z-index: 20;
-      filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
-    }
-
-    .mickey-head::before,
-    .mickey-head::after {
-      content: "";
-      position: absolute;
-      width: calc(var(--size) * 0.6);
-      height: calc(var(--size) * 0.6);
-      background-color: var(--color);
-      border-radius: 50%;
-      top: calc(var(--size) * -0.25);
-    }
-
-    .mickey-head::before {
-      left: calc(var(--size) * -0.25);
-    }
-
-    .mickey-head::after {
-      right: calc(var(--size) * -0.25);
-    }
-
-    @keyframes mickey-rise {
-      0% {
-        bottom: 0;
-        transform: translateX(-50%) scale(0.5);
-        opacity: 0.5;
-      }
-      50% {
-        opacity: 1;
-      }
-      100% {
-        bottom: 100vh;
-        transform: translateX(-50%) scale(1.2);
-        opacity: 0;
-      }
-    }
-
-    /* Final banner */
-    #final-banner {
-      background: rgba(0, 0, 0, 0.75);
-      padding: 2rem;
-      border-radius: 1rem;
-      width: 80%;
-      max-width: 600px;
-      opacity: 0;
-      transition: opacity 1s ease-in-out;
-      position: fixed;
-      top: 25%;
-      left: 50%;
-      transform: translateX(-50%);
-      text-align: center;
-      z-index: 50;
-      color: white;
-      pointer-events: none;
-    }
-
-    #final-banner.show {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    /* Banner heading bounce */
-    @keyframes bounceInDown {
-      0% {
-        opacity: 0;
-        transform: translateY(-2000px);
-      }
-      60% {
-        opacity: 1;
-        transform: translateY(30px);
-      }
-      80% {
-        transform: translateY(-10px);
-      }
-      100% {
-        transform: translateY(0);
-      }
-    }
-
-    #final-banner h1 {
-      animation: bounceInDown 1s;
-      font-size: 2.5rem;
-      font-weight: 900;
-      color: #ffdd55;
-      text-shadow: 0 0 10px #ffd700, 0 0 20px #ffb700;
-    }
-
-    #final-banner p {
-      margin-top: 1rem;
-      font-size: 1.5rem;
-      color: #fff;
-      text-shadow: 0 0 6px #222;
-    }
+    body{background:linear-gradient(160deg,var(--block-bg),#171722);color:var(--block-ink);font-family:Poppins,system-ui,sans-serif;min-height:100svh}
+    .card{background:var(--block-card);border:1px solid #262433;border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+    .btn{border-radius:14px;padding:14px 18px;font-weight:700}
+    .btn-primary{background:linear-gradient(135deg,var(--block-primary),var(--block-secondary));color:#000}
+    .btn-muted{background:#272733;color:var(--block-ink)}
+    .badge{display:inline-flex;gap:.5rem;align-items:center;font-size:.8rem;color:#fff;background:#1d1c27;border:1px solid #2b2940;border-radius:999px;padding:.4rem .75rem}
+    .progress{height:8px;background:#262433;border-radius:999px;overflow:hidden}
+    .progress > span{display:block;height:100%;background:linear-gradient(90deg,var(--block-primary),var(--block-secondary))}
+    video{border-radius:12px}
+    .ghost{position:fixed;inset:auto 0 0 50%;translate:-50% 0;width:80px;height:80px;background:#fff;border-radius:40px 40px 16px 16px/50px 50px 16px 16px;box-shadow:0 8px 30px rgba(0,0,0,.35);opacity:.08;pointer-events:none;animation:float 6s ease-in-out infinite}
+    @keyframes float {0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+    /* Logo flicker */
+    .logo-flicker{animation:flicker 2.6s infinite ease-in-out}
+    @keyframes flicker{0%{opacity:.92;filter:drop-shadow(0 0 0px rgba(255,102,0,.0))}10%{opacity:1;filter:drop-shadow(0 0 6px rgba(255,102,0,.55))}18%{opacity:.96;filter:drop-shadow(0 0 2px rgba(255,102,0,.25))}22%{opacity:1;filter:drop-shadow(0 0 9px rgba(255,102,0,.8))}27%{opacity:.88;filter:none}34%{opacity:1;filter:drop-shadow(0 0 8px rgba(255,102,0,.65))}48%{opacity:.95;filter:drop-shadow(0 0 2px rgba(255,102,0,.2))}62%{opacity:1;filter:drop-shadow(0 0 10px rgba(255,102,0,.85))}76%{opacity:.9;filter:none}100%{opacity:1;filter:drop-shadow(0 0 7px rgba(255,102,0,.6))}}
   </style>
 </head>
-<body>
-  <div class="game-container">
-    <h1 class="title">Hidden Mickey Hunt</h1>
+<body class="p-4">
+  <div class="max-w-md mx-auto space-y-4">
+    <header class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <img id="blockLogo" class="h-8 logo-flicker" src="./2b375fc7-bcb9-4c60-acec-fcc5ad6a318f.JPG" alt="The Block Logo"/>
+        <span class="badge">🎃 Haunted Block Hunt</span>
+      </div>
+      <nav class="flex items-center gap-3 text-sm">
+        <a href="?admin=1" class="text-orange-400 underline">QR Codes</a>
+        <a href="?stats=1" class="text-orange-400 underline">Stats</a>
+      </nav>
+    </header>
 
-    <!-- Display the current clue -->
-    <p class="clue-display" id="clueText"></p>
-
-    <div class="flex flex-col gap-4">
-      <!-- Input for the QR code answer -->
-      <input
-        type="text"
-        id="answerInput"
-        placeholder="Enter the code you found..."
-        class="p-3 text-lg border rounded-lg focus:outline-none focus:ring-2"
-      />
-
-      <!-- Button to submit the answer -->
-      <button id="submitButton">Submit Answer</button>
-    </div>
-
-    <!-- Area for feedback messages -->
-    <p id="message"></p>
-  </div>
-
-  <!-- Final congratulatory banner -->
-  <div id="final-banner" aria-live="polite" role="alert">
-    <h1>🎉 You Found All the Mickeys! 🎉</h1>
-    <p>Yay! you finished the Hidden Mickey Hunt. Grab your Mickey ears at the State Employees Credit Union booth- Limit one prize per child winner, while supplies last</p>
+    <div id="game" class="space-y-4"></div>
+    <div class="ghost"></div>
   </div>
 
   <script>
-    (function () {
-      const clues = [
-        `Hop or skip, have some fun! You'll find Mickey #1.`,
-        "The best stories are found in books. Find another Mickey when you take a look.",
-        `You're doing great, finding Mickey's with no trouble! The next one is hiding near a bubble.`,
-        "Where pink flowers bloom, but do not grow, you'll find this Mickey hiding low.",
-        "The next Mickey that you'll see is hiding right next to a bee.",
-        "Standing on one leg, they don't get far. This Mickey is by the Mini Bar.",
-        `We'll tell you a secret that we heard, the next Mickey is hiding by an angry bird.`,
-        `Ohana means family. That's the clue. This lemon Mickey is waiting for you.`,
-        `The map will help you find your way when you hunt for Mickey's today.`,
-        "Order tacos, burritos, and nachos too! That's where this Mickey is waiting for you.",
-        "Fill up your bottle or take a drink. Mickey's hiding by the sink.",
-        `This Mickey is hiding by the loo. Look by the calendar and you'll find him too!`,
-      ];
+  const EVENT_ID = "haunted-block-2025"; // change per event to reset saved progress
 
-      const correctAnswers = [
-        "Hop Skip",
-        "Books",
-        "Bubble",
-        "Flowers",
-        "Bee",
-        "Flamingo",
-        "Chicken",
-        "Lemonade",
-        "Map",
-        "Taco Stand",
-        "Fountain",
-        "Calendar",
-      ];
-
-      const clueTextElement = document.getElementById("clueText");
-      const answerInput = document.getElementById("answerInput");
-      const submitButton = document.getElementById("submitButton");
-      const messageElement = document.getElementById("message");
-      const finalBanner = document.getElementById("final-banner");
-
-      let currentClueIndex = 0;
-
-      const starColors = [
-        "var(--disney-gold)",
-        "yellow",
-        "var(--disney-blue-light)",
-      ];
-      const mickeyColors = [
-        "#000",
-        "var(--disney-red)",
-        "var(--disney-purple)",
-      ];
-
-      // Tone.js synth for correct answer chime
-      let synth;
-
-      // Tone.js player for fanfare (final)
-      let fanfarePlayer;
-
-      // Initialize audio components
-      function initAudio() {
-        if (!synth) {
-          synth = new Tone.Synth().toDestination();
-        }
+  // ======= ANALYTICS (local counters + optional remote webhook) =======
+  const ANALYTICS = {
+    endpoint: "YOUR_WEB_APP_URL", // ← paste your Apps Script Web App URL here
+  };
+  function track(event, payload={}){
+    const K = (k)=>`${EVENT_ID}:analytics:${k}`;
+    if(event==='start'){ localStorage.setItem(K('players_total'), String((+localStorage.getItem(K('players_total'))||0)+1)); }
+    if(event==='complete'){ localStorage.setItem(K('players_completed'), String((+localStorage.getItem(K('players_completed'))||0)+1)); }
+    if(ANALYTICS.endpoint){
+      const body = JSON.stringify({event, ts: Date.now(), team, index, ...payload});
+      if(navigator.sendBeacon){
+        const blob = new Blob([body], {type:'application/json'});
+        navigator.sendBeacon(ANALYTICS.endpoint, blob);
+      } else {
+        fetch(ANALYTICS.endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body}).catch(()=>{});
       }
+    }
+  }
 
-      // Play correct answer chime
-      function playCorrectChime() {
-        initAudio();
-        const now = Tone.now();
-        synth.triggerAttackRelease("C5", "8n", now);
-        synth.triggerAttackRelease("E5", "8n", now + 0.1);
-        synth.triggerAttackRelease("G5", "8n", now + 0.2);
-        synth.triggerAttackRelease("C6", "4n", now + 0.3);
-      }
+  // ======= FINALIZED STOPS (16) =======
+  const STOPS = [
+    { id:"stop-el-chamo",              business:"El Chamo",                 title:"Venezuelan Vampire Bites",     riddle:"A hungry vampire craves arepas—follow the smell of sizzling corn cakes!" },
+    { id:"stop-kukri",                 business:"Kukri",                    title:"Crispy Chicken Crown",          riddle:"A raven guards a crispy crown—find the throne of the mighty chicken!" },
+    { id:"stop-stackers",              business:"Stackers",                 title:"Tower of Treats",               riddle:"Towering patties rise like midnight moons—seek the tallest stack!" },
+    { id:"stop-bubble-bliss",          business:"Bubble Bliss",             title:"Potions & Candle Charms",        riddle:"Witches’ sweets that you don’t eat—find the place where potions fizz and candles glow." },
+    { id:"stop-thicc-pizza",           business:"Thicc Pizza",              title:"Haunted Pizza Oven",             riddle:"The oven roars like dragon fire—where slices are thick and spirits gather." },
+    { id:"stop-top-of-the-block-bar",  business:"Top of The Block",         title:"Phantom’s Toast Above",          riddle:"Clink! A phantom’s toast echoes from above—follow the lantern light." },
+    { id:"stop-tavern-on-the-green",   business:"Tavern on the Green",      title:"Greenlit Goblin Tavern",         riddle:"In the garden of night, goblins cheer—find the green-lit haunt." },
+    { id:"stop-link-link",             business:"Link Link",                title:"Enchanted Chain Forge",          riddle:"A spark seals a spell—seek the forge where golden links are bound." },
+    { id:"stop-los-tacos",             business:"Los Tacos",                title:"Whispers of Smoky Spice",        riddle:"Skeletons whisper of smoky spice—seek the stand where tacos rise." },
+    { id:"stop-wow-wow-lemonade",      business:"Wow Wow Lemonade",         title:"Witch’s Lemon Brew",             riddle:"Sour turns sweet in this brew—find the brightest yellow stand." },
+    { id:"stop-teriyaki-queen",        business:"Teriyaki Queen",           title:"The Queen’s Sizzling Cauldron",  riddle:"The Queen’s cauldron sizzles sweet and dark—follow the charred trail of soy and fire." },
+    { id:"stop-boba-lounge",           business:"The Boba Lounge",          title:"Ghost Bubble Parlor",            riddle:"Ghosts sip floating pearls—seek the lounge of bubbling orbs." },
+    { id:"stop-busy-bee-custard",      business:"Busy Bee Frozen Custard",  title:"Boo‑Bee Freezer",                 riddle:"Buzz to the coldest hive—your clue chills by creamy swirls." },
+    { id:"stop-enchanted-books",       business:"Enchanted Books",          title:"Ghostly Library",                riddle:"A friendly phantom turns pages—find the whispering shelves." },
+    { id:"stop-rez-sandwich",          business:"That’s My Rez Sandwich",    title:"Spirit Sandwich Shop",           riddle:"Spells stacked between bread—seek the spirit of the sandwich." },
+    { id:"stop-candy-bar",             business:"The Candy Bar",            title:"Trick‑or‑Treat Counter",          riddle:"Count the sweets if you dare—trick-or-treats await your stare." }
+  ];
 
-      // Load and play fanfare for final clue
-      async function playFanfare() {
-        try {
-          if (!fanfarePlayer) {
-            fanfarePlayer = new Tone.Player(
-              "https://cdn.jsdelivr.net/gh/naptha/tone-fanfare@master/fanfare.mp3"
-            ).toDestination();
-            await fanfarePlayer.load();
-          }
-          fanfarePlayer.start();
-        } catch {
-          // Fallback chord
-          synth.triggerAttackRelease("C6", "2n");
-          synth.triggerAttackRelease("E6", "2n", "+0.2");
-          synth.triggerAttackRelease("G6", "2n", "+0.4");
-        }
-      }
+  // ======= STATE =======
+  const KEY = (k)=>`${EVENT_ID}:${k}`;
+  const $ = (sel)=>document.querySelector(sel);
+  const Kstats = (k)=>`${EVENT_ID}:analytics:${k}`;
+  const root = document.getElementById('game');
+  let team = localStorage.getItem(KEY('team')) || '';
+  let index = parseInt(localStorage.getItem(KEY('index'))||'0',10);
+  function save(){ localStorage.setItem(KEY('team'), team); localStorage.setItem(KEY('index'), String(index)); }
 
-      // Display the current clue or final message
-      function displayCurrentClue() {
-        if (currentClueIndex < clues.length) {
-          clueTextElement.textContent = clues[currentClueIndex];
-        } else {
-          clueTextElement.textContent =
-            "Yay! you finished the Hidden Mickey Hunt. Grab your Mickey ears at the State Employees Credit Union booth- Limit one prize per child winner, while supplies last!";
-          submitButton.style.display = "none";
-          answerInput.style.display = "none";
-          messageElement.textContent = "You found all the Mickey's!";
-          messageElement.className = "correct";
+  // ======= UI HELPERS =======
+  const wrapCard = (inner)=>`<div class="card p-4">${inner}</div>`;
+  const escapeHtml = (s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+  function header(progressPct){
+    return `
+      <div class="card p-4">
+        <div class="flex items-center justify-between mb-3">
+          <span class="badge">Team: ${team?`<strong>${escapeHtml(team)}</strong>`:'—'}</span>
+          <button class="btn btn-muted text-sm" onclick="resetProgress()">Restart</button>
+        </div>
+        <div class="progress"><span style="width:${progressPct}%"></span></div>
+        <div class="text-xs text-violet-200 mt-1">${index}/${STOPS.length}</div>
+      </div>`;
+  }
 
-          createConfetti(200);
-          playFanfare();
-          showFinalBanner();
-        }
-      }
+  // ======= VIEWS =======
+  function render(){
+    const params = new URL(location.href).searchParams;
+    const isAdmin = params.get('admin');
+    if (params.get('stats')) { return renderStats(); }
+    if (isAdmin) return renderAdmin();
 
-      // Check the submitted answer
-      function checkAnswer() {
-        const submittedAnswer = answerInput.value.trim();
-        const correctAnswer = correctAnswers[currentClueIndex];
+    const pct = Math.round((index/STOPS.length)*100);
+    let html = '';
 
-        if (submittedAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-          messageElement.textContent = `That's correct! Get ready for your next clue...`;
-          messageElement.className = "correct";
+    if (!team){
+      html += wrapCard(`
+        <h1 class="text-xl font-bold mb-1">Welcome, brave hunters! 👻</h1>
+        <p class="text-sm text-gray-400 mb-3">Enter your team name to begin. Visit each business, scan the QR, and unlock the next clue.</p>
+        <input id="teamInput" class="w-full px-3 py-3 rounded-lg border border-zinc-700 bg-zinc-900" placeholder="Team name">
+        <button class="btn btn-primary w-full mt-3" onclick="startTeam()">Start Hunt</button>`);
+      root.innerHTML = html; return;
+    }
 
-          playCorrectChime();
-          createDisneyAnimations();
+    html += header(pct);
 
-          currentClueIndex++;
-          answerInput.value = "";
+    if (index < STOPS.length){
+      const cur = STOPS[index];
+      html += wrapCard(`
+        <div class="text-sm text-gray-400 mb-1">Stop #${index+1}: <span class="font-semibold">${cur.business}</span></div>
+        <h2 class="text-lg font-bold mb-1">${cur.title}</h2>
+        <p class="text-base">${cur.riddle}</p>`);
+      html += wrapCard(`
+        <div class="text-sm text-gray-400 mb-2">Scan the checkpoint QR at <strong>${cur.business}</strong></div>
+        <div id="camera" class="overflow-hidden rounded-lg border border-zinc-700">
+          <video id="preview" style="width:100%;height:auto" autoplay muted playsinline></video>
+        </div>
+        <div class="text-xs text-gray-500 mt-2">If the camera doesn’t start, allow camera permissions in your browser.</div>`);
+      root.innerHTML = html; startScanner(cur.id);
+      // Tiny live stats chip (local device)
+      const players = +localStorage.getItem(Kstats('players_total'))||0;
+      const done = +localStorage.getItem(Kstats('players_completed'))||0;
+      const chip = document.createElement('div');
+      chip.className = 'fixed bottom-2 right-2 text-xs px-2 py-1 rounded bg-black/60 text-orange-300 border border-orange-500/30';
+      chip.textContent = `Players: ${players} • Done: ${done}`;
+      document.body.appendChild(chip);
+    } else {
+      html += wrapCard(`
+        <h1 class="text-2xl font-bold text-center">🎉 You did it!</h1>
+        <p class="text-base text-center mt-1">Team <strong>${escapeHtml(team)}</strong> completed the Haunted Block Hunt!</p>
+        <p class="text-sm text-gray-400 text-center">Show this screen at the prize table to claim your treat. Happy Halloween! 🎃</p>
+        <div class="grid grid-cols-1 gap-2 mt-3">
+          <button class="btn btn-primary" onclick="celebrate()">Celebrate Again</button>
+          <button class="btn btn-muted" onclick="resetProgress()">Play Again</button>
+        </div>`);
+      root.innerHTML = html; celebrate();
+    }
+  }
 
-          setTimeout(displayCurrentClue, 1500);
-        } else {
-          messageElement.textContent = `Oops, that's not the right code. Please try again!`;
-          messageElement.className = "incorrect";
-        }
-      }
+  function renderAdmin(){
+    document.title = 'QR Codes — Haunted Block Hunt';
+    let html = '';
+    html += wrapCard(`<div class="flex items-center justify-between">
+      <h1 class="text-xl font-bold">Checkpoint QR Codes</h1>
+      <div class="text-sm text-orange-400">Players: <strong>${+localStorage.getItem(Kstats('players_total'))||0}</strong> • Completed: <strong>${+localStorage.getItem(Kstats('players_completed'))||0}</strong></div>
+    </div>
+    <div class="mt-1 flex items-center justify-between">
+      <p class="text-sm text-gray-400">Print and place at each business. Each QR encodes the stop id.</p>
+      <a href="./?stats=1" class="text-xs text-orange-300 underline">Open stats</a>
+    </div>`);
+    html += `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">`;
+    STOPS.forEach(s=>{
+      html += `<div class="card p-4">
+        <div class="text-xs text-gray-400">${s.business}</div>
+        <div class="font-bold">${s.title}</div>
+        <div id="qr-${s.id}" class="flex items-center justify-center my-3"></div>
+        <div class="text-xs text-gray-400 break-all">${s.id}</div>
+      </div>`;
+    });
+    html += `</div>`;
+    root.innerHTML = html;
+    STOPS.forEach(s=> new QRCode(document.getElementById(`qr-${s.id}`), { text:s.id, width:180, height:180, correctLevel: QRCode.CorrectLevel.M }));
+  }
 
-      // Disney animations: stars & Mickey heads
-      function createDisneyAnimations() {
-        const numAnimations = 20;
-        for (let i = 0; i < numAnimations; i++) {
-          const type = Math.random() < 0.5 ? "star" : "mickey-head";
-          const element = document.createElement("div");
-          element.classList.add(type);
+  // ======= STATS VIEW =======
+  function renderStats(){
+    document.title = 'Stats — Haunted Block Hunt';
+    const K = (k)=>`${EVENT_ID}:analytics:${k}`;
+    const players = +localStorage.getItem(K('players_total'))||0;
+    const done = +localStorage.getItem(K('players_completed'))||0;
+    let html = '';
+    html += wrapCard(`<h1 class="text-xl font-bold">Stats</h1><p class="text-sm text-gray-400">Local (device) counters. For shared totals across devices, set <code>ANALYTICS.endpoint</code> to your webhook.</p>`);
+    html += wrapCard(`<div class="flex items-center justify-between"><div>Players started</div><div class="font-bold">${players}</div></div>`);
+    html += wrapCard(`<div class="flex items-center justify-between"><div>Players completed</div><div class="font-bold">${done}</div></div>`);
+    html += wrapCard(`<button class="btn btn-muted" onclick="location.href='./'">Back</button>`);
+    root.innerHTML = html;
+  }
 
-          // Random size
-          const size =
-            Math.random() * (type === "star" ? 30 : 50) +
-            (type === "star" ? 15 : 30);
-          element.style.setProperty("--size", `${size}px`);
+  // ======= GAME LOGIC =======
+  function startTeam(){
+    const inp = document.getElementById('teamInput');
+    const newTeam = (inp.value||'').trim();
+    if (!newTeam) return;
+    const startedFlag = localStorage.getItem(KEY('started'));
+    team = newTeam; index = 0; save();
+    if(!startedFlag){ localStorage.setItem(KEY('started'),'1'); track('start', { event_id: EVENT_ID }); }
+    render();
+  }
+  function resetProgress(){
+    localStorage.removeItem(KEY('team')); localStorage.removeItem(KEY('index'));
+    team=''; index=0; render();
+  }
+  function celebrate(){
+    for (let i=0;i<120;i++){
+      const d=document.createElement('div');
+      d.style.position='fixed'; d.style.top='-10px'; d.style.left=(Math.random()*100)+'vw';
+      d.style.width='8px'; d.style.height='12px'; d.style.background=`hsl(${Math.random()*360} 90% 60%)`;
+      d.style.transform=`rotate(${Math.random()*360}deg)`; d.style.opacity='.9'; d.style.zIndex='50';
+      d.style.transition='transform 1.2s ease-out, top 1.2s ease-out, opacity 1.2s ease-out';
+      document.body.appendChild(d);
+      requestAnimationFrame(()=>{ d.style.top='100vh'; d.style.transform+=` translateY(80vh)`; d.style.opacity='.2'; });
+      setTimeout(()=>d.remove(),1400);
+    }
+  }
 
-          // Random color
-          const color =
-            type === "star"
-              ? starColors[Math.floor(Math.random() * starColors.length)]
-              : mickeyColors[Math.floor(Math.random() * mickeyColors.length)];
-          element.style.setProperty("--color", color);
-
-          // Random horizontal position
-          element.style.left = `${Math.random() * 100}vw`;
-
-          // Random animation duration and delay
-          element.style.setProperty(
-            "--duration",
-            `${Math.random() * 2 + 3}s`
-          );
-          element.style.animationDelay = `${Math.random() * 0.5}s`;
-
-          document.body.appendChild(element);
-
-          element.addEventListener("animationend", () => {
-            element.remove();
-          });
-        }
-      }
-
-      // Confetti burst for final celebration
-      function createConfetti(amount = 100) {
-        for (let i = 0; i < amount; i++) {
-          const confetti = document.createElement("div");
-          confetti.classList.add("confetti");
-          confetti.style.left = Math.random() * window.innerWidth + "px";
-          confetti.style.backgroundColor =
-            ["#ffd700", "#ff6347", "#40e0d0", "#ff69b4"][
-              Math.floor(Math.random() * 4)
-            ];
-          confetti.style.animationDelay = Math.random() * 2 + "s";
-          document.body.appendChild(confetti);
-
-          confetti.addEventListener("animationend", () => {
-            confetti.remove();
-          });
-        }
-      }
-
-      // Show final banner with fade in
-      function showFinalBanner() {
-        finalBanner.classList.add("show");
-      }
-
-      submitButton.addEventListener("click", checkAnswer);
-
-      answerInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          checkAnswer();
+  // ======= SCANNER =======
+  let codeReader;
+  async function startScanner(expectedId){
+    stopScanner();
+    codeReader = new ZXing.BrowserMultiFormatReader();
+    try{
+      const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
+      const camId = devices?.[0]?.deviceId;
+      await codeReader.decodeFromVideoDevice(camId, 'preview', (result, err)=>{
+        if (result){
+          const text = result.getText();
+          if (text === expectedId){
+            const cur = STOPS[index];
+            track('scan', { event_id: EVENT_ID, business: cur.business, title: cur.title, stop_id: cur.id });
+            index++; save();
+            if(index === STOPS.length && !localStorage.getItem(KEY('completed'))){ localStorage.setItem(KEY('completed'),'1'); track('complete', { event_id: EVENT_ID }); }
+            flash('#0c2614'); stopScanner(); setTimeout(render, 350);
+          } else { flash('#2a0d0d'); }
         }
       });
+    }catch(e){
+      console.error(e);
+      document.getElementById('camera').insertAdjacentHTML('afterend', `<div class="text-xs text-red-300 mt-2">Camera error: ${e?.message||e}</div>`);
+    }
+  }
+  function stopScanner(){ try{ codeReader && codeReader.reset(); }catch(e){} }
+  function flash(color){ document.body.animate([{backgroundColor:getComputedStyle(document.body).backgroundColor},{backgroundColor:color},{backgroundColor:getComputedStyle(document.body).backgroundColor}],{duration:350}); }
 
-      // Show the first clue on load
-      displayCurrentClue();
-    })();
+  // ======= BOOT =======
+  render();
   </script>
 </body>
 </html>
+
 
 
 
