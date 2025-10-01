@@ -87,13 +87,13 @@
     </div>
   </div>
 
-  <!-- Put thunder.mp3 and witch.mp3 next to this HTML file or replace with your hosted URLs -->
+  <!-- Put thunder.mp3 and witch.mp3 next to this HTML file or replace with full https URLs -->
   <audio id="fx-thunder" preload="auto"><source src="thunder.mp3" type="audio/mpeg"></audio>
-  <audio id="fx-witch" preload="auto"><source src="witch.mp3" type="audio/mpeg"></audio>
+  <audio id="fx-witch"   preload="auto"><source src="witch.mp3"   type="audio/mpeg"></source></audio>
 
-  <!-- One-time sound unlock (visible until user taps) -->
+  <!-- One-time sound unlock banner -->
   <div id="audioGate" style="position:fixed;inset:auto 0 16px 0;display:flex;justify-content:center;pointer-events:none;z-index:90">
-    <button onclick="enableSFX()" style="pointer-events:auto;background:#ff8c00;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,140,0,.35);border:none">
+    <button id="audioGateBtn" onclick="enableSFX()" style="pointer-events:auto;background:#ff8c00;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,140,0,.35);border:none">
       🔊 Enable Sound Effects
     </button>
   </div>
@@ -103,27 +103,51 @@
 const EVENT_ID = "haunted-block-2025";
 const ANALYTICS = { endpoint: "" }; // optional webhook URL
 
-/* ---------- AUDIO UNLOCK ---------- */
+/* ---------- AUDIO UNLOCK (Android-friendly) ---------- */
 let sfxEnabled = false;
-async function enableSFX() {
+
+async function unlockWebAudio(){
   try {
-    if (window.AudioContext || window.webkitAudioContext) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      window._ac = window._ac || new AC();
-      if (window._ac.state === 'suspended') await window._ac.resume();
-    }
-    const th = document.getElementById('fx-thunder');
-    const wi = document.getElementById('fx-witch');
-    th.volume = 0.01; wi.volume = 0.01;
-    await th.play().catch(()=>{}); await wi.play().catch(()=>{});
-    th.pause(); wi.pause(); th.currentTime = 0; wi.currentTime = 0;
-    th.volume = 0.9; wi.volume = 0.7;
-    sfxEnabled = true;
-    const gate = document.getElementById('audioGate'); if (gate) gate.remove();
-  } catch (e) { console.warn('Audio unlock failed:', e); }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    window._ac = window._ac || new AC();
+    if (window._ac.state === 'suspended') await window._ac.resume();
+    const o = window._ac.createOscillator(); const g = window._ac.createGain();
+    g.gain.value = 0.0001; o.connect(g); g.connect(window._ac.destination);
+    o.start(); o.stop(window._ac.currentTime + 0.05);
+  } catch(_) {}
 }
-// also unlock on first tap anywhere
-(function(){ const h = () => { if (!sfxEnabled) enableSFX(); window.removeEventListener('pointerdown', h, true); }; window.addEventListener('pointerdown', h, true); })();
+async function primeAudio(el){
+  if(!el) return false;
+  try {
+    el.muted = true; el.currentTime = 0;
+    await el.play();
+    el.pause(); el.muted = false;
+    return true;
+  } catch(e){ el.muted = false; return false; }
+}
+async function enableSFX(){
+  if (sfxEnabled) return;
+  const btn = document.getElementById('audioGateBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '🔊 Enabling…'; }
+
+  await unlockWebAudio();
+
+  const th = document.getElementById('fx-thunder');
+  const wi = document.getElementById('fx-witch');
+  await Promise.all([primeAudio(th), primeAudio(wi)]);
+
+  sfxEnabled = true; // consider unlocked even if files still loading
+  const gate = document.getElementById('audioGate'); if (gate) gate.remove();
+
+  [th, wi].forEach(a => {
+    if (a && a.readyState === 0) {
+      console.warn('SFX file may not be reachable:', a.querySelector('source')?.src || a.src);
+    }
+  });
+}
+// auto-try on first tap anywhere
+(function(){ const once = () => { if (!sfxEnabled) enableSFX(); window.removeEventListener('pointerdown', once, true); }; window.addEventListener('pointerdown', once, true); })();
 
 /* ---------- ANALYTICS ---------- */
 function track(event, payload={}) {
@@ -157,7 +181,7 @@ const KEY=(k)=>`${EVENT_ID}:${k}`, $=(s)=>document.querySelector(s);
 let team=localStorage.getItem(KEY('team'))||''; let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
 function save(){ localStorage.setItem(KEY('team'),team); localStorage.setItem(KEY('index'),String(index)); }
 const wrapCard=(inner)=>`<div class="card p-4">${inner}</div>`;
-const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;","~":"&tilde;","\"":"&quot;","'":"&#039;"}[m]||m));
 function header(pct){
   return `<div class="card p-4">
     <div class="flex items-center justify-between mb-3">
@@ -220,9 +244,9 @@ function renderAdmin(){
 }
 function renderStats(){ $("#game").innerHTML=wrapCard(`<h1 class="text-xl font-bold">Stats</h1><p class="text-sm text-gray-400">Local-only counters on this device.</p>`); }
 function startTeam(){
-  enableSFX();                 /* unlock audio on first button press */
+  enableSFX(); /* unlock audio on first button press */
   const inp=$("#teamInput"); const newTeam=(inp.value||'').trim(); if(!newTeam) return;
-  team=newTeam; index=0; save(); track('start'); render();
+  team=newTeam; index=0; save(); render();
 }
 function resetProgress(){ localStorage.removeItem(KEY('team')); localStorage.removeItem(KEY('index')); team=''; index=0; render(); }
 
@@ -339,5 +363,3 @@ render();
 </script>
 </body>
 </html>
-
-
