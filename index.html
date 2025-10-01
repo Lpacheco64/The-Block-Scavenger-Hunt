@@ -65,7 +65,7 @@
     <div class="ghost"></div>
   </div>
 
-  <!-- MEGA WIN OVERLAYS + AUDIO -->
+  <!-- MEGA WIN OVERLAYS -->
   <div class="win-wrap" aria-hidden="true">
     <div id="fx-flash" class="flash"></div>
     <div id="fx-vig" class="vignette"></div>
@@ -87,10 +87,6 @@
     </div>
   </div>
 
-  <!-- Put thunder.mp3 and witch.mp3 next to this HTML file or replace with full https URLs -->
-  <audio id="fx-thunder" preload="auto"><source src="thunder.mp3" type="audio/mpeg"></audio>
-  <audio id="fx-witch"   preload="auto"><source src="witch.mp3"   type="audio/mpeg"></source></audio>
-
   <!-- One-time sound unlock banner -->
   <div id="audioGate" style="position:fixed;inset:auto 0 16px 0;display:flex;justify-content:center;pointer-events:none;z-index:90">
     <button id="audioGateBtn" onclick="enableSFX()" style="pointer-events:auto;background:#ff8c00;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,140,0,.35);border:none">
@@ -103,44 +99,62 @@
 const EVENT_ID = "haunted-block-2025";
 const ANALYTICS = { endpoint: "" }; // optional webhook URL
 
-/* ---------- AUDIO UNLOCK (instant UI + background priming) ---------- */
+/* ---------- SFX via WebAudio (Android-safe) ---------- */
 let sfxEnabled = false;
+let AC, masterGain;
 
-async function unlockWebAudio(){
-  try {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    window._ac = window._ac || new AC();
-    if (window._ac.state === 'suspended') await window._ac.resume();
-    // tiny silent beep (helps some Android builds)
-    const o = window._ac.createOscillator(), g = window._ac.createGain();
-    g.gain.value = 0.0001; o.connect(g); g.connect(window._ac.destination);
-    o.start(); o.stop(window._ac.currentTime + 0.03);
-  } catch {}
-}
-function primeOne(el){
-  if (!el) return Promise.resolve(false);
-  try { el.load(); } catch {}
-  el.muted = true; el.currentTime = 0;
-  const playP = el.play().then(()=>{ el.pause(); el.muted = false; return true; })
-                         .catch(()=>{ el.muted = false; return false; });
-  const timeout = new Promise(res => setTimeout(()=>{ try{ el.pause(); }catch{}; el.muted=false; res(false); }, 800));
-  return Promise.race([playP, timeout]);
-}
-function enableSFX(){
+// IMPORTANT: set correct paths (HTTPS). If hosted at https://username.github.io/repo/ use '/repo/file.mp3'
+const SFX = {
+  thunder: { url: 'thunder.mp3', buffer: null },
+  witch:   { url: 'witch.mp3',   buffer: null }
+};
+
+async function enableSFX(){
   if (sfxEnabled) return;
-  sfxEnabled = true; // mark enabled immediately
+  sfxEnabled = true;
+  const gate = document.getElementById('audioGate'); if (gate) gate.remove();
 
-  const btn = document.getElementById('audioGateBtn');
-  if (btn) { btn.disabled = true; btn.textContent = '🔊 Sound enabled'; }
-  const gate = document.getElementById('audioGate');
-  if (gate) setTimeout(()=>gate.remove(), 50);
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) { console.warn('No AudioContext available'); return; }
+  AC = AC || new Ctx();
+  if (AC.state === 'suspended') { try { await AC.resume(); } catch(_) {} }
 
-  // background unlock/prime (don’t await)
-  unlockWebAudio();
-  const th = document.getElementById('fx-thunder');
-  const wi = document.getElementById('fx-witch');
-  primeOne(th); primeOne(wi);
+  masterGain = masterGain || AC.createGain();
+  masterGain.gain.value = 0.95;
+  masterGain.connect(AC.destination);
+
+  // Preload sounds (no block on UI)
+  Promise.all(Object.values(SFX).map(loadSfx)).catch(()=>{});
+}
+async function loadSfx(sfx){
+  try {
+    const res = await fetch(sfx.url, { cache: 'force-cache' });
+    if (!res.ok) throw new Error(`HTTP ${res.status} for ${sfx.url}`);
+    const arr = await res.arrayBuffer();
+    sfx.buffer = await decodeArrayBuffer(arr);
+  } catch (e) {
+    console.warn('SFX load failed:', sfx.url, e);
+  }
+}
+function decodeArrayBuffer(buf){
+  return new Promise((resolve, reject)=>{
+    // Safari sometimes needs the callback form
+    AC.decodeAudioData(buf.slice(0), resolve, reject);
+  });
+}
+function playBuf(buffer, vol=1, delay=0){
+  if (!AC || !buffer) return;
+  const src = AC.createBufferSource();
+  const g = AC.createGain();
+  g.gain.value = vol;
+  src.buffer = buffer;
+  src.connect(g); g.connect(masterGain);
+  src.start(AC.currentTime + delay);
+}
+function playWinSfx(){
+  if (!sfxEnabled) return;
+  playBuf(SFX.thunder.buffer, 0.95, 0.00);
+  playBuf(SFX.witch.buffer,   0.75, 0.35);
 }
 // also auto-try on first tap anywhere
 (function(){
@@ -243,7 +257,7 @@ function renderAdmin(){
 }
 function renderStats(){ $("#game").innerHTML=wrapCard(`<h1 class="text-xl font-bold">Stats</h1><p class="text-sm text-gray-400">Local-only counters on this device.</p>`); }
 function startTeam(){
-  enableSFX(); /* unlock audio on first button press */
+  enableSFX(); /* unlock WebAudio and preload */
   const inp=$("#teamInput"); const newTeam=(inp.value||'').trim(); if(!newTeam) return;
   team=newTeam; index=0; save(); render();
 }
@@ -263,7 +277,7 @@ function celebrate(){
   }
 }
 
-/* ---------- MEGA WIN FX ---------- */
+/* ---------- MEGA WIN FX (visuals) ---------- */
 function rand(a,b){return a+Math.random()*(b-a)}
 function hsl(h,s,l){return `hsl(${h} ${s}% ${l}%)`}
 function spawnConfettiBurst(n=140){
@@ -303,12 +317,6 @@ function spawnBats(count=6){
 }
 function showMegaWinFX(){
   if (navigator.vibrate) navigator.vibrate([40,40,60]);
-  if (sfxEnabled) {
-    const thunder=document.getElementById('fx-thunder');
-    const witch=document.getElementById('fx-witch');
-    try{ thunder.currentTime=0; thunder.volume=0.9; thunder.play().catch(()=>{});}catch(e){}
-    setTimeout(()=>{ try{ witch.currentTime=0; witch.volume=0.7; witch.play().catch(()=>{});}catch(e){} }, 350);
-  }
   const flash=document.getElementById('fx-flash'), vig=document.getElementById('fx-vig');
   document.documentElement.classList.add('shake'); flash.classList.add('show'); vig.classList.add('show');
   setTimeout(()=>{ flash.classList.remove('show'); vig.classList.remove('show'); document.documentElement.classList.remove('shake'); }, 650);
@@ -340,7 +348,8 @@ async function startScanner(expectedId){
       if(result){
         const text=result.getText();
         if(text===expectedId){
-          showMegaWinFX();
+          playWinSfx();         // <-- thunder + witch laugh (WebAudio)
+          showMegaWinFX();      // visuals
           const cur=STOPS[index];
           track('scan',{event_id:EVENT_ID,business:cur.business,title:cur.title,stop_id:cur.id});
           index++; save();
