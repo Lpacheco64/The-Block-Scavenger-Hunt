@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+# Write the current Haunted Block Hunt app to an HTML file for download
+content = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -62,7 +63,7 @@
     endpoint: "YOUR_WEB_APP_URL", // ← paste your Apps Script Web App URL here
   };
   function track(event, payload={}){
-    const K = (k)=>`${EVENT_ID}:analytics:${k}`;
+    const K = (k)=>\`\${EVENT_ID}:analytics:\${k}\`;
     if(event==='start'){ localStorage.setItem(K('players_total'), String((+localStorage.getItem(K('players_total'))||0)+1)); }
     if(event==='complete'){ localStorage.setItem(K('players_completed'), String((+localStorage.getItem(K('players_completed'))||0)+1)); }
     if(ANALYTICS.endpoint){
@@ -97,26 +98,26 @@
   ];
 
   // ======= STATE =======
-  const KEY = (k)=>`${EVENT_ID}:${k}`;
+  const KEY = (k)=>\`\${EVENT_ID}:\${k}\`;
   const $ = (sel)=>document.querySelector(sel);
-  const Kstats = (k)=>`${EVENT_ID}:analytics:${k}`;
+  const Kstats = (k)=>\`\${EVENT_ID}:analytics:\${k}\`;
   const root = document.getElementById('game');
   let team = localStorage.getItem(KEY('team')) || '';
   let index = parseInt(localStorage.getItem(KEY('index'))||'0',10);
   function save(){ localStorage.setItem(KEY('team'), team); localStorage.setItem(KEY('index'), String(index)); }
 
   // ======= UI HELPERS =======
-  const wrapCard = (inner)=>`<div class="card p-4">${inner}</div>`;
+  const wrapCard = (inner)=>`<div class="card p-4">\${inner}</div>`;
   const escapeHtml = (s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
   function header(progressPct){
     return `
       <div class="card p-4">
         <div class="flex items-center justify-between mb-3">
-          <span class="badge">Team: ${team?`<strong>${escapeHtml(team)}</strong>`:'—'}</span>
+          <span class="badge">Team: \${team?`<strong>\${escapeHtml(team)}</strong>`:'—'}</span>
           <button class="btn btn-muted text-sm" onclick="resetProgress()">Restart</button>
         </div>
-        <div class="progress"><span style="width:${progressPct}%"></span></div>
-        <div class="text-xs text-violet-200 mt-1">${index}/${STOPS.length}</div>
+        <div class="progress"><span style="width:\${progressPct}%"></span></div>
+        <div class="text-xs text-violet-200 mt-1">\${index}/\${STOPS.length}</div>
       </div>`;
   }
 
@@ -144,11 +145,11 @@
     if (index < STOPS.length){
       const cur = STOPS[index];
       html += wrapCard(`
-        <div class="text-sm text-gray-400 mb-1">Stop #${index+1}: <span class="font-semibold">${cur.business}</span></div>
-        <h2 class="text-lg font-bold mb-1">${cur.title}</h2>
-        <p class="text-base">${cur.riddle}</p>`);
+        <div class="text-sm text-gray-400 mb-1">Stop #\${index+1}: <span class="font-semibold">\${cur.business}</span></div>
+        <h2 class="text-lg font-bold mb-1">\${cur.title}</h2>
+        <p class="text-base">\${cur.riddle}</p>`);
       html += wrapCard(`
-        <div class="text-sm text-gray-400 mb-2">Scan the checkpoint QR at <strong>${cur.business}</strong></div>
+        <div class="text-sm text-gray-400 mb-2">Scan the checkpoint QR at <strong>\${cur.business}</strong></div>
         <div id="camera" class="overflow-hidden rounded-lg border border-zinc-700">
           <video id="preview" style="width:100%;height:auto" autoplay muted playsinline></video>
         </div>
@@ -159,12 +160,12 @@
       const done = +localStorage.getItem(Kstats('players_completed'))||0;
       const chip = document.createElement('div');
       chip.className = 'fixed bottom-2 right-2 text-xs px-2 py-1 rounded bg-black/60 text-orange-300 border border-orange-500/30';
-      chip.textContent = `Players: ${players} • Done: ${done}`;
+      chip.textContent = `Players: \${players} • Done: \${done}`;
       document.body.appendChild(chip);
     } else {
       html += wrapCard(`
         <h1 class="text-2xl font-bold text-center">🎉 You did it!</h1>
-        <p class="text-base text-center mt-1">Team <strong>${escapeHtml(team)}</strong> completed the Haunted Block Hunt!</p>
+        <p class="text-base text-center mt-1">Team <strong>\${escapeHtml(team)}</strong> completed the Haunted Block Hunt!</p>
         <p class="text-sm text-gray-400 text-center">Show this screen at the prize table to claim your treat. Happy Halloween! 🎃</p>
         <div class="grid grid-cols-1 gap-2 mt-3">
           <button class="btn btn-primary" onclick="celebrate()">Celebrate Again</button>
@@ -179,7 +180,7 @@
     let html = '';
     html += wrapCard(`<div class="flex items-center justify-between">
       <h1 class="text-xl font-bold">Checkpoint QR Codes</h1>
-      <div class="text-sm text-orange-400">Players: <strong>${+localStorage.getItem(Kstats('players_total'))||0}</strong> • Completed: <strong>${+localStorage.getItem(Kstats('players_completed'))||0}</strong></div>
+      <div class="text-sm text-orange-400">Players: <strong>\${+localStorage.getItem(Kstats('players_total'))||0}</strong> • Completed: <strong>\${+localStorage.getItem(Kstats('players_completed'))||0}</strong></div>
     </div>
     <div class="mt-1 flex items-center justify-between">
       <p class="text-sm text-gray-400">Print and place at each business. Each QR encodes the stop id.</p>
@@ -188,27 +189,27 @@
     html += `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">`;
     STOPS.forEach(s=>{
       html += `<div class="card p-4">
-        <div class="text-xs text-gray-400">${s.business}</div>
-        <div class="font-bold">${s.title}</div>
-        <div id="qr-${s.id}" class="flex items-center justify-center my-3"></div>
-        <div class="text-xs text-gray-400 break-all">${s.id}</div>
+        <div class="text-xs text-gray-400">\${s.business}</div>
+        <div class="font-bold">\${s.title}</div>
+        <div id="qr-\${s.id}" class="flex items-center justify-center my-3"></div>
+        <div class="text-xs text-gray-400 break-all">\${s.id}</div>
       </div>`;
     });
     html += `</div>`;
     root.innerHTML = html;
-    STOPS.forEach(s=> new QRCode(document.getElementById(`qr-${s.id}`), { text:s.id, width:180, height:180, correctLevel: QRCode.CorrectLevel.M }));
+    STOPS.forEach(s=> new QRCode(document.getElementById(\`qr-\${s.id}\`), { text:s.id, width:180, height:180, correctLevel: QRCode.CorrectLevel.M }));
   }
 
   // ======= STATS VIEW =======
   function renderStats(){
     document.title = 'Stats — Haunted Block Hunt';
-    const K = (k)=>`${EVENT_ID}:analytics:${k}`;
+    const K = (k)=>\`\${EVENT_ID}:analytics:\${k}\`;
     const players = +localStorage.getItem(K('players_total'))||0;
     const done = +localStorage.getItem(K('players_completed'))||0;
     let html = '';
     html += wrapCard(`<h1 class="text-xl font-bold">Stats</h1><p class="text-sm text-gray-400">Local (device) counters. For shared totals across devices, set <code>ANALYTICS.endpoint</code> to your webhook.</p>`);
-    html += wrapCard(`<div class="flex items-center justify-between"><div>Players started</div><div class="font-bold">${players}</div></div>`);
-    html += wrapCard(`<div class="flex items-center justify-between"><div>Players completed</div><div class="font-bold">${done}</div></div>`);
+    html += wrapCard(`<div class="flex items-center justify-between"><div>Players started</div><div class="font-bold">\${players}</div></div>`);
+    html += wrapCard(`<div class="flex items-center justify-between"><div>Players completed</div><div class="font-bold">\${done}</div></div>`);
     html += wrapCard(`<button class="btn btn-muted" onclick="location.href='./'">Back</button>`);
     root.innerHTML = html;
   }
@@ -231,11 +232,11 @@
     for (let i=0;i<120;i++){
       const d=document.createElement('div');
       d.style.position='fixed'; d.style.top='-10px'; d.style.left=(Math.random()*100)+'vw';
-      d.style.width='8px'; d.style.height='12px'; d.style.background=`hsl(${Math.random()*360} 90% 60%)`;
-      d.style.transform=`rotate(${Math.random()*360}deg)`; d.style.opacity='.9'; d.style.zIndex='50';
+      d.style.width='8px'; d.style.height='12px'; d.style.background=\`hsl(\${Math.random()*360} 90% 60%)\`;
+      d.style.transform=\`rotate(\${Math.random()*360}deg)\`; d.style.opacity='.9'; d.style.zIndex='50';
       d.style.transition='transform 1.2s ease-out, top 1.2s ease-out, opacity 1.2s ease-out';
       document.body.appendChild(d);
-      requestAnimationFrame(()=>{ d.style.top='100vh'; d.style.transform+=` translateY(80vh)`; d.style.opacity='.2'; });
+      requestAnimationFrame(()=>{ d.style.top='100vh'; d.style.transform+=\` translateY(80vh)\`; d.style.opacity='.2'; });
       setTimeout(()=>d.remove(),1400);
     }
   }
@@ -273,8 +274,8 @@
   </script>
 </body>
 </html>
-
-
-
-
-
+"""
+path = "/mnt/data/haunted_block_hunt.html"
+with open(path, "w", encoding="utf-8") as f:
+    f.write(content)
+path
