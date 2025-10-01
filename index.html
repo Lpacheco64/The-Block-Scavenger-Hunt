@@ -103,7 +103,7 @@
 const EVENT_ID = "haunted-block-2025";
 const ANALYTICS = { endpoint: "" }; // optional webhook URL
 
-/* ---------- AUDIO UNLOCK (Android-friendly) ---------- */
+/* ---------- AUDIO UNLOCK (instant UI + background priming) ---------- */
 let sfxEnabled = false;
 
 async function unlockWebAudio(){
@@ -112,42 +112,41 @@ async function unlockWebAudio(){
     if (!AC) return;
     window._ac = window._ac || new AC();
     if (window._ac.state === 'suspended') await window._ac.resume();
-    const o = window._ac.createOscillator(); const g = window._ac.createGain();
+    // tiny silent beep (helps some Android builds)
+    const o = window._ac.createOscillator(), g = window._ac.createGain();
     g.gain.value = 0.0001; o.connect(g); g.connect(window._ac.destination);
-    o.start(); o.stop(window._ac.currentTime + 0.05);
-  } catch(_) {}
+    o.start(); o.stop(window._ac.currentTime + 0.03);
+  } catch {}
 }
-async function primeAudio(el){
-  if(!el) return false;
-  try {
-    el.muted = true; el.currentTime = 0;
-    await el.play();
-    el.pause(); el.muted = false;
-    return true;
-  } catch(e){ el.muted = false; return false; }
+function primeOne(el){
+  if (!el) return Promise.resolve(false);
+  try { el.load(); } catch {}
+  el.muted = true; el.currentTime = 0;
+  const playP = el.play().then(()=>{ el.pause(); el.muted = false; return true; })
+                         .catch(()=>{ el.muted = false; return false; });
+  const timeout = new Promise(res => setTimeout(()=>{ try{ el.pause(); }catch{}; el.muted=false; res(false); }, 800));
+  return Promise.race([playP, timeout]);
 }
-async function enableSFX(){
+function enableSFX(){
   if (sfxEnabled) return;
+  sfxEnabled = true; // mark enabled immediately
+
   const btn = document.getElementById('audioGateBtn');
-  if (btn) { btn.disabled = true; btn.textContent = '🔊 Enabling…'; }
+  if (btn) { btn.disabled = true; btn.textContent = '🔊 Sound enabled'; }
+  const gate = document.getElementById('audioGate');
+  if (gate) setTimeout(()=>gate.remove(), 50);
 
-  await unlockWebAudio();
-
+  // background unlock/prime (don’t await)
+  unlockWebAudio();
   const th = document.getElementById('fx-thunder');
   const wi = document.getElementById('fx-witch');
-  await Promise.all([primeAudio(th), primeAudio(wi)]);
-
-  sfxEnabled = true; // consider unlocked even if files still loading
-  const gate = document.getElementById('audioGate'); if (gate) gate.remove();
-
-  [th, wi].forEach(a => {
-    if (a && a.readyState === 0) {
-      console.warn('SFX file may not be reachable:', a.querySelector('source')?.src || a.src);
-    }
-  });
+  primeOne(th); primeOne(wi);
 }
-// auto-try on first tap anywhere
-(function(){ const once = () => { if (!sfxEnabled) enableSFX(); window.removeEventListener('pointerdown', once, true); }; window.addEventListener('pointerdown', once, true); })();
+// also auto-try on first tap anywhere
+(function(){
+  const once = () => { if (!sfxEnabled) enableSFX(); window.removeEventListener('pointerdown', once, true); };
+  window.addEventListener('pointerdown', once, true);
+})();
 
 /* ---------- ANALYTICS ---------- */
 function track(event, payload={}) {
@@ -181,7 +180,7 @@ const KEY=(k)=>`${EVENT_ID}:${k}`, $=(s)=>document.querySelector(s);
 let team=localStorage.getItem(KEY('team'))||''; let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
 function save(){ localStorage.setItem(KEY('team'),team); localStorage.setItem(KEY('index'),String(index)); }
 const wrapCard=(inner)=>`<div class="card p-4">${inner}</div>`;
-const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;","~":"&tilde;","\"":"&quot;","'":"&#039;"}[m]||m));
+const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 function header(pct){
   return `<div class="card p-4">
     <div class="flex items-center justify-between mb-3">
