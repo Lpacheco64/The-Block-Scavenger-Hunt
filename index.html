@@ -1,5 +1,4 @@
-# Write the current Haunted Block Hunt app to an HTML file for download
-content = r"""<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -12,16 +11,10 @@ content = r"""<!DOCTYPE html>
   <!-- ZXing QR scanner -->
   <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
   <style>
-    /* ================= BLOCK DARK BRAND ================= */
     :root{
-      --block-bg: #0b0b0e;         /* dark background */
-      --block-card: #14141a;       /* dark cards */
-      --block-ink: #f6f3ff;        /* light text */
-      --block-muted: #b9b6c9;      /* secondary text */
-      --block-primary: #ff6600;    /* Block orange */
-      --block-secondary: #ffffff;  /* Block white */
+      --block-bg:#0b0b0e;--block-card:#14141a;--block-ink:#f6f3ff;--block-muted:#b9b6c9;
+      --block-primary:#ff6600;--block-secondary:#ffffff;
     }
-
     body{background:linear-gradient(160deg,var(--block-bg),#171722);color:var(--block-ink);font-family:Poppins,system-ui,sans-serif;min-height:100svh}
     .card{background:var(--block-card);border:1px solid #262433;border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
     .btn{border-radius:14px;padding:14px 18px;font-weight:700}
@@ -29,19 +22,30 @@ content = r"""<!DOCTYPE html>
     .btn-muted{background:#272733;color:var(--block-ink)}
     .badge{display:inline-flex;gap:.5rem;align-items:center;font-size:.8rem;color:#fff;background:#1d1c27;border:1px solid #2b2940;border-radius:999px;padding:.4rem .75rem}
     .progress{height:8px;background:#262433;border-radius:999px;overflow:hidden}
-    .progress > span{display:block;height:100%;background:linear-gradient(90deg,var(--block-primary),var(--block-secondary))}
+    .progress>span{display:block;height:100%;background:linear-gradient(90deg,var(--block-primary),var(--block-secondary))}
     video{border-radius:12px}
     .ghost{position:fixed;inset:auto 0 0 50%;translate:-50% 0;width:80px;height:80px;background:#fff;border-radius:40px 40px 16px 16px/50px 50px 16px 16px;box-shadow:0 8px 30px rgba(0,0,0,.35);opacity:.08;pointer-events:none;animation:float 6s ease-in-out infinite}
-    @keyframes float {0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-    /* Logo flicker */
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
     .logo-flicker{animation:flicker 2.6s infinite ease-in-out}
-    @keyframes flicker{0%{opacity:.92;filter:drop-shadow(0 0 0px rgba(255,102,0,.0))}10%{opacity:1;filter:drop-shadow(0 0 6px rgba(255,102,0,.55))}18%{opacity:.96;filter:drop-shadow(0 0 2px rgba(255,102,0,.25))}22%{opacity:1;filter:drop-shadow(0 0 9px rgba(255,102,0,.8))}27%{opacity:.88;filter:none}34%{opacity:1;filter:drop-shadow(0 0 8px rgba(255,102,0,.65))}48%{opacity:.95;filter:drop-shadow(0 0 2px rgba(255,102,0,.2))}62%{opacity:1;filter:drop-shadow(0 0 10px rgba(255,102,0,.85))}76%{opacity:.9;filter:none}100%{opacity:1;filter:drop-shadow(0 0 7px rgba(255,102,0,.6))}}
+    @keyframes flicker{
+      0%{opacity:.92;filter:drop-shadow(0 0 0 rgba(255,102,0,0))}
+      10%{opacity:1;filter:drop-shadow(0 0 6px rgba(255,102,0,.55))}
+      18%{opacity:.96;filter:drop-shadow(0 0 2px rgba(255,102,0,.25))}
+      22%{opacity:1;filter:drop-shadow(0 0 9px rgba(255,102,0,.8))}
+      27%{opacity:.88;filter:none}
+      34%{opacity:1;filter:drop-shadow(0 0 8px rgba(255,102,0,.65))}
+      48%{opacity:.95;filter:drop-shadow(0 0 2px rgba(255,102,0,.2))}
+      62%{opacity:1;filter:drop-shadow(0 0 10px rgba(255,102,0,.85))}
+      76%{opacity:.9;filter:none}
+      100%{opacity:1;filter:drop-shadow(0 0 7px rgba(255,102,0,.6))}
+    }
   </style>
 </head>
 <body class="p-4">
   <div class="max-w-md mx-auto space-y-4">
     <header class="flex items-center justify-between">
       <div class="flex items-center gap-2">
+        <!-- replace src with your logo if desired -->
         <img id="blockLogo" class="h-8 logo-flicker" src="./2b375fc7-bcb9-4c60-acec-fcc5ad6a318f.JPG" alt="The Block Logo"/>
         <span class="badge">🎃 Haunted Block Hunt</span>
       </div>
@@ -56,14 +60,12 @@ content = r"""<!DOCTYPE html>
   </div>
 
   <script>
-  const EVENT_ID = "haunted-block-2025"; // change per event to reset saved progress
+  const EVENT_ID = "haunted-block-2025"; // change to reset saved progress between events
 
-  // ======= ANALYTICS (local counters + optional remote webhook) =======
-  const ANALYTICS = {
-    endpoint: "YOUR_WEB_APP_URL", // ← paste your Apps Script Web App URL here
-  };
+  // ======= ANALYTICS (local + optional remote webhook) =======
+  const ANALYTICS = { endpoint: "YOUR_WEB_APP_URL" }; // ← paste your Apps Script Web App URL
   function track(event, payload={}){
-    const K = (k)=>\`\${EVENT_ID}:analytics:\${k}\`;
+    const K = (k)=>`${EVENT_ID}:analytics:${k}`;
     if(event==='start'){ localStorage.setItem(K('players_total'), String((+localStorage.getItem(K('players_total'))||0)+1)); }
     if(event==='complete'){ localStorage.setItem(K('players_completed'), String((+localStorage.getItem(K('players_completed'))||0)+1)); }
     if(ANALYTICS.endpoint){
@@ -77,7 +79,7 @@ content = r"""<!DOCTYPE html>
     }
   }
 
-  // ======= FINALIZED STOPS (16) =======
+  // ======= STOPS (16) =======
   const STOPS = [
     { id:"stop-el-chamo",              business:"El Chamo",                 title:"Venezuelan Vampire Bites",     riddle:"A hungry vampire craves arepas—follow the smell of sizzling corn cakes!" },
     { id:"stop-kukri",                 business:"Kukri",                    title:"Crispy Chicken Crown",          riddle:"A raven guards a crispy crown—find the throne of the mighty chicken!" },
@@ -91,42 +93,41 @@ content = r"""<!DOCTYPE html>
     { id:"stop-wow-wow-lemonade",      business:"Wow Wow Lemonade",         title:"Witch’s Lemon Brew",             riddle:"Sour turns sweet in this brew—find the brightest yellow stand." },
     { id:"stop-teriyaki-queen",        business:"Teriyaki Queen",           title:"The Queen’s Sizzling Cauldron",  riddle:"The Queen’s cauldron sizzles sweet and dark—follow the charred trail of soy and fire." },
     { id:"stop-boba-lounge",           business:"The Boba Lounge",          title:"Ghost Bubble Parlor",            riddle:"Ghosts sip floating pearls—seek the lounge of bubbling orbs." },
-    { id:"stop-busy-bee-custard",      business:"Busy Bee Frozen Custard",  title:"Boo‑Bee Freezer",                 riddle:"Buzz to the coldest hive—your clue chills by creamy swirls." },
+    { id:"stop-busy-bee-custard",      business:"Busy Bee Frozen Custard",  title:"Boo-Bee Freezer",                 riddle:"Buzz to the coldest hive—your clue chills by creamy swirls." },
     { id:"stop-enchanted-books",       business:"Enchanted Books",          title:"Ghostly Library",                riddle:"A friendly phantom turns pages—find the whispering shelves." },
     { id:"stop-rez-sandwich",          business:"That’s My Rez Sandwich",    title:"Spirit Sandwich Shop",           riddle:"Spells stacked between bread—seek the spirit of the sandwich." },
-    { id:"stop-candy-bar",             business:"The Candy Bar",            title:"Trick‑or‑Treat Counter",          riddle:"Count the sweets if you dare—trick-or-treats await your stare." }
+    { id:"stop-candy-bar",             business:"The Candy Bar",            title:"Trick-or-Treat Counter",          riddle:"Count the sweets if you dare—trick-or-treats await your stare." }
   ];
 
   // ======= STATE =======
-  const KEY = (k)=>\`\${EVENT_ID}:\${k}\`;
+  const KEY = (k)=>`${EVENT_ID}:${k}`;
   const $ = (sel)=>document.querySelector(sel);
-  const Kstats = (k)=>\`\${EVENT_ID}:analytics:\${k}\`;
+  const Kstats = (k)=>`${EVENT_ID}:analytics:${k}`;
   const root = document.getElementById('game');
   let team = localStorage.getItem(KEY('team')) || '';
   let index = parseInt(localStorage.getItem(KEY('index'))||'0',10);
   function save(){ localStorage.setItem(KEY('team'), team); localStorage.setItem(KEY('index'), String(index)); }
 
   // ======= UI HELPERS =======
-  const wrapCard = (inner)=>`<div class="card p-4">\${inner}</div>`;
+  const wrapCard = (inner)=>`<div class="card p-4">${inner}</div>`;
   const escapeHtml = (s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
   function header(progressPct){
     return `
       <div class="card p-4">
         <div class="flex items-center justify-between mb-3">
-          <span class="badge">Team: \${team?`<strong>\${escapeHtml(team)}</strong>`:'—'}</span>
+          <span class="badge">Team: ${team?`<strong>${escapeHtml(team)}</strong>`:'—'}</span>
           <button class="btn btn-muted text-sm" onclick="resetProgress()">Restart</button>
         </div>
-        <div class="progress"><span style="width:\${progressPct}%"></span></div>
-        <div class="text-xs text-violet-200 mt-1">\${index}/\${STOPS.length}</div>
+        <div class="progress"><span style="width:${progressPct}%"></span></div>
+        <div class="text-xs text-violet-200 mt-1">${index}/${STOPS.length}</div>
       </div>`;
   }
 
   // ======= VIEWS =======
   function render(){
     const params = new URL(location.href).searchParams;
-    const isAdmin = params.get('admin');
-    if (params.get('stats')) { return renderStats(); }
-    if (isAdmin) return renderAdmin();
+    if (params.get('stats')) return renderStats();
+    if (params.get('admin')) return renderAdmin();
 
     const pct = Math.round((index/STOPS.length)*100);
     let html = '';
@@ -145,27 +146,27 @@ content = r"""<!DOCTYPE html>
     if (index < STOPS.length){
       const cur = STOPS[index];
       html += wrapCard(`
-        <div class="text-sm text-gray-400 mb-1">Stop #\${index+1}: <span class="font-semibold">\${cur.business}</span></div>
-        <h2 class="text-lg font-bold mb-1">\${cur.title}</h2>
-        <p class="text-base">\${cur.riddle}</p>`);
+        <div class="text-sm text-gray-400 mb-1">Stop #${index+1}: <span class="font-semibold">${cur.business}</span></div>
+        <h2 class="text-lg font-bold mb-1">${cur.title}</h2>
+        <p class="text-base">${cur.riddle}</p>`);
       html += wrapCard(`
-        <div class="text-sm text-gray-400 mb-2">Scan the checkpoint QR at <strong>\${cur.business}</strong></div>
+        <div class="text-sm text-gray-400 mb-2">Scan the checkpoint QR at <strong>${cur.business}</strong></div>
         <div id="camera" class="overflow-hidden rounded-lg border border-zinc-700">
           <video id="preview" style="width:100%;height:auto" autoplay muted playsinline></video>
         </div>
         <div class="text-xs text-gray-500 mt-2">If the camera doesn’t start, allow camera permissions in your browser.</div>`);
       root.innerHTML = html; startScanner(cur.id);
-      // Tiny live stats chip (local device)
+
       const players = +localStorage.getItem(Kstats('players_total'))||0;
       const done = +localStorage.getItem(Kstats('players_completed'))||0;
       const chip = document.createElement('div');
       chip.className = 'fixed bottom-2 right-2 text-xs px-2 py-1 rounded bg-black/60 text-orange-300 border border-orange-500/30';
-      chip.textContent = `Players: \${players} • Done: \${done}`;
+      chip.textContent = `Players: ${players} • Done: ${done}`;
       document.body.appendChild(chip);
     } else {
       html += wrapCard(`
         <h1 class="text-2xl font-bold text-center">🎉 You did it!</h1>
-        <p class="text-base text-center mt-1">Team <strong>\${escapeHtml(team)}</strong> completed the Haunted Block Hunt!</p>
+        <p class="text-base text-center mt-1">Team <strong>${escapeHtml(team)}</strong> completed the Haunted Block Hunt!</p>
         <p class="text-sm text-gray-400 text-center">Show this screen at the prize table to claim your treat. Happy Halloween! 🎃</p>
         <div class="grid grid-cols-1 gap-2 mt-3">
           <button class="btn btn-primary" onclick="celebrate()">Celebrate Again</button>
@@ -180,7 +181,7 @@ content = r"""<!DOCTYPE html>
     let html = '';
     html += wrapCard(`<div class="flex items-center justify-between">
       <h1 class="text-xl font-bold">Checkpoint QR Codes</h1>
-      <div class="text-sm text-orange-400">Players: <strong>\${+localStorage.getItem(Kstats('players_total'))||0}</strong> • Completed: <strong>\${+localStorage.getItem(Kstats('players_completed'))||0}</strong></div>
+      <div class="text-sm text-orange-400">Players: <strong>${+localStorage.getItem(Kstats('players_total'))||0}</strong> • Completed: <strong>${+localStorage.getItem(Kstats('players_completed'))||0}</strong></div>
     </div>
     <div class="mt-1 flex items-center justify-between">
       <p class="text-sm text-gray-400">Print and place at each business. Each QR encodes the stop id.</p>
@@ -189,27 +190,26 @@ content = r"""<!DOCTYPE html>
     html += `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">`;
     STOPS.forEach(s=>{
       html += `<div class="card p-4">
-        <div class="text-xs text-gray-400">\${s.business}</div>
-        <div class="font-bold">\${s.title}</div>
-        <div id="qr-\${s.id}" class="flex items-center justify-center my-3"></div>
-        <div class="text-xs text-gray-400 break-all">\${s.id}</div>
+        <div class="text-xs text-gray-400">${s.business}</div>
+        <div class="font-bold">${s.title}</div>
+        <div id="qr-${s.id}" class="flex items-center justify-center my-3"></div>
+        <div class="text-xs text-gray-400 break-all">${s.id}</div>
       </div>`;
     });
     html += `</div>`;
     root.innerHTML = html;
-    STOPS.forEach(s=> new QRCode(document.getElementById(\`qr-\${s.id}\`), { text:s.id, width:180, height:180, correctLevel: QRCode.CorrectLevel.M }));
+    STOPS.forEach(s=> new QRCode(document.getElementById(`qr-${s.id}`), { text:s.id, width:180, height:180, correctLevel: QRCode.CorrectLevel.M }));
   }
 
-  // ======= STATS VIEW =======
   function renderStats(){
     document.title = 'Stats — Haunted Block Hunt';
-    const K = (k)=>\`\${EVENT_ID}:analytics:\${k}\`;
+    const K = (k)=>`${EVENT_ID}:analytics:${k}`;
     const players = +localStorage.getItem(K('players_total'))||0;
     const done = +localStorage.getItem(K('players_completed'))||0;
     let html = '';
     html += wrapCard(`<h1 class="text-xl font-bold">Stats</h1><p class="text-sm text-gray-400">Local (device) counters. For shared totals across devices, set <code>ANALYTICS.endpoint</code> to your webhook.</p>`);
-    html += wrapCard(`<div class="flex items-center justify-between"><div>Players started</div><div class="font-bold">\${players}</div></div>`);
-    html += wrapCard(`<div class="flex items-center justify-between"><div>Players completed</div><div class="font-bold">\${done}</div></div>`);
+    html += wrapCard(`<div class="flex items-center justify-between"><div>Players started</div><div class="font-bold">${players}</div></div>`);
+    html += wrapCard(`<div class="flex items-center justify-between"><div>Players completed</div><div class="font-bold">${done}</div></div>`);
     html += wrapCard(`<button class="btn btn-muted" onclick="location.href='./'">Back</button>`);
     root.innerHTML = html;
   }
@@ -232,23 +232,42 @@ content = r"""<!DOCTYPE html>
     for (let i=0;i<120;i++){
       const d=document.createElement('div');
       d.style.position='fixed'; d.style.top='-10px'; d.style.left=(Math.random()*100)+'vw';
-      d.style.width='8px'; d.style.height='12px'; d.style.background=\`hsl(\${Math.random()*360} 90% 60%)\`;
-      d.style.transform=\`rotate(\${Math.random()*360}deg)\`; d.style.opacity='.9'; d.style.zIndex='50';
+      d.style.width='8px'; d.style.height='12px'; d.style.background=`hsl(${Math.random()*360} 90% 60%)`;
+      d.style.transform=`rotate(${Math.random()*360}deg)`; d.style.opacity='.9'; d.style.zIndex='50';
       d.style.transition='transform 1.2s ease-out, top 1.2s ease-out, opacity 1.2s ease-out';
       document.body.appendChild(d);
-      requestAnimationFrame(()=>{ d.style.top='100vh'; d.style.transform+=\` translateY(80vh)\`; d.style.opacity='.2'; });
+      requestAnimationFrame(()=>{ d.style.top='100vh'; d.style.transform+=` translateY(80vh)`; d.style.opacity='.2'; });
       setTimeout(()=>d.remove(),1400);
     }
   }
 
-  // ======= SCANNER =======
+  // ======= SCANNER (with HTTPS check + back camera preference) =======
   let codeReader;
+  async function getCameras(){
+    if (ZXing?.BrowserMultiFormatReader?.listVideoInputDevices) {
+      return await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
+    }
+    if (navigator.mediaDevices?.enumerateDevices) {
+      const list = await navigator.mediaDevices.enumerateDevices();
+      return list.filter(d=>d.kind==='videoinput');
+    }
+    return [];
+  }
   async function startScanner(expectedId){
     stopScanner();
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost'){
+      document.getElementById('camera').insertAdjacentHTML('afterend',
+        `<div class="text-xs text-red-300 mt-2">Camera requires HTTPS. Open over https://… or test on localhost.</div>`);
+      return;
+    }
+    try { await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' }}}); } catch(e) {}
     codeReader = new ZXing.BrowserMultiFormatReader();
     try{
-      const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-      const camId = devices?.[0]?.deviceId;
+      const devices = await getCameras();
+      let camId = devices?.[0]?.deviceId;
+      const back = devices.find(d=>/back|rear|environment/i.test(d.label));
+      if (back) camId = back.deviceId;
+
       await codeReader.decodeFromVideoDevice(camId, 'preview', (result, err)=>{
         if (result){
           const text = result.getText();
@@ -256,26 +275,34 @@ content = r"""<!DOCTYPE html>
             const cur = STOPS[index];
             track('scan', { event_id: EVENT_ID, business: cur.business, title: cur.title, stop_id: cur.id });
             index++; save();
-            if(index === STOPS.length && !localStorage.getItem(KEY('completed'))){ localStorage.setItem(KEY('completed'),'1'); track('complete', { event_id: EVENT_ID }); }
+            if(index === STOPS.length && !localStorage.getItem(KEY('completed'))){
+              localStorage.setItem(KEY('completed'),'1'); track('complete', { event_id: EVENT_ID });
+            }
             flash('#0c2614'); stopScanner(); setTimeout(render, 350);
           } else { flash('#2a0d0d'); }
         }
       });
     }catch(e){
       console.error(e);
-      document.getElementById('camera').insertAdjacentHTML('afterend', `<div class="text-xs text-red-300 mt-2">Camera error: ${e?.message||e}</div>`);
+      const msg = (e?.message||String(e));
+      document.getElementById('camera').insertAdjacentHTML('afterend',
+        `<div class="text-xs text-red-300 mt-2">Camera error: ${msg}. Check camera permissions.</div>`);
     }
   }
   function stopScanner(){ try{ codeReader && codeReader.reset(); }catch(e){} }
-  function flash(color){ document.body.animate([{backgroundColor:getComputedStyle(document.body).backgroundColor},{backgroundColor:color},{backgroundColor:getComputedStyle(document.body).backgroundColor}],{duration:350}); }
+  function flash(color){
+    document.body.animate(
+      [
+        {backgroundColor:getComputedStyle(document.body).backgroundColor},
+        {backgroundColor:color},
+        {backgroundColor:getComputedStyle(document.body).backgroundColor}
+      ],
+      {duration:350}
+    );
+  }
 
   // ======= BOOT =======
   render();
   </script>
 </body>
 </html>
-"""
-path = "/mnt/data/haunted_block_hunt.html"
-with open(path, "w", encoding="utf-8") as f:
-    f.write(content)
-path
