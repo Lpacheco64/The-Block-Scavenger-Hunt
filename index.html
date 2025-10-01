@@ -55,9 +55,7 @@
 <body class="p-4">
   <div class="max-w-md mx-auto space-y-4">
     <header class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <span class="badge">🎃 Haunted Block Hunt</span>
-      </div>
+      <div class="flex items-center gap-2"><span class="badge">🎃 Haunted Block Hunt</span></div>
       <nav class="flex items-center gap-3 text-sm">
         <a href="?admin=1" class="text-orange-400 underline">QR Codes</a>
         <a href="?stats=1" class="text-orange-400 underline">Stats</a>
@@ -89,17 +87,45 @@
     </div>
   </div>
 
-  <!-- Place thunder.mp3 and witch.mp3 in same folder (or replace src with your hosted URLs) -->
-  <audio id="fx-thunder" preload="auto">
-    <source src="thunder.mp3" type="audio/mpeg">
-  </audio>
-  <audio id="fx-witch" preload="auto">
-    <source src="witch.mp3" type="audio/mpeg">
-  </audio>
+  <!-- Put thunder.mp3 and witch.mp3 next to this HTML file or replace with your hosted URLs -->
+  <audio id="fx-thunder" preload="auto"><source src="thunder.mp3" type="audio/mpeg"></audio>
+  <audio id="fx-witch" preload="auto"><source src="witch.mp3" type="audio/mpeg"></audio>
+
+  <!-- One-time sound unlock (visible until user taps) -->
+  <div id="audioGate" style="position:fixed;inset:auto 0 16px 0;display:flex;justify-content:center;pointer-events:none;z-index:90">
+    <button onclick="enableSFX()" style="pointer-events:auto;background:#ff8c00;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,140,0,.35);border:none">
+      🔊 Enable Sound Effects
+    </button>
+  </div>
 
 <script>
+/* ---------- CONFIG ---------- */
 const EVENT_ID = "haunted-block-2025";
-const ANALYTICS = { endpoint: "" }; // optional webhook
+const ANALYTICS = { endpoint: "" }; // optional webhook URL
+
+/* ---------- AUDIO UNLOCK ---------- */
+let sfxEnabled = false;
+async function enableSFX() {
+  try {
+    if (window.AudioContext || window.webkitAudioContext) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      window._ac = window._ac || new AC();
+      if (window._ac.state === 'suspended') await window._ac.resume();
+    }
+    const th = document.getElementById('fx-thunder');
+    const wi = document.getElementById('fx-witch');
+    th.volume = 0.01; wi.volume = 0.01;
+    await th.play().catch(()=>{}); await wi.play().catch(()=>{});
+    th.pause(); wi.pause(); th.currentTime = 0; wi.currentTime = 0;
+    th.volume = 0.9; wi.volume = 0.7;
+    sfxEnabled = true;
+    const gate = document.getElementById('audioGate'); if (gate) gate.remove();
+  } catch (e) { console.warn('Audio unlock failed:', e); }
+}
+// also unlock on first tap anywhere
+(function(){ const h = () => { if (!sfxEnabled) enableSFX(); window.removeEventListener('pointerdown', h, true); }; window.addEventListener('pointerdown', h, true); })();
+
+/* ---------- ANALYTICS ---------- */
 function track(event, payload={}) {
   if(!ANALYTICS.endpoint) return;
   const body = JSON.stringify({event, ts: Date.now(), team, index, ...payload});
@@ -146,8 +172,7 @@ function render(){
   const p=new URL(location.href).searchParams;
   if(p.get('stats')) return renderStats();
   if(p.get('admin')) return renderAdmin();
-  let html='';
-  const pct=Math.round((index/STOPS.length)*100);
+  let html=''; const pct=Math.round((index/STOPS.length)*100);
   if(!team){
     html+=wrapCard(`<h1 class="text-xl font-bold mb-1">Welcome, brave hunters! 👻</h1>
     <p class="text-sm text-gray-400 mb-3">Enter your team name to begin. Visit each business, scan the QR, and unlock the next clue.</p>
@@ -194,7 +219,11 @@ function renderAdmin(){
   STOPS.forEach(s=> new QRCode(document.getElementById(`qr-${s.id}`), { text:s.id, width:180, height:180, correctLevel: QRCode.CorrectLevel.M }));
 }
 function renderStats(){ $("#game").innerHTML=wrapCard(`<h1 class="text-xl font-bold">Stats</h1><p class="text-sm text-gray-400">Local-only counters on this device.</p>`); }
-function startTeam(){ team=$("#teamInput").value.trim(); if(!team) return; index=0; save(); track('start'); render(); }
+function startTeam(){
+  enableSFX();                 /* unlock audio on first button press */
+  const inp=$("#teamInput"); const newTeam=(inp.value||'').trim(); if(!newTeam) return;
+  team=newTeam; index=0; save(); track('start'); render();
+}
 function resetProgress(){ localStorage.removeItem(KEY('team')); localStorage.removeItem(KEY('index')); team=''; index=0; render(); }
 
 /* ---------- CELEBRATE ---------- */
@@ -214,7 +243,7 @@ function celebrate(){
 /* ---------- MEGA WIN FX ---------- */
 function rand(a,b){return a+Math.random()*(b-a)}
 function hsl(h,s,l){return `hsl(${h} ${s}% ${l}%)`}
-function spawnConfettiBurst(n=120){
+function spawnConfettiBurst(n=140){
   for(let i=0;i<n;i++){
     const c=document.createElement('div'); c.className='confetti';
     c.style.background=i%3? hsl(rand(15,45),90,60) : '#fff';
@@ -227,7 +256,7 @@ function spawnConfettiBurst(n=120){
     document.body.appendChild(c); setTimeout(()=>c.remove(),dur+40);
   }
 }
-function spawnFireworks(count=4){
+function spawnFireworks(count=5){
   for(let k=0;k<count;k++){
     const cx=rand(innerWidth*0.25,innerWidth*0.75), cy=rand(innerHeight*0.25,innerHeight*0.55), pellets=36;
     for(let i=0;i<pellets;i++){
@@ -251,21 +280,17 @@ function spawnBats(count=6){
 }
 function showMegaWinFX(){
   if (navigator.vibrate) navigator.vibrate([40,40,60]);
-  // audio (replace with your files if needed)
-  const thunder=document.getElementById('fx-thunder');
-  const witch=document.getElementById('fx-witch');
-  try{ thunder.currentTime=0; thunder.volume=0.9; thunder.play().catch(()=>{});}catch(e){}
-  setTimeout(()=>{ try{ witch.currentTime=0; witch.volume=0.7; witch.play().catch(()=>{});}catch(e){} }, 350);
-
+  if (sfxEnabled) {
+    const thunder=document.getElementById('fx-thunder');
+    const witch=document.getElementById('fx-witch');
+    try{ thunder.currentTime=0; thunder.volume=0.9; thunder.play().catch(()=>{});}catch(e){}
+    setTimeout(()=>{ try{ witch.currentTime=0; witch.volume=0.7; witch.play().catch(()=>{});}catch(e){} }, 350);
+  }
   const flash=document.getElementById('fx-flash'), vig=document.getElementById('fx-vig');
-  document.documentElement.classList.add('shake');
-  flash.classList.add('show'); vig.classList.add('show');
+  document.documentElement.classList.add('shake'); flash.classList.add('show'); vig.classList.add('show');
   setTimeout(()=>{ flash.classList.remove('show'); vig.classList.remove('show'); document.documentElement.classList.remove('shake'); }, 650);
-
   const center=document.getElementById('fx-center'), banner=document.getElementById('fx-banner');
-  center.classList.add('show'); banner.classList.add('show');
-  setTimeout(()=>{ center.classList.remove('show'); banner.classList.remove('show'); }, 950);
-
+  center.classList.add('show'); banner.classList.add('show'); setTimeout(()=>{ center.classList.remove('show'); banner.classList.remove('show'); }, 950);
   spawnConfettiBurst(140); spawnFireworks(5); spawnBats(6);
 }
 
@@ -314,3 +339,5 @@ render();
 </script>
 </body>
 </html>
+
+
