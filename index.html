@@ -26,27 +26,36 @@
     video{border-radius:12px}
     .ghost{position:fixed;inset:auto 0 0 50%;translate:-50% 0;width:80px;height:80px;background:#fff;border-radius:40px 40px 16px 16px/50px 50px 16px 16px;box-shadow:0 8px 30px rgba(0,0,0,.35);opacity:.08;pointer-events:none;animation:float 6s ease-in-out infinite}
     @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-    .logo-flicker{animation:flicker 2.6s infinite ease-in-out}
-    @keyframes flicker{
-      0%{opacity:.92;filter:drop-shadow(0 0 0 rgba(255,102,0,0))}
-      10%{opacity:1;filter:drop-shadow(0 0 6px rgba(255,102,0,.55))}
-      18%{opacity:.96;filter:drop-shadow(0 0 2px rgba(255,102,0,.25))}
-      22%{opacity:1;filter:drop-shadow(0 0 9px rgba(255,102,0,.8))}
-      27%{opacity:.88;filter:none}
-      34%{opacity:1;filter:drop-shadow(0 0 8px rgba(255,102,0,.65))}
-      48%{opacity:.95;filter:drop-shadow(0 0 2px rgba(255,102,0,.2))}
-      62%{opacity:1;filter:drop-shadow(0 0 10px rgba(255,102,0,.85))}
-      76%{opacity:.9;filter:none}
-      100%{opacity:1;filter:drop-shadow(0 0 7px rgba(255,102,0,.6))}
-    }
+
+    /* ---- MEGA WIN FX ---- */
+    .win-wrap{position:fixed;inset:0;pointer-events:none;z-index:80}
+    .flash{position:fixed;inset:0;background:radial-gradient(circle at 50% 50%, rgba(255,140,0,.8), rgba(0,0,0,0) 60%);opacity:0}
+    .flash.show{animation:flashA .6s ease-out}
+    @keyframes flashA{0%{opacity:1}100%{opacity:0}}
+    .shake{animation:shakeA .45s cubic-bezier(.36,.07,.19,.97)}
+    @keyframes shakeA{10%,90%{transform:translate3d(-2px,0,0)}20%,80%{transform:translate3d(4px,0,0)}30%,50%,70%{transform:translate3d(-6px,0,0)}40%,60%{transform:translate3d(6px,0,0)}}
+    .win-center{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.7);opacity:0;filter:drop-shadow(0 0 24px rgba(255,120,0,.8))}
+    .win-center.show{animation:popA .7s ease-out forwards}
+    @keyframes popA{0%{opacity:0;transform:translate(-50%,-50%) scale(.6) rotate(-6deg)}60%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+    .firework{position:fixed;width:8px;height:8px;border-radius:50%;background:#ffa500;mix-blend-mode:screen;pointer-events:none}
+    .confetti{position:fixed;width:8px;height:12px;will-change:transform,opacity;pointer-events:none}
+    .bat{position:fixed;width:46px;aspect-ratio:2/1;background:conic-gradient(from 180deg,#000 0 180deg,transparent 0),
+         radial-gradient(50% 100% at 25% 50%,#000 60%,transparent 61%), radial-gradient(50% 100% at 75% 50%,#000 60%,transparent 61%);
+         filter:drop-shadow(0 0 6px rgba(0,0,0,.6));opacity:.9;transform:translate(-50%,-50%)}
+    .banner{position:fixed;left:50%;top:12%;transform:translateX(-50%);background:linear-gradient(135deg,#ff8c00,#ffd35c);
+      color:#000;font-weight:800;padding:.6rem 1rem;border-radius:999px;box-shadow:0 10px 30px rgba(255,140,0,.35);opacity:0}
+    .banner.show{animation:bannerA .8s ease-out forwards}
+    @keyframes bannerA{0%{transform:translateX(-50%) translateY(-12px);opacity:0}100%{transform:translateX(-50%) translateY(0);opacity:1}}
+    .vignette{position:fixed;inset:0;box-shadow:inset 0 0 220px rgba(0,0,0,.7);opacity:0}
+    .vignette.show{animation:vigA .6s ease-out}
+    @keyframes vigA{0%{opacity:1}100%{opacity:0}}
+    @media (prefers-reduced-motion:reduce){.shake,.flash.show,.win-center.show,.banner.show,.vignette.show{animation:none}}
   </style>
 </head>
 <body class="p-4">
   <div class="max-w-md mx-auto space-y-4">
     <header class="flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <!-- replace src with your logo if desired -->
-        <img id="blockLogo" class="h-8 logo-flicker" src="./2b375fc7-bcb9-4c60-acec-fcc5ad6a318f.JPG" alt="The Block Logo"/>
         <span class="badge">🎃 Haunted Block Hunt</span>
       </div>
       <nav class="flex items-center gap-3 text-sm">
@@ -54,255 +63,254 @@
         <a href="?stats=1" class="text-orange-400 underline">Stats</a>
       </nav>
     </header>
-
     <div id="game" class="space-y-4"></div>
     <div class="ghost"></div>
   </div>
 
-  <script>
-  const EVENT_ID = "haunted-block-2025"; // change to reset saved progress between events
-
-  // ======= ANALYTICS (local + optional remote webhook) =======
-  const ANALYTICS = { endpoint: "YOUR_WEB_APP_URL" }; // ← paste your Apps Script Web App URL
-  function track(event, payload={}){
-    const K = (k)=>`${EVENT_ID}:analytics:${k}`;
-    if(event==='start'){ localStorage.setItem(K('players_total'), String((+localStorage.getItem(K('players_total'))||0)+1)); }
-    if(event==='complete'){ localStorage.setItem(K('players_completed'), String((+localStorage.getItem(K('players_completed'))||0)+1)); }
-    if(ANALYTICS.endpoint){
-      const body = JSON.stringify({event, ts: Date.now(), team, index, ...payload});
-      if(navigator.sendBeacon){
-        const blob = new Blob([body], {type:'application/json'});
-        navigator.sendBeacon(ANALYTICS.endpoint, blob);
-      } else {
-        fetch(ANALYTICS.endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body}).catch(()=>{});
-      }
-    }
-  }
-
-  // ======= STOPS (16) =======
-  const STOPS = [
-    { id:"stop-el-chamo",              business:"El Chamo",                 title:"Venezuelan Vampire Bites",     riddle:"A hungry vampire craves arepas—follow the smell of sizzling corn cakes!" },
-    { id:"stop-kukri",                 business:"Kukri",                    title:"Crispy Chicken Crown",          riddle:"A raven guards a crispy crown—find the throne of the mighty chicken!" },
-    { id:"stop-stackers",              business:"Stackers",                 title:"Tower of Treats",               riddle:"Towering patties rise like midnight moons—seek the tallest stack!" },
-    { id:"stop-bubble-bliss",          business:"Bubble Bliss",             title:"Potions & Candle Charms",        riddle:"Witches’ sweets that you don’t eat—find the place where potions fizz and candles glow." },
-    { id:"stop-thicc-pizza",           business:"Thicc Pizza",              title:"Haunted Pizza Oven",             riddle:"The oven roars like dragon fire—where slices are thick and spirits gather." },
-    { id:"stop-top-of-the-block-bar",  business:"Top of The Block",         title:"Phantom’s Toast Above",          riddle:"Clink! A phantom’s toast echoes from above—follow the lantern light." },
-    { id:"stop-tavern-on-the-green",   business:"Tavern on the Green",      title:"Greenlit Goblin Tavern",         riddle:"In the garden of night, goblins cheer—find the green-lit haunt." },
-    { id:"stop-link-link",             business:"Link Link",                title:"Enchanted Chain Forge",          riddle:"A spark seals a spell—seek the forge where golden links are bound." },
-    { id:"stop-los-tacos",             business:"Los Tacos",                title:"Whispers of Smoky Spice",        riddle:"Skeletons whisper of smoky spice—seek the stand where tacos rise." },
-    { id:"stop-wow-wow-lemonade",      business:"Wow Wow Lemonade",         title:"Witch’s Lemon Brew",             riddle:"Sour turns sweet in this brew—find the brightest yellow stand." },
-    { id:"stop-teriyaki-queen",        business:"Teriyaki Queen",           title:"The Queen’s Sizzling Cauldron",  riddle:"The Queen’s cauldron sizzles sweet and dark—follow the charred trail of soy and fire." },
-    { id:"stop-boba-lounge",           business:"The Boba Lounge",          title:"Ghost Bubble Parlor",            riddle:"Ghosts sip floating pearls—seek the lounge of bubbling orbs." },
-    { id:"stop-busy-bee-custard",      business:"Busy Bee Frozen Custard",  title:"Boo-Bee Freezer",                 riddle:"Buzz to the coldest hive—your clue chills by creamy swirls." },
-    { id:"stop-enchanted-books",       business:"Enchanted Books",          title:"Ghostly Library",                riddle:"A friendly phantom turns pages—find the whispering shelves." },
-    { id:"stop-rez-sandwich",          business:"That’s My Rez Sandwich",    title:"Spirit Sandwich Shop",           riddle:"Spells stacked between bread—seek the spirit of the sandwich." },
-    { id:"stop-candy-bar",             business:"The Candy Bar",            title:"Trick-or-Treat Counter",          riddle:"Count the sweets if you dare—trick-or-treats await your stare." }
-  ];
-
-  // ======= STATE =======
-  const KEY = (k)=>`${EVENT_ID}:${k}`;
-  const $ = (sel)=>document.querySelector(sel);
-  const Kstats = (k)=>`${EVENT_ID}:analytics:${k}`;
-  const root = document.getElementById('game');
-  let team = localStorage.getItem(KEY('team')) || '';
-  let index = parseInt(localStorage.getItem(KEY('index'))||'0',10);
-  function save(){ localStorage.setItem(KEY('team'), team); localStorage.setItem(KEY('index'), String(index)); }
-
-  // ======= UI HELPERS =======
-  const wrapCard = (inner)=>`<div class="card p-4">${inner}</div>`;
-  const escapeHtml = (s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
-  function header(progressPct){
-    return `
-      <div class="card p-4">
-        <div class="flex items-center justify-between mb-3">
-          <span class="badge">Team: ${team?`<strong>${escapeHtml(team)}</strong>`:'—'}</span>
-          <button class="btn btn-muted text-sm" onclick="resetProgress()">Restart</button>
-        </div>
-        <div class="progress"><span style="width:${progressPct}%"></span></div>
-        <div class="text-xs text-violet-200 mt-1">${index}/${STOPS.length}</div>
-      </div>`;
-  }
-
-  // ======= VIEWS =======
-  function render(){
-    const params = new URL(location.href).searchParams;
-    if (params.get('stats')) return renderStats();
-    if (params.get('admin')) return renderAdmin();
-
-    const pct = Math.round((index/STOPS.length)*100);
-    let html = '';
-
-    if (!team){
-      html += wrapCard(`
-        <h1 class="text-xl font-bold mb-1">Welcome, brave hunters! 👻</h1>
-        <p class="text-sm text-gray-400 mb-3">Enter your team name to begin. Visit each business, scan the QR, and unlock the next clue.</p>
-        <input id="teamInput" class="w-full px-3 py-3 rounded-lg border border-zinc-700 bg-zinc-900" placeholder="Team name">
-        <button class="btn btn-primary w-full mt-3" onclick="startTeam()">Start Hunt</button>`);
-      root.innerHTML = html; return;
-    }
-
-    html += header(pct);
-
-    if (index < STOPS.length){
-      const cur = STOPS[index];
-      html += wrapCard(`
-        <div class="text-sm text-gray-400 mb-1">Stop #${index+1}: <span class="font-semibold">${cur.business}</span></div>
-        <h2 class="text-lg font-bold mb-1">${cur.title}</h2>
-        <p class="text-base">${cur.riddle}</p>`);
-      html += wrapCard(`
-        <div class="text-sm text-gray-400 mb-2">Scan the checkpoint QR at <strong>${cur.business}</strong></div>
-        <div id="camera" class="overflow-hidden rounded-lg border border-zinc-700">
-          <video id="preview" style="width:100%;height:auto" autoplay muted playsinline></video>
-        </div>
-        <div class="text-xs text-gray-500 mt-2">If the camera doesn’t start, allow camera permissions in your browser.</div>`);
-      root.innerHTML = html; startScanner(cur.id);
-
-      const players = +localStorage.getItem(Kstats('players_total'))||0;
-      const done = +localStorage.getItem(Kstats('players_completed'))||0;
-      const chip = document.createElement('div');
-      chip.className = 'fixed bottom-2 right-2 text-xs px-2 py-1 rounded bg-black/60 text-orange-300 border border-orange-500/30';
-      chip.textContent = `Players: ${players} • Done: ${done}`;
-      document.body.appendChild(chip);
-    } else {
-      html += wrapCard(`
-        <h1 class="text-2xl font-bold text-center">🎉 You did it!</h1>
-        <p class="text-base text-center mt-1">Team <strong>${escapeHtml(team)}</strong> completed the Haunted Block Hunt!</p>
-        <p class="text-sm text-gray-400 text-center">Show this screen at the prize table to claim your treat. Happy Halloween! 🎃</p>
-        <div class="grid grid-cols-1 gap-2 mt-3">
-          <button class="btn btn-primary" onclick="celebrate()">Celebrate Again</button>
-          <button class="btn btn-muted" onclick="resetProgress()">Play Again</button>
-        </div>`);
-      root.innerHTML = html; celebrate();
-    }
-  }
-
-  function renderAdmin(){
-    document.title = 'QR Codes — Haunted Block Hunt';
-    let html = '';
-    html += wrapCard(`<div class="flex items-center justify-between">
-      <h1 class="text-xl font-bold">Checkpoint QR Codes</h1>
-      <div class="text-sm text-orange-400">Players: <strong>${+localStorage.getItem(Kstats('players_total'))||0}</strong> • Completed: <strong>${+localStorage.getItem(Kstats('players_completed'))||0}</strong></div>
+  <!-- MEGA WIN OVERLAYS + AUDIO -->
+  <div class="win-wrap" aria-hidden="true">
+    <div id="fx-flash" class="flash"></div>
+    <div id="fx-vig" class="vignette"></div>
+    <div id="fx-banner" class="banner">🎃 Spooktacular! +1 Stop</div>
+    <div id="fx-center" class="win-center">
+      <!-- Glowing pumpkin -->
+      <svg viewBox="0 0 128 128" width="180" aria-hidden="true">
+        <defs>
+          <radialGradient id="pg" cx="50%" cy="45%" r="60%">
+            <stop offset="0%" stop-color="#ffd35c"/><stop offset="70%" stop-color="#ff8c00"/>
+            <stop offset="100%" stop-color="#b34b00"/>
+          </radialGradient>
+        </defs>
+        <ellipse cx="64" cy="70" rx="50" ry="40" fill="url(#pg)" stroke="#3a1c00" stroke-width="3"/>
+        <rect x="58" y="18" width="12" height="12" rx="2" fill="#3a1c00"/>
+        <path d="M36 62 l14 -10 14 10 M64 62 l14 -10 14 10" stroke="#000" stroke-width="8" stroke-linecap="round"/>
+        <path d="M42 86 q22 16 44 0" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round"/>
+      </svg>
     </div>
-    <div class="mt-1 flex items-center justify-between">
-      <p class="text-sm text-gray-400">Print and place at each business. Each QR encodes the stop id.</p>
-      <a href="./?stats=1" class="text-xs text-orange-300 underline">Open stats</a>
-    </div>`);
-    html += `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">`;
-    STOPS.forEach(s=>{
-      html += `<div class="card p-4">
-        <div class="text-xs text-gray-400">${s.business}</div>
-        <div class="font-bold">${s.title}</div>
-        <div id="qr-${s.id}" class="flex items-center justify-center my-3"></div>
-        <div class="text-xs text-gray-400 break-all">${s.id}</div>
-      </div>`;
-    });
-    html += `</div>`;
-    root.innerHTML = html;
-    STOPS.forEach(s=> new QRCode(document.getElementById(`qr-${s.id}`), { text:s.id, width:180, height:180, correctLevel: QRCode.CorrectLevel.M }));
-  }
+  </div>
 
-  function renderStats(){
-    document.title = 'Stats — Haunted Block Hunt';
-    const K = (k)=>`${EVENT_ID}:analytics:${k}`;
-    const players = +localStorage.getItem(K('players_total'))||0;
-    const done = +localStorage.getItem(K('players_completed'))||0;
-    let html = '';
-    html += wrapCard(`<h1 class="text-xl font-bold">Stats</h1><p class="text-sm text-gray-400">Local (device) counters. For shared totals across devices, set <code>ANALYTICS.endpoint</code> to your webhook.</p>`);
-    html += wrapCard(`<div class="flex items-center justify-between"><div>Players started</div><div class="font-bold">${players}</div></div>`);
-    html += wrapCard(`<div class="flex items-center justify-between"><div>Players completed</div><div class="font-bold">${done}</div></div>`);
-    html += wrapCard(`<button class="btn btn-muted" onclick="location.href='./'">Back</button>`);
-    root.innerHTML = html;
-  }
+  <!-- Place thunder.mp3 and witch.mp3 in same folder (or replace src with your hosted URLs) -->
+  <audio id="fx-thunder" preload="auto">
+    <source src="thunder.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="fx-witch" preload="auto">
+    <source src="witch.mp3" type="audio/mpeg">
+  </audio>
 
-  // ======= GAME LOGIC =======
-  function startTeam(){
-    const inp = document.getElementById('teamInput');
-    const newTeam = (inp.value||'').trim();
-    if (!newTeam) return;
-    const startedFlag = localStorage.getItem(KEY('started'));
-    team = newTeam; index = 0; save();
-    if(!startedFlag){ localStorage.setItem(KEY('started'),'1'); track('start', { event_id: EVENT_ID }); }
-    render();
+<script>
+const EVENT_ID = "haunted-block-2025";
+const ANALYTICS = { endpoint: "" }; // optional webhook
+function track(event, payload={}) {
+  if(!ANALYTICS.endpoint) return;
+  const body = JSON.stringify({event, ts: Date.now(), team, index, ...payload});
+  navigator.sendBeacon(ANALYTICS.endpoint, new Blob([body], {type:'application/json'}));
+}
+
+/* ---------- GAME DATA ---------- */
+const STOPS = [
+  { id:"stop-el-chamo", business:"El Chamo", title:"Venezuelan Vampire Bites", riddle:"A hungry vampire craves arepas—follow the smell of sizzling corn cakes!" },
+  { id:"stop-kukri", business:"Kukri", title:"Crispy Chicken Crown", riddle:"A raven guards a crispy crown—find the throne of the mighty chicken!" },
+  { id:"stop-stackers", business:"Stackers", title:"Tower of Treats", riddle:"Towering patties rise like midnight moons—seek the tallest stack!" },
+  { id:"stop-bubble-bliss", business:"Bubble Bliss", title:"Potions & Candle Charms", riddle:"Witches’ sweets that you don’t eat—find the place where potions fizz and candles glow." },
+  { id:"stop-thicc-pizza", business:"Thicc Pizza", title:"Haunted Pizza Oven", riddle:"The oven roars like dragon fire—where slices are thick and spirits gather." },
+  { id:"stop-top-of-the-block-bar", business:"Top of The Block", title:"Phantom’s Toast Above", riddle:"Clink! A phantom’s toast echoes from above—follow the lantern light." },
+  { id:"stop-tavern-on-the-green", business:"Tavern on the Green", title:"Greenlit Goblin Tavern", riddle:"In the garden of night, goblins cheer—find the green-lit haunt." },
+  { id:"stop-link-link", business:"Link Link", title:"Enchanted Chain Forge", riddle:"A spark seals a spell—seek the forge where golden links are bound." },
+  { id:"stop-los-tacos", business:"Los Tacos", title:"Whispers of Smoky Spice", riddle:"Skeletons whisper of smoky spice—seek the stand where tacos rise." },
+  { id:"stop-wow-wow-lemonade", business:"Wow Wow Lemonade", title:"Witch’s Lemon Brew", riddle:"Sour turns sweet in this brew—find the brightest yellow stand." },
+  { id:"stop-teriyaki-queen", business:"Teriyaki Queen", title:"The Queen’s Sizzling Cauldron", riddle:"The Queen’s cauldron sizzles sweet and dark—follow the charred trail of soy and fire." },
+  { id:"stop-boba-lounge", business:"The Boba Lounge", title:"Ghost Bubble Parlor", riddle:"Ghosts sip floating pearls—seek the lounge of bubbling orbs." },
+  { id:"stop-busy-bee-custard", business:"Busy Bee Frozen Custard", title:"Boo-Bee Freezer", riddle:"Buzz to the coldest hive—your clue chills by creamy swirls." },
+  { id:"stop-enchanted-books", business:"Enchanted Books", title:"Ghostly Library", riddle:"A friendly phantom turns pages—find the whispering shelves." },
+  { id:"stop-rez-sandwich", business:"That’s My Rez Sandwich", title:"Spirit Sandwich Shop", riddle:"Spells stacked between bread—seek the spirit of the sandwich." },
+  { id:"stop-candy-bar", business:"The Candy Bar", title:"Trick-or-Treat Counter", riddle:"Count the sweets if you dare—trick-or-treats await your stare." }
+];
+
+/* ---------- STATE / RENDER ---------- */
+const KEY=(k)=>`${EVENT_ID}:${k}`, $=(s)=>document.querySelector(s);
+let team=localStorage.getItem(KEY('team'))||''; let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
+function save(){ localStorage.setItem(KEY('team'),team); localStorage.setItem(KEY('index'),String(index)); }
+const wrapCard=(inner)=>`<div class="card p-4">${inner}</div>`;
+const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+function header(pct){
+  return `<div class="card p-4">
+    <div class="flex items-center justify-between mb-3">
+      <span class="badge">Team: ${team?`<strong>${escapeHtml(team)}</strong>`:'—'}</span>
+      <button class="btn btn-muted text-sm" onclick="resetProgress()">Restart</button>
+    </div>
+    <div class="progress"><span style="width:${pct}%"></span></div>
+    <div class="text-xs text-violet-200 mt-1">${index}/${STOPS.length}</div>
+  </div>`;
+}
+function render(){
+  const p=new URL(location.href).searchParams;
+  if(p.get('stats')) return renderStats();
+  if(p.get('admin')) return renderAdmin();
+  let html='';
+  const pct=Math.round((index/STOPS.length)*100);
+  if(!team){
+    html+=wrapCard(`<h1 class="text-xl font-bold mb-1">Welcome, brave hunters! 👻</h1>
+    <p class="text-sm text-gray-400 mb-3">Enter your team name to begin. Visit each business, scan the QR, and unlock the next clue.</p>
+    <input id="teamInput" class="w-full px-3 py-3 rounded-lg border border-zinc-700 bg-zinc-900" placeholder="Team name">
+    <button class="btn btn-primary w-full mt-3" onclick="startTeam()">Start Hunt</button>`);
+    $("#game").innerHTML=html; return;
   }
-  function resetProgress(){
-    localStorage.removeItem(KEY('team')); localStorage.removeItem(KEY('index'));
-    team=''; index=0; render();
+  html+=header(pct);
+  if(index<STOPS.length){
+    const cur=STOPS[index];
+    html+=wrapCard(`<div class="text-sm text-gray-400 mb-1">Stop #${index+1}: <span class="font-semibold">${cur.business}</span></div>
+      <h2 class="text-lg font-bold mb-1">${cur.title}</h2><p class="text-base">${cur.riddle}</p>`);
+    html+=wrapCard(`<div class="text-sm text-gray-400 mb-2">Scan the checkpoint QR at <strong>${cur.business}</strong></div>
+      <div id="camera" class="overflow-hidden rounded-lg border border-zinc-700">
+        <video id="preview" style="width:100%;height:auto" autoplay muted playsinline></video>
+      </div>
+      <div class="text-xs text-gray-500 mt-2">If the camera doesn’t start, allow camera permissions in your browser.</div>`);
+    $("#game").innerHTML=html; startScanner(cur.id);
+  }else{
+    html+=wrapCard(`<h1 class="text-2xl font-bold text-center">🎉 You did it!</h1>
+      <p class="text-base text-center mt-1">Team <strong>${escapeHtml(team)}</strong> completed the Haunted Block Hunt!</p>
+      <p class="text-sm text-gray-400 text-center">Show this screen at the prize table to claim your treat. Happy Halloween! 🎃</p>
+      <div class="grid grid-cols-1 gap-2 mt-3">
+        <button class="btn btn-primary" onclick="celebrate()">Celebrate Again</button>
+        <button class="btn btn-muted" onclick="resetProgress()">Play Again</button>
+      </div>`);
+    $("#game").innerHTML=html; celebrate();
   }
-  function celebrate(){
-    for (let i=0;i<120;i++){
-      const d=document.createElement('div');
-      d.style.position='fixed'; d.style.top='-10px'; d.style.left=(Math.random()*100)+'vw';
-      d.style.width='8px'; d.style.height='12px'; d.style.background=`hsl(${Math.random()*360} 90% 60%)`;
-      d.style.transform=`rotate(${Math.random()*360}deg)`; d.style.opacity='.9'; d.style.zIndex='50';
-      d.style.transition='transform 1.2s ease-out, top 1.2s ease-out, opacity 1.2s ease-out';
-      document.body.appendChild(d);
-      requestAnimationFrame(()=>{ d.style.top='100vh'; d.style.transform+=` translateY(80vh)`; d.style.opacity='.2'; });
-      setTimeout(()=>d.remove(),1400);
+}
+function renderAdmin(){
+  let html='';
+  html+=wrapCard(`<div class="flex items-center justify-between">
+    <h1 class="text-xl font-bold">Checkpoint QR Codes</h1>
+    <div class="text-sm text-orange-400">Print and place at each business. Each QR encodes the stop id.</div>
+  </div>`);
+  html+=`<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">`;
+  STOPS.forEach(s=>{
+    html+=`<div class="card p-4"><div class="text-xs text-gray-400">${s.business}</div>
+      <div class="font-bold">${s.title}</div><div id="qr-${s.id}" class="flex items-center justify-center my-3"></div>
+      <div class="text-xs text-gray-400 break-all">${s.id}</div></div>`;
+  });
+  html+=`</div>`;
+  $("#game").innerHTML=html;
+  STOPS.forEach(s=> new QRCode(document.getElementById(`qr-${s.id}`), { text:s.id, width:180, height:180, correctLevel: QRCode.CorrectLevel.M }));
+}
+function renderStats(){ $("#game").innerHTML=wrapCard(`<h1 class="text-xl font-bold">Stats</h1><p class="text-sm text-gray-400">Local-only counters on this device.</p>`); }
+function startTeam(){ team=$("#teamInput").value.trim(); if(!team) return; index=0; save(); track('start'); render(); }
+function resetProgress(){ localStorage.removeItem(KEY('team')); localStorage.removeItem(KEY('index')); team=''; index=0; render(); }
+
+/* ---------- CELEBRATE ---------- */
+function celebrate(){
+  for(let i=0;i<120;i++){
+    const d=document.createElement('div');
+    d.style.position='fixed'; d.style.top='-10px'; d.style.left=(Math.random()*100)+'vw';
+    d.style.width='8px'; d.style.height='12px'; d.style.background=`hsl(${Math.random()*360} 90% 60%)`;
+    d.style.transform=`rotate(${Math.random()*360}deg)`; d.style.opacity='.9'; d.style.zIndex='50';
+    d.style.transition='transform 1.2s ease-out, top 1.2s ease-out, opacity 1.2s ease-out';
+    document.body.appendChild(d);
+    requestAnimationFrame(()=>{ d.style.top='100vh'; d.style.transform+=` translateY(80vh)`; d.style.opacity='.2'; });
+    setTimeout(()=>d.remove(),1400);
+  }
+}
+
+/* ---------- MEGA WIN FX ---------- */
+function rand(a,b){return a+Math.random()*(b-a)}
+function hsl(h,s,l){return `hsl(${h} ${s}% ${l}%)`}
+function spawnConfettiBurst(n=120){
+  for(let i=0;i<n;i++){
+    const c=document.createElement('div'); c.className='confetti';
+    c.style.background=i%3? hsl(rand(15,45),90,60) : '#fff';
+    c.style.left=innerWidth/2+'px'; c.style.top=innerHeight/2+'px';
+    const dx=Math.cos(i/n*2*Math.PI+Math.random()*0.8)*rand(120,420);
+    const dy=Math.sin(i/n*2*Math.PI+Math.random()*0.8)*rand(120,420);
+    const rot=rand(-220,220), dur=rand(700,1400);
+    c.animate([{transform:`translate(0,0) rotate(0)`,opacity:1},{transform:`translate(${dx}px,${dy}px) rotate(${rot}deg)`,opacity:0}],
+              {duration:dur,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
+    document.body.appendChild(c); setTimeout(()=>c.remove(),dur+40);
+  }
+}
+function spawnFireworks(count=4){
+  for(let k=0;k<count;k++){
+    const cx=rand(innerWidth*0.25,innerWidth*0.75), cy=rand(innerHeight*0.25,innerHeight*0.55), pellets=36;
+    for(let i=0;i<pellets;i++){
+      const p=document.createElement('div'); p.className='firework'; p.style.left=cx+'px'; p.style.top=cy+'px';
+      const a=i/pellets*2*Math.PI, d=rand(90,220), dx=Math.cos(a)*d, dy=Math.sin(a)*d, hue=rand(15,45), t=rand(700,1200);
+      p.style.background=hsl(hue,100,60);
+      p.animate([{transform:'translate(0,0) scale(.6)',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(0)`,opacity:0}],
+                {duration:t,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
+      document.body.appendChild(p); setTimeout(()=>p.remove(),t+30);
     }
   }
-
-  // ======= SCANNER (with HTTPS check + back camera preference) =======
-  let codeReader;
-  async function getCameras(){
-    if (ZXing?.BrowserMultiFormatReader?.listVideoInputDevices) {
-      return await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-    }
-    if (navigator.mediaDevices?.enumerateDevices) {
-      const list = await navigator.mediaDevices.enumerateDevices();
-      return list.filter(d=>d.kind==='videoinput');
-    }
-    return [];
+}
+function spawnBats(count=6){
+  for(let i=0;i<count;i++){
+    const b=document.createElement('div'); b.className='bat';
+    const y=rand(innerHeight*0.15,innerHeight*0.85); b.style.left='-50px'; b.style.top=y+'px';
+    b.animate([{transform:`translate(-50px,0) rotate(-8deg)`},{transform:`translate(${innerWidth+50}px,-20vh) rotate(12deg)`}],
+              {duration:rand(2500,4200),easing:'ease-in-out',fill:'forwards'});
+    document.body.appendChild(b); setTimeout(()=>b.remove(),4200);
   }
-  async function startScanner(expectedId){
-    stopScanner();
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost'){
-      document.getElementById('camera').insertAdjacentHTML('afterend',
-        `<div class="text-xs text-red-300 mt-2">Camera requires HTTPS. Open over https://… or test on localhost.</div>`);
-      return;
-    }
-    try { await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' }}}); } catch(e) {}
-    codeReader = new ZXing.BrowserMultiFormatReader();
-    try{
-      const devices = await getCameras();
-      let camId = devices?.[0]?.deviceId;
-      const back = devices.find(d=>/back|rear|environment/i.test(d.label));
-      if (back) camId = back.deviceId;
+}
+function showMegaWinFX(){
+  if (navigator.vibrate) navigator.vibrate([40,40,60]);
+  // audio (replace with your files if needed)
+  const thunder=document.getElementById('fx-thunder');
+  const witch=document.getElementById('fx-witch');
+  try{ thunder.currentTime=0; thunder.volume=0.9; thunder.play().catch(()=>{});}catch(e){}
+  setTimeout(()=>{ try{ witch.currentTime=0; witch.volume=0.7; witch.play().catch(()=>{});}catch(e){} }, 350);
 
-      await codeReader.decodeFromVideoDevice(camId, 'preview', (result, err)=>{
-        if (result){
-          const text = result.getText();
-          if (text === expectedId){
-            const cur = STOPS[index];
-            track('scan', { event_id: EVENT_ID, business: cur.business, title: cur.title, stop_id: cur.id });
-            index++; save();
-            if(index === STOPS.length && !localStorage.getItem(KEY('completed'))){
-              localStorage.setItem(KEY('completed'),'1'); track('complete', { event_id: EVENT_ID });
-            }
-            flash('#0c2614'); stopScanner(); setTimeout(render, 350);
-          } else { flash('#2a0d0d'); }
+  const flash=document.getElementById('fx-flash'), vig=document.getElementById('fx-vig');
+  document.documentElement.classList.add('shake');
+  flash.classList.add('show'); vig.classList.add('show');
+  setTimeout(()=>{ flash.classList.remove('show'); vig.classList.remove('show'); document.documentElement.classList.remove('shake'); }, 650);
+
+  const center=document.getElementById('fx-center'), banner=document.getElementById('fx-banner');
+  center.classList.add('show'); banner.classList.add('show');
+  setTimeout(()=>{ center.classList.remove('show'); banner.classList.remove('show'); }, 950);
+
+  spawnConfettiBurst(140); spawnFireworks(5); spawnBats(6);
+}
+
+/* ---------- SCANNER ---------- */
+let codeReader;
+async function getCameras(){
+  if (ZXing?.BrowserMultiFormatReader?.listVideoInputDevices) return await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
+  if (navigator.mediaDevices?.enumerateDevices) return (await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');
+  return [];
+}
+async function startScanner(expectedId){
+  stopScanner();
+  if (location.protocol!=='https:' && location.hostname!=='localhost'){
+    document.getElementById('camera').insertAdjacentHTML('afterend',
+      `<div class="text-xs text-red-300 mt-2">Camera requires HTTPS. Open over https://… or test on localhost.</div>`);
+    return;
+  }
+  try{ await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'} } }); }catch(e){}
+  codeReader=new ZXing.BrowserMultiFormatReader();
+  try{
+    const devices=await getCameras();
+    let camId=devices?.[0]?.deviceId; const back=devices.find(d=>/back|rear|environment/i.test(d.label)); if(back) camId=back.deviceId;
+    await codeReader.decodeFromVideoDevice(camId,'preview',(result)=>{
+      if(result){
+        const text=result.getText();
+        if(text===expectedId){
+          showMegaWinFX();
+          const cur=STOPS[index];
+          track('scan',{event_id:EVENT_ID,business:cur.business,title:cur.title,stop_id:cur.id});
+          index++; save();
+          if(index===STOPS.length && !localStorage.getItem(KEY('completed'))){ localStorage.setItem(KEY('completed'),'1'); track('complete',{event_id:EVENT_ID}); }
+          setTimeout(()=>{ stopScanner(); render(); }, 450);
+        } else {
+          document.body.animate([{backgroundColor:'transparent'},{backgroundColor:'#2a0d0d'},{backgroundColor:'transparent'}],{duration:350});
         }
-      });
-    }catch(e){
-      console.error(e);
-      const msg = (e?.message||String(e));
-      document.getElementById('camera').insertAdjacentHTML('afterend',
-        `<div class="text-xs text-red-300 mt-2">Camera error: ${msg}. Check camera permissions.</div>`);
-    }
+      }
+    });
+  }catch(e){
+    document.getElementById('camera').insertAdjacentHTML('afterend', `<div class="text-xs text-red-300 mt-2">Camera error: ${e?.message||e}</div>`);
   }
-  function stopScanner(){ try{ codeReader && codeReader.reset(); }catch(e){} }
-  function flash(color){
-    document.body.animate(
-      [
-        {backgroundColor:getComputedStyle(document.body).backgroundColor},
-        {backgroundColor:color},
-        {backgroundColor:getComputedStyle(document.body).backgroundColor}
-      ],
-      {duration:350}
-    );
-  }
+}
+function stopScanner(){ try{ codeReader && codeReader.reset(); }catch(e){} }
 
-  // ======= BOOT =======
-  render();
-  </script>
+/* ---------- BOOT ---------- */
+render();
+</script>
 </body>
 </html>
