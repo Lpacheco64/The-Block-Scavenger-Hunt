@@ -1,44 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Haunted Block Hunt</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
-  <style>
-    :root{--block-bg:#0b0b0e;--block-card:#14141a;--block-ink:#f6f3ff;--block-primary:#ff6600;--block-secondary:#ffffff}
-    body{background:linear-gradient(160deg,var(--block-bg),#171722);color:var(--block-ink);font-family:Poppins,system-ui,sans-serif;min-height:100svh}
-    .card{background:#14141a;border:1px solid #262433;border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
-    .btn{border-radius:14px;padding:14px 18px;font-weight:700}
-    .btn-primary{background:linear-gradient(135deg,var(--block-primary),var(--block-secondary));color:#000}
-    .btn-muted{background:#272733;color:var(--block-ink)}
-    .badge{display:inline-flex;gap:.5rem;align-items:center;font-size:.8rem;color:#fff;background:#1d1c27;border:1px solid #2b2940;border-radius:999px;padding:.4rem .75rem}
-    .progress{height:8px;background:#262433;border-radius:999px;overflow:hidden}
-    .progress>span{display:block;height:100%;background:linear-gradient(90deg,var(--block-primary),var(--block-secondary))}
-    video{border-radius:12px}
-    .ghost{position:fixed;inset:auto 0 0 50%;translate:-50% 0;width:80px;height:80px;background:#fff;border-radius:40px 40px 16px 16px/50px 50px 16px 16px;box-shadow:0 8px 30px rgba(0,0,0,.35);opacity:.08;pointer-events:none;animation:float 6s ease-in-out infinite}
-    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-    .win-wrap{position:fixed;inset:0;pointer-events:none;z-index:80}
-    .flash{position:fixed;inset:0;background:radial-gradient(circle at 50% 50%, rgba(255,140,0,.85), rgba(0,0,0,0) 60%);opacity:0}
-    .flash.show{animation:flashA .6s ease-out}@keyframes flashA{0%{opacity:1}100%{opacity:0}}
-    .shake{animation:shakeA .45s cubic-bezier(.36,.07,.19,.97)}
-    @keyframes shakeA{10%,90%{transform:translate3d(-2px,0,0)}20%,80%{transform:translate3d(4px,0,0)}30%,50%,70%{transform:translate3d(-6px,0,0)}40%,60%{transform:translate3d(6px,0,0)}}
-    .win-center{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.7);opacity:0;filter:drop-shadow(0 0 24px rgba(255,120,0,.8))}
-    .win-center.show{animation:popA .7s ease-out forwards}
-    @keyframes popA{0%{opacity:0;transform:translate(-50%,-50%) scale(.6) rotate(-6deg)}60%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-    .firework{position:fixed;width:8px;height:8px;border-radius:50%;background:#ffa500;mix-blend-mode:screen;pointer-events:none}
-    .confetti{position:fixed;width:8px;height:12px;will-change:transform,opacity;pointer-events:none}
-    .bat{position:fixed;width:46px;aspect-ratio:2/1;background:conic-gradient(from 180deg,#000 0 180deg,transparent 0),radial-gradient(50% 100% at 25% 50%,#000 60%,transparent 61%),radial-gradient(50% 100% at 75% 50%,#000 60%,transparent 61%);filter:drop-shadow(0 0 6px rgba(0,0,0,.6));opacity:.9;transform:translate(-50%,-50%)}
-    .banner{position:fixed;left:50%;top:12%;transform:translateX(-50%);background:linear-gradient(135deg,#ff8c00,#ffd35c);color:#000;font-weight:800;padding:.6rem 1rem;border-radius:999px;box-shadow:0 10px 30px rgba(255,140,0,.35);opacity:0}
-    .banner.show{animation:bannerA .8s ease-out forwards}
-    @keyframes bannerA{0%{transform:translateX(-50%) translateY(-12px);opacity:0}100%{transform:translateX(-50%) translateY(0);opacity:1}}
-    .vignette{position:fixed;inset:0;box-shadow:inset 0 0 220px rgba(0,0,0,.7);opacity:0}
-    .vignette.show{animation:vigA .6s ease-out}@keyframes vigA{0%{opacity:1}100%{opacity:0}}
-    @media (prefers-reduced-motion:reduce){.shake,.flash.show,.win-center.show,.banner.show,.vignette.show{animation:none}}
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Haunted Block Hunt</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.20.0"></script>
+<style>
+:root{--block-bg:#0b0b0e;--block-card:#14141a;--block-ink:#f6f3ff;--block-primary:#ff6600;--block-secondary:#ffffff}
+body{background:linear-gradient(160deg,var(--block-bg),#171722);color:var(--block-ink);font-family:Poppins,system-ui,sans-serif;min-height:100svh}
+.card{background:#14141a;border:1px solid #262433;border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+.btn{border-radius:14px;padding:14px 18px;font-weight:700}
+.btn-primary{background:linear-gradient(135deg,var(--block-primary),var(--block-secondary));color:#000}
+.btn-muted{background:#272733;color:var(--block-ink)}
+.badge{display:inline-flex;gap:.5rem;align-items:center;font-size:.8rem;color:#fff;background:#1d1c27;border:1px solid #2b2940;border-radius:999px;padding:.4rem .75rem}
+.progress{height:8px;background:#262433;border-radius:999px;overflow:hidden}
+.progress>span{display:block;height:100%;background:linear-gradient(90deg,var(--block-primary),var(--block-secondary))}
+video{border-radius:12px}
+.ghost{position:fixed;inset:auto 0 0 50%;translate:-50% 0;width:80px;height:80px;background:#fff;border-radius:40px 40px 16px 16px/50px 50px 16px 16px;box-shadow:0 8px 30px rgba(0,0,0,.35);opacity:.08;pointer-events:none;animation:float 6s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+/* Win FX */
+.win-wrap{position:fixed;inset:0;pointer-events:none;z-index:80}
+.flash{position:fixed;inset:0;background:radial-gradient(circle at 50% 50%, rgba(255,200,90,.85), rgba(0,0,0,0) 60%);opacity:0}
+.flash.show{animation:flashA .6s ease-out}@keyframes flashA{0%{opacity:1}100%{opacity:0}}
+.shake{animation:shakeA .45s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shakeA{10%,90%{transform:translate3d(-2px,0,0)}20%,80%{transform:translate3d(4px,0,0)}30%,50%,70%{transform:translate3d(-6px,0,0)}40%,60%{transform:translate3d(6px,0,0)}}
+.win-center{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.7);opacity:0;filter:drop-shadow(0 0 24px rgba(255,180,60,.9))}
+.win-center.show{animation:popA .7s ease-out forwards}
+@keyframes popA{0%{opacity:0;transform:translate(-50%,-50%) scale(.6) rotate(-6deg)}60%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.banner{position:fixed;left:50%;top:12%;transform:translateX(-50%);background:linear-gradient(135deg,#ffd35c,#fff3bf);color:#000;font-weight:800;padding:.6rem 1rem;border-radius:999px;box-shadow:0 10px 30px rgba(255,200,90,.35);opacity:0}
+.banner.show{animation:bannerA .8s ease-out forwards}
+@keyframes bannerA{0%{transform:translateX(-50%) translateY(-12px);opacity:0}100%{transform:translateX(-50%) translateY(0);opacity:1}}
+.vignette{position:fixed;inset:0;box-shadow:inset 0 0 220px rgba(0,0,0,.7);opacity:0}
+.vignette.show{animation:vigA .6s ease-out}@keyframes vigA{0%{opacity:1}100%{opacity:0}}
+/* Light bats */
+.bat-light{
+  position:fixed;width:46px;aspect-ratio:2/1;
+  background:
+    conic-gradient(from 180deg,#fff6d6 0 180deg,transparent 0),
+    radial-gradient(50% 100% at 25% 50%,#fff2b3 60%,transparent 61%),
+    radial-gradient(50% 100% at 75% 50%,#fff2b3 60%,transparent 61%);
+  filter:drop-shadow(0 0 8px rgba(255,220,120,.8));
+  opacity:.95;transform:translate(-50%,-50%);
+}
+/* Pumpkin particle */
+.pump{position:fixed;width:22px;height:22px;will-change:transform,opacity;pointer-events:none;filter:drop-shadow(0 0 6px rgba(255,200,60,.8))}
+@media (prefers-reduced-motion:reduce){.shake,.flash.show,.win-center.show,.banner.show,.vignette.show{animation:none}}
+</style>
 </head>
 <body class="p-4">
   <div class="max-w-md mx-auto space-y-4">
@@ -59,9 +69,9 @@
     <div id="fx-banner" class="banner">🎃 Spooktacular! +1 Stop</div>
     <div id="fx-center" class="win-center">
       <svg viewBox="0 0 128 128" width="180" aria-hidden="true">
-        <defs><radialGradient id="pg" cx="50%" cy="45%" r="60%"><stop offset="0%" stop-color="#ffd35c"/><stop offset="70%" stop-color="#ff8c00"/><stop offset="100%" stop-color="#b34b00"/></radialGradient></defs>
-        <ellipse cx="64" cy="70" rx="50" ry="40" fill="url(#pg)" stroke="#3a1c00" stroke-width="3"/>
-        <rect x="58" y="18" width="12" height="12" rx="2" fill="#3a1c00"/>
+        <defs><radialGradient id="pg" cx="50%" cy="45%" r="60%"><stop offset="0%" stop-color="#fff1b8"/><stop offset="70%" stop-color="#ffd35c"/><stop offset="100%" stop-color="#c07a00"/></radialGradient></defs>
+        <ellipse cx="64" cy="70" rx="50" ry="40" fill="url(#pg)" stroke="#5b2e00" stroke-width="3"/>
+        <rect x="58" y="18" width="12" height="12" rx="2" fill="#5b2e00"/>
         <path d="M36 62 l14 -10 14 10 M64 62 l14 -10 14 10" stroke="#000" stroke-width="8" stroke-linecap="round"/>
         <path d="M42 86 q22 16 44 0" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round"/>
       </svg>
@@ -69,7 +79,7 @@
   </div>
 
   <div id="audioGate" style="position:fixed;inset:auto 0 16px 0;display:flex;justify-content:center;pointer-events:none;z-index:90">
-    <button id="audioGateBtn" onclick="enableSFX()" style="pointer-events:auto;background:#ff8c00;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,140,0,.35);border:none">
+    <button id="audioGateBtn" onclick="enableSFX()" style="pointer-events:auto;background:#ffd35c;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,200,90,.35);border:none">
       🔊 Enable Sound Effects
     </button>
   </div>
@@ -79,73 +89,71 @@
 const EVENT_ID = "haunted-block-2025";
 const ANALYTICS = { endpoint: "" };
 
-/* ===== WebAudio SFX (fully synthesized; no files) ===== */
+/* ===== WebAudio + File SFX (with synth fallback) ===== */
 let AC, masterGain, audioReady=false;
+// If you place sounds in /assets/, change to: const BASE = basePath() + 'assets/';
+const BASE = basePath();
+const SFX = {
+  thunder: { url: BASE + 'thunder.mp3', buffer: null },
+  witch:   { url: BASE + 'witch.mp3',   buffer: null }
+};
+function basePath(){ const p=location.pathname; return p.endsWith('/')?p:p.slice(0,p.lastIndexOf('/')+1); }
 
 async function enableSFX(){
+  if (audioReady) return;
   const gate=document.getElementById('audioGate'); if(gate) gate.remove();
-  const Ctx = window.AudioContext||window.webkitAudioContext;
-  if(!Ctx) return;
-  AC = AC || new Ctx();
-  if(AC.state==='suspended'){ try{ await AC.resume(); }catch{} }
-  masterGain = masterGain || AC.createGain();
-  masterGain.gain.value = 1.0;
-  masterGain.connect(AC.destination);
+  const Ctx = window.AudioContext||window.webkitAudioContext; if(!Ctx) return;
+  AC = AC || new Ctx(); if(AC.state==='suspended'){ try{ await AC.resume(); }catch{} }
+  masterGain = masterGain || AC.createGain(); masterGain.gain.value = 1.0; masterGain.connect(AC.destination);
   audioReady = true;
+  Promise.all([loadBuf('thunder'), loadBuf('witch')]).catch(()=>{});
 }
-// also auto-try on first tap anywhere
-window.addEventListener('pointerdown',()=>{ if(!audioReady) enableSFX(); }, {once:true, capture:true});
+window.addEventListener('pointerdown', ()=>{ if(!audioReady) enableSFX(); }, {once:true,capture:true});
 
-/* Big, obvious thunder (noise+rumble, longer/louder) */
-function playThunder(){
-  if(!AC) return;
-  const dur = 2.2;
-  const noiseBuf = AC.createBuffer(1, Math.max(1, AC.sampleRate*dur|0), AC.sampleRate);
-  const data = noiseBuf.getChannelData(0);
-  for(let i=0;i<data.length;i++){
-    const t=i/AC.sampleRate;
-    const env = Math.pow(1 - Math.min(1, t/dur), 1.2); // slow fade
-    data[i] = (Math.random()*2-1) * env;
-  }
-  const noise = AC.createBufferSource(); noise.buffer = noiseBuf;
+async function loadBuf(key){
+  try{
+    const res = await fetch(SFX[key].url, { cache: 'force-cache' });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const arr = await res.arrayBuffer();
+    SFX[key].buffer = await new Promise((resolv,rej)=> AC.decodeAudioData(arr, resolv, rej));
+  }catch(e){ SFX[key].buffer = null; }
+}
+function playBuf(buf, vol=1, delay=0){
+  if (!AC || !buf) return;
+  const src = AC.createBufferSource(); const g = AC.createGain(); g.gain.value = vol;
+  src.buffer = buf; src.connect(g); g.connect(masterGain); src.start(AC.currentTime + delay);
+}
+function playThunder(){ if (SFX.thunder.buffer) playBuf(SFX.thunder.buffer, 1.0, 0); else synthThunder(); }
+function playWitch(){ if (SFX.witch.buffer) playBuf(SFX.witch.buffer, 0.9, 0); else synthWitch(); }
+
+/* ---- Synth fallbacks (kept) ---- */
+function synthThunder(){
+  if(!AC) return; const dur = 2.2;
+  const nb = AC.createBuffer(1, Math.max(1, AC.sampleRate*dur|0), AC.sampleRate);
+  const d = nb.getChannelData(0);
+  for(let i=0;i<d.length;i++){ const t=i/AC.sampleRate, env=Math.pow(1-Math.min(1,t/dur),1.2); d[i]=(Math.random()*2-1)*env; }
+  const n = AC.createBufferSource(); n.buffer=nb;
   const lp = AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1600;
-  const ng = AC.createGain(); ng.gain.value = 0.9;
-  noise.connect(lp); lp.connect(ng); ng.connect(masterGain);
-  noise.start();
-
-  // low rumble with slight pitch fall
-  const osc = AC.createOscillator(); osc.type='sine'; osc.frequency.setValueAtTime(70, AC.currentTime);
-  const rg = AC.createGain(); rg.gain.setValueAtTime(0.85, AC.currentTime);
-  osc.connect(rg); rg.connect(masterGain);
-  osc.frequency.exponentialRampToValueAtTime(32, AC.currentTime+dur);
+  const g = AC.createGain(); g.gain.value=0.9;
+  n.connect(lp); lp.connect(g); g.connect(masterGain); n.start();
+  const o = AC.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(70,AC.currentTime);
+  const rg = AC.createGain(); rg.gain.value=0.85; o.connect(rg); rg.connect(masterGain);
+  o.frequency.exponentialRampToValueAtTime(32, AC.currentTime+dur);
   rg.gain.exponentialRampToValueAtTime(0.001, AC.currentTime+dur);
-  osc.start(); osc.stop(AC.currentTime+dur);
+  o.start(); o.stop(AC.currentTime+dur);
 }
-
-/* Witch laugh (FM cackle), louder + clearer */
-function playWitch(){
-  if(!AC) return;
-  const dur = 1.4;
-  const carrier = AC.createOscillator(); carrier.type='square'; carrier.frequency.value=520;
-  const mod = AC.createOscillator(); mod.type='sine'; mod.frequency.value=6.5;
-  const modGain = AC.createGain(); modGain.gain.value=280;
-  const out = AC.createGain(); out.gain.value=0.0;
-
-  mod.connect(modGain); modGain.connect(carrier.frequency);
-  carrier.connect(out); out.connect(masterGain);
-
-  const t = AC.currentTime;
-  out.gain.linearRampToValueAtTime(0.0, t);
-  out.gain.linearRampToValueAtTime(0.95, t+0.06);
+function synthWitch(){
+  if(!AC) return; const dur=1.4, t=AC.currentTime;
+  const c=AC.createOscillator(); c.type='square'; c.frequency.value=520;
+  const m=AC.createOscillator(); m.type='sine'; m.frequency.value=6.5;
+  const mg=AC.createGain(); mg.gain.value=280;
+  const out=AC.createGain(); out.gain.value=0;
+  m.connect(mg); mg.connect(c.frequency); c.connect(out); out.connect(masterGain);
+  out.gain.linearRampToValueAtTime(0, t); out.gain.linearRampToValueAtTime(0.95, t+0.06);
   out.gain.exponentialRampToValueAtTime(0.001, t+dur);
-
-  carrier.frequency.exponentialRampToValueAtTime(360, t+dur);
-  carrier.start(t); mod.start(t);
-  carrier.stop(t+dur); mod.stop(t+dur);
+  c.frequency.exponentialRampToValueAtTime(360, t+dur);
+  c.start(t); m.start(t); c.stop(t+dur); m.stop(t+dur);
 }
-
-/* ===== Analytics (optional) ===== */
-function track(event,payload={}){ if(!ANALYTICS.endpoint) return; const body=JSON.stringify({event,ts:Date.now(),team,index,...payload}); navigator.sendBeacon(ANALYTICS.endpoint,new Blob([body],{type:'application/json'})); }
 
 /* ===== Game Data ===== */
 const STOPS = [
@@ -172,7 +180,7 @@ const KEY=(k)=>`${EVENT_ID}:${k}`, $=(s)=>document.querySelector(s);
 let team=localStorage.getItem(KEY('team'))||''; let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
 function save(){ localStorage.setItem(KEY('team'),team); localStorage.setItem(KEY('index'),String(index)); }
 const wrapCard=(inner)=>`<div class="card p-4">${inner}</div>`;
-const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;"," >":"&gt;","\"":"&quot;","'":"&#039;"}[m]||m));
+const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 function header(pct){
   return `<div class="card p-4">
     <div class="flex items-center justify-between mb-3">
@@ -237,51 +245,53 @@ function renderStats(){ $("#game").innerHTML=wrapCard(`<h1 class="text-xl font-b
 function startTeam(){ enableSFX(); const inp=$("#teamInput"); const t=(inp.value||'').trim(); if(!t) return; team=t; index=0; save(); render(); }
 function resetProgress(){ localStorage.removeItem(KEY('team')); localStorage.removeItem(KEY('index')); team=''; index=0; render(); }
 
-/* ===== Visual Celebrate & FX ===== */
-function celebrate(){
-  for(let i=0;i<120;i++){
-    const d=document.createElement('div');
-    d.style.position='fixed'; d.style.top='-10px'; d.style.left=(Math.random()*100)+'vw';
-    d.style.width='8px'; d.style.height='12px'; d.style.background=`hsl(${Math.random()*360} 90% 60%)`;
-    d.style.transform=`rotate(${Math.random()*360}deg)`; d.style.opacity='.9'; d.style.zIndex='50';
-    d.style.transition='transform 1.2s ease-out, top 1.2s ease-out, opacity 1.2s ease-out';
-    document.body.appendChild(d);
-    requestAnimationFrame(()=>{ d.style.top='100vh'; d.style.transform+=` translateY(80vh)`; d.style.opacity='.2'; });
-    setTimeout(()=>d.remove(),1400);
-  }
+/* ===== Visual Celebrate & FX (Pumpkins + Light Bats) ===== */
+function pumpkinSVG(){
+  return `
+  <svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true">
+    <defs>
+      <radialGradient id="pg2" cx="50%" cy="40%" r="60%">
+        <stop offset="0%" stop-color="#fff7cf"/><stop offset="70%" stop-color="#ffd35c"/><stop offset="100%" stop-color="#c07a00"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="32" cy="36" rx="22" ry="16" fill="url(#pg2)" stroke="#7a4900" stroke-width="2"/>
+    <rect x="29" y="14" width="6" height="6" rx="1" fill="#7a4900"/>
+  </svg>`;
 }
-function rand(a,b){return a+Math.random()*(b-a)}
-function hslc(h,s,l){return `hsl(${h} ${s}% ${l}%)`}
-function spawnConfettiBurst(n=140){
+function spawnPumpkinBurst(n=90){
+  const cx = innerWidth/2, cy = innerHeight/2;
   for(let i=0;i<n;i++){
-    const c=document.createElement('div'); c.className='confetti';
-    c.style.background=i%3? hslc(rand(15,45),90,60) : '#fff';
-    c.style.left=innerWidth/2+'px'; c.style.top=innerHeight/2+'px';
-    const dx=Math.cos(i/n*2*Math.PI+Math.random()*0.8)*rand(120,420);
-    const dy=Math.sin(i/n*2*Math.PI+Math.random()*0.8)*rand(120,420);
-    const rot=rand(-220,220), dur=rand(700,1400);
-    c.animate([{transform:`translate(0,0) rotate(0)`,opacity:1},{transform:`translate(${dx}px,${dy}px) rotate(${rot}deg)`,opacity:0}],{duration:dur,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
-    document.body.appendChild(c); setTimeout(()=>c.remove(),dur+40);
+    const el = document.createElement('div');
+    el.className = 'pump';
+    el.style.left = cx + 'px';
+    el.style.top  = cy + 'px';
+    el.innerHTML = pumpkinSVG();
+    const a = (i/n)*2*Math.PI + Math.random()*0.7;
+    const dist = 140 + Math.random()*360;
+    const dx = Math.cos(a)*dist, dy = Math.sin(a)*dist;
+    const rot = (Math.random()*240-120)+'deg';
+    const dur = 900 + Math.random()*700;
+    el.animate(
+      [{transform:'translate(-50%,-50%) scale(0.8) rotate(0)', opacity:1},
+       {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.9) rotate(${rot})`, opacity:0}],
+      {duration:dur, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards'}
+    );
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), dur+40);
   }
 }
-function spawnFireworks(count=5){
-  for(let k=0;k<count;k++){
-    const cx=rand(innerWidth*0.25,innerWidth*0.75), cy=rand(innerHeight*0.25,innerHeight*0.55), pellets=36;
-    for(let i=0;i<pellets;i++){
-      const p=document.createElement('div'); p.className='firework'; p.style.left=cx+'px'; p.style.top=cy+'px';
-      const a=i/pellets*2*Math.PI, d=rand(90,220), dx=Math.cos(a)*d, dy=Math.sin(a)*d, hue=rand(15,45), t=rand(700,1200);
-      p.style.background=hslc(hue,100,60);
-      p.animate([{transform:'translate(0,0) scale(.6)',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(0)`,opacity:0}],{duration:t,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
-      document.body.appendChild(p); setTimeout(()=>p.remove(),t+30);
-    }
-  }
-}
-function spawnBats(count=6){
+function spawnLightBats(count=8){
   for(let i=0;i<count;i++){
-    const b=document.createElement('div'); b.className='bat';
-    const y=rand(innerHeight*0.15,innerHeight*0.85); b.style.left='-50px'; b.style.top=y+'px';
-    b.animate([{transform:`translate(-50px,0) rotate(-8deg)`},{transform:`translate(${innerWidth+50}px,-20vh) rotate(12deg)`}],{duration:rand(2500,4200),easing:'ease-in-out',fill:'forwards'});
-    document.body.appendChild(b); setTimeout(()=>b.remove(),4200);
+    const b=document.createElement('div'); b.className='bat-light';
+    const y = 0.15*innerHeight + Math.random()*0.7*innerHeight;
+    b.style.left='-60px'; b.style.top=y+'px';
+    b.animate(
+      [{transform:'translate(-50px,0) rotate(-6deg)', opacity:0.95},
+       {transform:`translate(${innerWidth+60}px, -8vh) rotate(10deg)`, opacity:0.9}],
+      {duration:2500+Math.random()*1800, easing:'ease-in-out', fill:'forwards'}
+    );
+    document.body.appendChild(b);
+    setTimeout(()=>b.remove(), 4500);
   }
 }
 function showMegaWinFX(){
@@ -291,7 +301,8 @@ function showMegaWinFX(){
   setTimeout(()=>{ flash.classList.remove('show'); vig.classList.remove('show'); document.documentElement.classList.remove('shake'); }, 650);
   const center=document.getElementById('fx-center'), banner=document.getElementById('fx-banner');
   center.classList.add('show'); banner.classList.add('show'); setTimeout(()=>{ center.classList.remove('show'); banner.classList.remove('show'); }, 950);
-  spawnConfettiBurst(140); spawnFireworks(5); spawnBats(6);
+  spawnPumpkinBurst(90);
+  spawnLightBats(8);
 }
 
 /* ===== Scanner ===== */
@@ -316,12 +327,8 @@ async function startScanner(expectedId){
       if(result){
         const text=result.getText();
         if(text===expectedId){
-          // SOUND: always run (no gating, no priming beep)
-          playThunder();
-          setTimeout(()=>playWitch(), 350);
-          // VISUALS
+          playThunder(); setTimeout(()=>playWitch(), 350);
           showMegaWinFX();
-
           const cur=STOPS[index];
           track('scan',{event_id:EVENT_ID,business:cur.business,title:cur.title,stop_id:cur.id});
           index++; save();
