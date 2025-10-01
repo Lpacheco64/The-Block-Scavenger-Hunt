@@ -22,7 +22,7 @@
     .ghost{position:fixed;inset:auto 0 0 50%;translate:-50% 0;width:80px;height:80px;background:#fff;border-radius:40px 40px 16px 16px/50px 50px 16px 16px;box-shadow:0 8px 30px rgba(0,0,0,.35);opacity:.08;pointer-events:none;animation:float 6s ease-in-out infinite}
     @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
     .win-wrap{position:fixed;inset:0;pointer-events:none;z-index:80}
-    .flash{position:fixed;inset:0;background:radial-gradient(circle at 50% 50%, rgba(255,140,0,.8), rgba(0,0,0,0) 60%);opacity:0}
+    .flash{position:fixed;inset:0;background:radial-gradient(circle at 50% 50%, rgba(255,140,0,.85), rgba(0,0,0,0) 60%);opacity:0}
     .flash.show{animation:flashA .6s ease-out}@keyframes flashA{0%{opacity:1}100%{opacity:0}}
     .shake{animation:shakeA .45s cubic-bezier(.36,.07,.19,.97)}
     @keyframes shakeA{10%,90%{transform:translate3d(-2px,0,0)}20%,80%{transform:translate3d(4px,0,0)}30%,50%,70%{transform:translate3d(-6px,0,0)}40%,60%{transform:translate3d(6px,0,0)}}
@@ -68,7 +68,6 @@
     </div>
   </div>
 
-  <!-- Enable Sound banner -->
   <div id="audioGate" style="position:fixed;inset:auto 0 16px 0;display:flex;justify-content:center;pointer-events:none;z-index:90">
     <button id="audioGateBtn" onclick="enableSFX()" style="pointer-events:auto;background:#ff8c00;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,140,0,.35);border:none">
       🔊 Enable Sound Effects
@@ -80,78 +79,70 @@
 const EVENT_ID = "haunted-block-2025";
 const ANALYTICS = { endpoint: "" };
 
-/* ===== WebAudio SFX (no external files) ===== */
-let sfxEnabled=false, AC, masterGain;
+/* ===== WebAudio SFX (fully synthesized; no files) ===== */
+let AC, masterGain, audioReady=false;
 
 async function enableSFX(){
-  if (sfxEnabled) return;
-  sfxEnabled = true;
   const gate=document.getElementById('audioGate'); if(gate) gate.remove();
-
   const Ctx = window.AudioContext||window.webkitAudioContext;
   if(!Ctx) return;
   AC = AC || new Ctx();
   if(AC.state==='suspended'){ try{ await AC.resume(); }catch{} }
   masterGain = masterGain || AC.createGain();
-  masterGain.gain.value = 0.95; masterGain.connect(AC.destination);
-
-  // Prime quickly (some Androids like a short silent start)
-  const g=AC.createGain(); g.gain.value=0.0001; const o=AC.createOscillator(); o.connect(g); g.connect(masterGain); o.start(); o.stop(AC.currentTime+0.03);
+  masterGain.gain.value = 1.0;
+  masterGain.connect(AC.destination);
+  audioReady = true;
 }
+// also auto-try on first tap anywhere
+window.addEventListener('pointerdown',()=>{ if(!audioReady) enableSFX(); }, {once:true, capture:true});
 
-/* Generate thunder: filtered noise burst + low rumble */
+/* Big, obvious thunder (noise+rumble, longer/louder) */
 function playThunder(){
-  if(!sfxEnabled||!AC) return;
-  const dur = 1.8;
-  const noiseBuf = AC.createBuffer(1, AC.sampleRate*dur|0, AC.sampleRate);
+  if(!AC) return;
+  const dur = 2.2;
+  const noiseBuf = AC.createBuffer(1, Math.max(1, AC.sampleRate*dur|0), AC.sampleRate);
   const data = noiseBuf.getChannelData(0);
   for(let i=0;i<data.length;i++){
     const t=i/AC.sampleRate;
-    const envelope = Math.exp(-3*t); // quick decay
-    data[i] = (Math.random()*2-1)*envelope*0.7;
+    const env = Math.pow(1 - Math.min(1, t/dur), 1.2); // slow fade
+    data[i] = (Math.random()*2-1) * env;
   }
   const noise = AC.createBufferSource(); noise.buffer = noiseBuf;
-  const biq = AC.createBiquadFilter(); biq.type='lowpass'; biq.frequency.value=1500;
-  const g = AC.createGain(); g.gain.setValueAtTime(0.9, AC.currentTime);
-  noise.connect(biq); biq.connect(g); g.connect(masterGain);
+  const lp = AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1600;
+  const ng = AC.createGain(); ng.gain.value = 0.9;
+  noise.connect(lp); lp.connect(ng); ng.connect(masterGain);
   noise.start();
 
-  // low rumble sine that slides down
-  const osc = AC.createOscillator(); osc.type='sine'; osc.frequency.setValueAtTime(60, AC.currentTime);
-  const rg = AC.createGain(); rg.gain.setValueAtTime(0.7, AC.currentTime);
+  // low rumble with slight pitch fall
+  const osc = AC.createOscillator(); osc.type='sine'; osc.frequency.setValueAtTime(70, AC.currentTime);
+  const rg = AC.createGain(); rg.gain.setValueAtTime(0.85, AC.currentTime);
   osc.connect(rg); rg.connect(masterGain);
-  osc.frequency.exponentialRampToValueAtTime(30, AC.currentTime+dur);
+  osc.frequency.exponentialRampToValueAtTime(32, AC.currentTime+dur);
   rg.gain.exponentialRampToValueAtTime(0.001, AC.currentTime+dur);
   osc.start(); osc.stop(AC.currentTime+dur);
 }
 
-/* Generate witch laugh: FM-modulated cackle */
+/* Witch laugh (FM cackle), louder + clearer */
 function playWitch(){
-  if(!sfxEnabled||!AC) return;
-  const base=600, dur=1.2;
-  const carrier = AC.createOscillator(); carrier.type='square'; carrier.frequency.value=base;
-  const mod = AC.createOscillator(); mod.type='sine'; mod.frequency.value=6; // laugh pulses
-  const modGain = AC.createGain(); modGain.gain.value=220; // depth
+  if(!AC) return;
+  const dur = 1.4;
+  const carrier = AC.createOscillator(); carrier.type='square'; carrier.frequency.value=520;
+  const mod = AC.createOscillator(); mod.type='sine'; mod.frequency.value=6.5;
+  const modGain = AC.createGain(); modGain.gain.value=280;
   const out = AC.createGain(); out.gain.value=0.0;
 
   mod.connect(modGain); modGain.connect(carrier.frequency);
   carrier.connect(out); out.connect(masterGain);
 
-  // giggle envelope
-  const t=AC.currentTime;
+  const t = AC.currentTime;
   out.gain.linearRampToValueAtTime(0.0, t);
-  out.gain.linearRampToValueAtTime(0.8, t+0.08);
+  out.gain.linearRampToValueAtTime(0.95, t+0.06);
   out.gain.exponentialRampToValueAtTime(0.001, t+dur);
 
-  // slight downward pitch
-  carrier.frequency.exponentialRampToValueAtTime(380, t+dur);
-
+  carrier.frequency.exponentialRampToValueAtTime(360, t+dur);
   carrier.start(t); mod.start(t);
   carrier.stop(t+dur); mod.stop(t+dur);
 }
-
-/* One-tap auto-enable as backup */
-window.addEventListener('pointerdown',()=>{ if(!sfxEnabled) enableSFX(); }, {once:true, capture:true});
 
 /* ===== Analytics (optional) ===== */
 function track(event,payload={}){ if(!ANALYTICS.endpoint) return; const body=JSON.stringify({event,ts:Date.now(),team,index,...payload}); navigator.sendBeacon(ANALYTICS.endpoint,new Blob([body],{type:'application/json'})); }
@@ -181,7 +172,7 @@ const KEY=(k)=>`${EVENT_ID}:${k}`, $=(s)=>document.querySelector(s);
 let team=localStorage.getItem(KEY('team'))||''; let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
 function save(){ localStorage.setItem(KEY('team'),team); localStorage.setItem(KEY('index'),String(index)); }
 const wrapCard=(inner)=>`<div class="card p-4">${inner}</div>`;
-const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;"," >":"&gt;","\"":"&quot;","'":"&#039;"}[m]||m));
 function header(pct){
   return `<div class="card p-4">
     <div class="flex items-center justify-between mb-3">
@@ -325,7 +316,7 @@ async function startScanner(expectedId){
       if(result){
         const text=result.getText();
         if(text===expectedId){
-          // SOUND (no 404s — fully synthesized)
+          // SOUND: always run (no gating, no priming beep)
           playThunder();
           setTimeout(()=>playWitch(), 350);
           // VISUALS
