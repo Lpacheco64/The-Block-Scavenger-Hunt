@@ -476,5 +476,68 @@ render();
 </script>
 </body>
 </html>
+// 1) More realistic pumpkins (ribs, stem, darker outline; faces are rare)
+function pumpkinURI(variant='orange', face=false){
+  let gradTop='#ffe8b3', gradMid='#ffb347', gradBot='#b25a00', stroke='#6e3a00';
+  if(variant==='white'){ gradTop='#ffffff'; gradMid='#f0f0f0'; gradBot='#bdbdbd'; stroke='#6f6f6f'; }
+  if(variant==='green'){ gradTop='#e8ffd9'; gradMid='#b7ff89'; gradBot='#337000'; stroke='#2a5700'; }
+  // 10% chance to show a subtle face; otherwise just a pumpkin
+  const showFace = face || (Math.random() < 0.10);
+  const faceSVG = showFace ? `
+     <path d="M20 40 q12 10 24 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/>
+     <circle cx="26" cy="34" r="2.2" fill="#1a1206"/><circle cx="38" cy="34" r="2.2" fill="#1a1206"/>
+  ` : '';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+    <defs><radialGradient id="g" cx="50%" cy="40%" r="62%">
+      <stop offset="0%" stop-color="${gradTop}"/><stop offset="68%" stop-color="${gradMid}"/><stop offset="100%" stop-color="${gradBot}"/>
+    </radialGradient></defs>
+    <!-- broader silhouette -->
+    <ellipse cx="32" cy="36" rx="23" ry="16.5" fill="url(#g)" stroke="${stroke}" stroke-width="2.2"/>
+    <!-- stem -->
+    <path d="M32 12 c-2 4 2 5 0 8" fill="none" stroke="${stroke}" stroke-width="2.4" stroke-linecap="round"/>
+    <!-- ribbing -->
+    <path d="M22 22 q-6 14 0 28" fill="none" stroke="${stroke}" stroke-opacity=".35" stroke-width="1.6"/>
+    <path d="M28 20 q-6 16 0 32" fill="none" stroke="${stroke}" stroke-opacity=".35" stroke-width="1.6"/>
+    <path d="M36 20 q6 16 0 32"  fill="none" stroke="${stroke}" stroke-opacity=".35" stroke-width="1.6"/>
+    <path d="M42 22 q6 14 0 28"  fill="none" stroke="${stroke}" stroke-opacity=".35" stroke-width="1.6"/>
+    ${faceSVG}
+  </svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+
+// 2) Slower, smoother pumpkin burst so they don't "flash"
+function spawnPumpkinBurst(count=220, big=false){
+  const variants=['orange','white','green'];
+  const cx = innerWidth*(0.35 + Math.random()*0.3);
+  const cy = innerHeight*(0.35 + Math.random()*0.3);
+  for(let i=0;i<count;i++){
+    const v = variants[i % variants.length];
+    const el = document.createElement('div'); el.className = 'pump';
+    const sizeBase = big ? 46 : 32;
+    const size = sizeBase + Math.random()*(big?42:28);
+    el.style.width = size+'px'; el.style.height = size+'px';
+    el.style.left = cx+'px'; el.style.top = cy+'px';
+    el.style.backgroundImage = `url("${pumpkinURI(v,false)}")`; // faces rare by default
+
+    const angle = (i/count)*2*Math.PI + Math.random()*0.7;
+    const dist  = (big?280:200) + Math.random()*(big?600:460);
+    const dx = Math.cos(angle)*dist, dy = Math.sin(angle)*dist;
+    const rot = (Math.random()*360-180)+'deg';
+    const dur = 2200 + Math.random()*1500; // slower overall
+    const ease = 'cubic-bezier(.15,.7,.2,1)';
+
+    el.animate(
+      [
+        { transform:'translate(-50%,-50%) scale(0.85) rotate(0)',   opacity:0.0 },
+        { transform:'translate(-50%,-50%) scale(1.02) rotate(0)',   opacity:1.0, offset:0.18 },
+        { transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.1) rotate(${rot})`, opacity:0 }
+      ],
+      { duration: dur, easing: ease, fill:'forwards' }
+    );
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), dur+280);
+  }
+}
+
 
 
