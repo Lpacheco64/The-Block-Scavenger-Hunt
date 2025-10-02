@@ -6,7 +6,6 @@
 <title>Haunted Block Hunt</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700;900&display=swap">
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
 <style>
 :root{--block-bg:#0b0b0e;--block-card:#14141a;--block-ink:#f6f3ff;--block-primary:#ff6600;--block-secondary:#ffffff}
@@ -71,10 +70,6 @@ video{border-radius:12px}
   <div class="max-w-md mx-auto space-y-4">
     <header class="flex items-center justify-between">
       <div class="flex items-center gap-2"><span class="badge">🎃 Haunted Block Hunt</span></div>
-      <nav class="flex items-center gap-3 text-sm">
-        <a href="?admin=1" class="text-orange-400 underline">QR Codes</a>
-        <a href="?stats=1" class="text-orange-400 underline">Stats</a>
-      </nav>
     </header>
     <div id="game" class="space-y-4"></div>
     <div class="ghost"></div>
@@ -119,8 +114,9 @@ video{border-radius:12px}
 <script>
 /* ===== Config ===== */
 const EVENT_ID = "haunted-block-2025";
+const FX_SLOW = 1.6; // << slow-down factor for correct-scan animations
 
-/* ===== Audio ===== */
+/* ===== Audio (local files in same folder) ===== */
 let AC, masterGain, audioReady=false;
 const FILES = {
   hits: [
@@ -191,11 +187,11 @@ function batURI(){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 
-/* ===== Particles ===== */
-function spawnPumpkinBurst(count=220, big=false){
+/* ===== Particles (slowdown applied) ===== */
+function spawnPumpkinBurst(count=260, big=false){
   const variants=['orange','white','green'];
-  const cx = innerWidth* (0.35 + Math.random()*0.3); // random X band
-  const cy = innerHeight* (0.35 + Math.random()*0.3); // random Y band
+  const cx = innerWidth* (0.35 + Math.random()*0.3);
+  const cy = innerHeight* (0.35 + Math.random()*0.3);
   for(let i=0;i<count;i++){
     const v = variants[i % variants.length];
     const el=document.createElement('div'); el.className='pump';
@@ -203,22 +199,20 @@ function spawnPumpkinBurst(count=220, big=false){
     const size = sizeBase + Math.random()*(big?38:26);
     el.style.width = size+'px'; el.style.height = size+'px';
     el.style.left=cx+'px'; el.style.top=cy+'px';
-    // 70% with faces, 30% plain
     const withFace = Math.random() < 0.7;
     el.style.backgroundImage=`url("${pumpkinURI(v, withFace)}")`;
-
     const angle = (i/count)*2*Math.PI + Math.random()*0.9;
     const dist = (big?260:180) + Math.random()*(big?560:420);
     const dx = Math.cos(angle)*dist, dy=Math.sin(angle)*dist;
     const rot=(Math.random()*360-180)+'deg';
-    const dur=(big?1300:1000) + Math.random()*(big?1400:950);
-
+    let dur=(big?1300:1000) + Math.random()*(big?1400:950);
+    dur = Math.round(dur * FX_SLOW); // slow down
     el.animate(
       [{transform:'translate(-50%,-50%) scale(0.92) rotate(0)',opacity:1},
        {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.1) rotate(${rot})`,opacity:0}],
       {duration:dur,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'}
     );
-    document.body.appendChild(el); setTimeout(()=>el.remove(),dur+160);
+    document.body.appendChild(el); setTimeout(()=>el.remove(),dur+200);
   }
 }
 function spawnLightBats(count=24){
@@ -226,15 +220,17 @@ function spawnLightBats(count=24){
   for(let i=0;i<count;i++){
     const b=document.createElement('div'); b.className='bat'; b.style.backgroundImage=`url("${bg}")`;
     const y=0.1*innerHeight+Math.random()*0.8*innerHeight; b.style.left='-100px'; b.style.top=y+'px';
+    const base = 3000+Math.random()*2600;
+    const dur = Math.round(base * FX_SLOW); // slow down
     b.animate(
       [{transform:'translate(-100px,0) rotate(-8deg)',opacity:.98},
        {transform:`translate(${innerWidth+120}px,${(Math.random()*-10)}vh) rotate(12deg)`,opacity:.96}],
-      {duration:3000+Math.random()*2600,easing:'ease-in-out',fill:'forwards'});
-    document.body.appendChild(b); setTimeout(()=>b.remove(),5800);
+      {duration:dur,easing:'ease-in-out',fill:'forwards'});
+    document.body.appendChild(b); setTimeout(()=>b.remove(),dur+500);
   }
 }
 
-/* ===== GRAND FINALE (30s) ===== */
+/* ===== GRAND FINALE (unchanged 30s) ===== */
 let finaleTimer=null;
 function grandFinale(){
   document.body.classList.add('finale-open');
@@ -362,7 +358,8 @@ const KEY=(k)=>`${EVENT_ID}:${k}`, $=(s)=>document.querySelector(s);
 let team=localStorage.getItem(KEY('team'))||''; let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
 function save(){ localStorage.setItem(KEY('team'),team); localStorage.setItem(KEY('index'),String(index)); }
 const wrapCard=(inner)=>`<div class="card p-4">${inner}</div>`;
-const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;"," >":"&gt;","\"":"&quot;","'":"&#039;"}[m]})); // safe
+
 function header(pct){
   return `<div class="card p-4">
     <div class="flex items-center justify-between mb-3">
@@ -374,9 +371,6 @@ function header(pct){
   </div>`;
 }
 function render(){
-  const p=new URL(location.href).searchParams;
-  if(p.get('stats')) return renderStats();
-  if(p.get('admin')) return renderAdmin();
   let html=''; const pct=Math.round((index/STOPS.length)*100);
   if(!team){
     html+=wrapCard(`<h1 class="text-xl font-bold mb-1">Welcome, brave hunters! 👻</h1>
@@ -403,38 +397,34 @@ function render(){
     grandFinale();
   }
 }
-function renderAdmin(){
-  let html='';
-  html+=wrapCard(`<div class="flex items-center justify-between">
-    <h1 class="text-xl font-bold">Checkpoint QR Codes</h1>
-    <div class="text-sm text-orange-400">Print and place at each business. Each QR encodes the stop id.</div>
-  </div>`);
-  html+=`<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">`;
-  STOPS.forEach(s=>{
-    html+=`<div class="card p-4"><div class="text-xs text-gray-400">${s.business}</div>
-      <div class="font-bold">${s.title}</div><div id="qr-${s.id}" class="flex items-center justify-center my-3"></div>
-      <div class="text-xs text-gray-400 break-all">${s.id}</div></div>`;
-  });
-  html+=`</div>`;
-  $("#game").innerHTML=html;
-  STOPS.forEach(s=> new QRCode(document.getElementById(`qr-${s.id}`), { text:s.id, width:180, height:180, correctLevel: QRCode.CorrectLevel.M }));
-}
-function renderStats(){ $("#game").innerHTML=wrapCard(`<h1 class="text-xl font-bold">Stats</h1><p class="text-sm text-gray-400">Local-only counters on this device.</p>`); }
 function startTeam(){ enableSFX(); const inp=$("#teamInput"); const t=(inp.value||'').trim(); if(!t) return; team=t; index=0; save(); render(); }
 function resetProgress(){ localStorage.removeItem(KEY('team')); localStorage.removeItem(KEY('index')); team=''; index=0; closeFinale(); render(); }
 
-/* Per-scan FX */
+/* Per-scan FX (slowdown applied) */
 function showMegaWinFX(){
-  if(navigator.vibrate) navigator.vibrate([40,40,60]);
-  const flash=document.getElementById('fx-flash'), vig=document.getElementById('fx-vig');
-  document.documentElement.classList.add('shake'); flash.classList.add('show'); vig.classList.add('show');
-  setTimeout(()=>{ flash.classList.remove('show'); vig.classList.remove('show'); document.documentElement.classList.remove('shake'); }, 650);
-  const center=document.getElementById('fx-center'), banner=document.getElementById('fx-banner');
-  center.classList.add('show'); banner.classList.add('show'); setTimeout(()=>{ center.classList.remove('show'); banner.classList.remove('show'); }, 950);
+  if(navigator.vibrate) navigator.vibrate([60,60,90]);
 
-  // BIGGER: two bursts + bats
+  const flash=document.getElementById('fx-flash');
+  const vig=document.getElementById('fx-vig');
+  const center=document.getElementById('fx-center');
+  const banner=document.getElementById('fx-banner');
+
+  // scale CSS animation durations for this run
+  flash.style.animationDuration = `${0.6*FX_SLOW}s`;
+  vig.style.animationDuration = `${0.6*FX_SLOW}s`;
+  center.style.animationDuration = `${0.7*FX_SLOW}s`;
+  banner.style.animationDuration = `${0.8*FX_SLOW}s`;
+
+  document.documentElement.classList.add('shake');
+  flash.classList.add('show'); vig.classList.add('show');
+  setTimeout(()=>{ flash.classList.remove('show'); vig.classList.remove('show'); document.documentElement.classList.remove('shake'); }, Math.round(650*FX_SLOW));
+
+  center.classList.add('show'); banner.classList.add('show');
+  setTimeout(()=>{ center.classList.remove('show'); banner.classList.remove('show'); }, Math.round(950*FX_SLOW));
+
+  // slower/larger particles & bats
   spawnPumpkinBurst(260,false);
-  setTimeout(()=>spawnPumpkinBurst(220,false), 180);
+  setTimeout(()=>spawnPumpkinBurst(220,false), Math.round(220*FX_SLOW));
   spawnLightBats(18);
 }
 
@@ -488,7 +478,7 @@ async function startScanner(expectedId){
       showMegaWinFX(); playHitRandom(); setTimeout(playHitRandom, 420);
 
       index++; save(); if (index >= STOPS.length) localStorage.setItem(KEY('completed'), '1');
-      stopScanner(); setTimeout(() => { chip.remove(); render(); }, 520);
+      stopScanner(); setTimeout(() => { chip.remove(); render(); }, Math.round(520*FX_SLOW));
     });
   } catch (e) {
     chip.textContent = `Init error: ${e?.message || e}`;
