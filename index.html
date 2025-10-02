@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Haunted Block Hunt</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700;900&display=swap">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
@@ -38,28 +38,35 @@ video{border-radius:12px}
 .vignette.show{animation:vigA .6s ease-out}@keyframes vigA{0%{opacity:1}100%{opacity:0}}
 
 /* Particles */
-.pump,.bat{position:fixed;will-change:transform,opacity;pointer-events:none;background-repeat:no-repeat;background-size:100% 100%;filter:drop-shadow(0 0 8px rgba(255,220,120,.95));z-index:130}
-.pump{width:36px;height:36px}
-.bat{width:64px;height:32px}
+.pump,.bat{position:fixed;will-change:transform,opacity;pointer-events:none;background-repeat:no-repeat;background-size:100% 100%;z-index:130}
+.pump{width:42px;height:42px;filter:drop-shadow(0 0 10px rgba(255,220,120,.95))}
+.bat{width:70px;height:36px;filter:drop-shadow(0 0 6px rgba(255,240,200,.7))}
 
-/* GRAND FINALE (no buttons) */
-.finale{position:fixed;inset:0;background:radial-gradient(1200px 600px at 50% 30%, rgba(255,128,0,.08), rgba(0,0,0,.92));display:none;z-index:200}
+/* GRAND FINALE (BIG) */
+.finale{position:fixed;inset:0;background:radial-gradient(1400px 700px at 50% 30%, rgba(255,128,0,.10), rgba(0,0,0,.95));display:none;z-index:200}
 .finale.show{display:block}
-.finale .center{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);text-align:center}
-.finale h1{
-  font-size: clamp(34px, 8vw, 96px);
-  font-weight:900; letter-spacing:.04em;
+.finale .center{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center}
+.marquee{
+  font-size:clamp(40px,10vw,112px);font-weight:900;letter-spacing:.05em;
   background:linear-gradient(180deg,#fff5d6,#ffd35c 40%,#b86a00 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
-  text-shadow:0 10px 40px rgba(255,200,90,.28);
-  animation:glow 2.2s ease-in-out infinite
+  text-shadow:0 0 0 rgba(0,0,0,0);
+  animation:marq 1.6s ease-out both, glow 2.2s ease-in-out infinite 1.6s
 }
-@keyframes glow{0%,100%{filter:drop-shadow(0 0 6px rgba(255,200,90,.4))}50%{filter:drop-shadow(0 0 16px rgba(255,200,90,.9))}}
-.finale .sub{color:#ffe6b3;opacity:.9;margin-top:.4rem}
-.finale .spot{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;background:radial-gradient(350px 180px at var(--x,50%) var(--y,30%), rgba(255,200,100,.25), rgba(0,0,0,0) 60%)}
+@keyframes marq{0%{transform:scale(.6) translateZ(0);filter:blur(6px);opacity:0}60%{transform:scale(1.1);opacity:1;filter:blur(0)}100%{transform:scale(1)}}
+@keyframes glow{0%,100%{filter:drop-shadow(0 0 10px rgba(255,200,90,.55))}50%{filter:drop-shadow(0 0 26px rgba(255,200,90,.95))}}
+.sub{color:#ffe6b3;opacity:.95;margin-top:.4rem;font-weight:700;font-size:clamp(16px,3.5vw,28px)}
+.finale .spot{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;background:radial-gradient(450px 220px at var(--x,50%) var(--y,30%), rgba(255,200,100,.3), rgba(0,0,0,0) 60%)}
+.finale .strobe{position:absolute;inset:0;background:radial-gradient(400px 200px at 50% 40%, rgba(255,255,255,.8), rgba(0,0,0,0) 60%);opacity:0;pointer-events:none}
+.finale .strobe.show{animation:stb .12s ease-out 8}@keyframes stb{0%{opacity:.85}100%{opacity:0}}
+.finale .ring{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);width:min(90vw,700px);height:min(90vw,700px);border:6px solid rgba(255,200,90,.35);border-radius:9999px;filter:blur(2px);opacity:0;animation:ring 1.4s ease-out both .2s}
+@keyframes ring{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+
+/* Fog layer */
+#fog{position:absolute;inset:0;opacity:.55;mix-blend-mode:screen;pointer-events:none}
 
 /* a11y */
-@media (prefers-reduced-motion:reduce){.shake,.flash.show,.win-center.show,.banner.show,.vignette.show{animation:none}}
+@media (prefers-reduced-motion:reduce){.shake,.flash.show,.win-center.show,.banner.show,.vignette.show,.marquee{animation:none}}
 </style>
 </head>
 <body class="p-4">
@@ -94,9 +101,12 @@ video{border-radius:12px}
   <!-- GRAND FINALE (auto-closes after 15s) -->
   <div id="finale" class="finale" aria-hidden="true">
     <canvas id="fw" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+    <canvas id="fog"></canvas>
     <div class="spot" id="spot"></div>
+    <div class="strobe" id="strobe"></div>
+    <div class="ring"></div>
     <div class="center">
-      <h1>YOU DID IT!</h1>
+      <div class="marquee">YOU DID IT!</div>
       <div class="sub">Team <span id="finaleTeam">—</span> completed the Haunted Block Hunt!</div>
     </div>
   </div>
@@ -178,49 +188,56 @@ function batURI(){
 }
 
 /* ===== Particles ===== */
-function spawnPumpkinBurst(n=140){
+function spawnPumpkinBurst(n=220){
   const cx=innerWidth/2, cy=innerHeight/2, bg=pumpkinURI();
   for(let i=0;i<n;i++){
     const el=document.createElement('div'); el.className='pump'; el.style.left=cx+'px'; el.style.top=cy+'px'; el.style.backgroundImage=`url("${bg}")`;
-    const a=(i/n)*2*Math.PI+Math.random()*0.7, dist=180+Math.random()*460, dx=Math.cos(a)*dist, dy=Math.sin(a)*dist, rot=(Math.random()*240-120)+'deg', dur=1000+Math.random()*900;
+    const a=(i/n)*2*Math.PI+Math.random()*0.9, dist=220+Math.random()*520, dx=Math.cos(a)*dist, dy=Math.sin(a)*dist, rot=(Math.random()*360-180)+'deg', dur=1000+Math.random()*1200;
     el.animate(
-      [{transform:'translate(-50%,-50%) scale(0.9) rotate(0)',opacity:1},
-       {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.05) rotate(${rot})`,opacity:0}],
+      [{transform:'translate(-50%,-50%) scale(0.95) rotate(0)',opacity:1},
+       {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.1) rotate(${rot})`,opacity:0}],
       {duration:dur,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
-    document.body.appendChild(el); setTimeout(()=>el.remove(),dur+120);
+    document.body.appendChild(el); setTimeout(()=>el.remove(),dur+150);
   }
 }
-function spawnLightBats(count=24){
+function spawnLightBats(count=34){
   const bg=batURI();
   for(let i=0;i<count;i++){
     const b=document.createElement('div'); b.className='bat'; b.style.backgroundImage=`url("${bg}")`;
-    const y=0.1*innerHeight+Math.random()*0.8*innerHeight; b.style.left='-80px'; b.style.top=y+'px';
+    const y=0.1*innerHeight+Math.random()*0.8*innerHeight; b.style.left='-100px'; b.style.top=y+'px';
     b.animate(
-      [{transform:'translate(-80px,0) rotate(-6deg)',opacity:0.98},
-       {transform:`translate(${innerWidth+80}px,-6vh) rotate(10deg)`,opacity:0.95}],
-      {duration:2800+Math.random()*2200,easing:'ease-in-out',fill:'forwards'});
-    document.body.appendChild(b); setTimeout(()=>b.remove(),5200);
+      [{transform:'translate(-100px,0) rotate(-8deg)',opacity:.98},
+       {transform:`translate(${innerWidth+120}px,${(Math.random()*-10)}vh) rotate(12deg)`,opacity:.96}],
+      {duration:3000+Math.random()*2600,easing:'ease-in-out',fill:'forwards'});
+    document.body.appendChild(b); setTimeout(()=>b.remove(),5800);
   }
 }
 
-/* ===== GRAND FINALE (auto close in 15s, no buttons) ===== */
+/* ===== GRAND FINALE (HUGE) ===== */
 let finaleTimer=null;
 function grandFinale(){
   const overlay = document.getElementById('finale');
   document.getElementById('finaleTeam').textContent = escapeHtml(team||'—');
   overlay.classList.add('show');
-  runSpotlight(); runFireworks();
-  // sequence (thunder -> witch -> wolf) + soft wind + optional closing music
+  runSpotlight(); runFireworks(true); runFog();
+  // strobes
+  const st = document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
+  // audio sequence
   if(audioReady){
     let at=0;
-    ['scary-transition-401717.mp3','witch-laugh-95203.mp3','halloween-wolf-howling-410542.mp3'].forEach(name=>{
-      const b=SFX.buffers[name]; if(b){ playBuf(name,1.0,false,at); at += Math.min(2.4, b.duration||2.0) - 0.2; }
+    ['scary-transition-401717.mp3','witch-laugh-95203.mp3','halloween-wolf-howling-410542.mp3','spooky-scary-sound-410563.mp3'].forEach(name=>{
+      const b=SFX.buffers[name]; if(b){ playBuf(name,1.0,false,at); at += Math.min(2.6, b.duration||2.2)-0.1; }
     });
-    const wind=SFX.buffers['creepy-wind-410541.mp3']; if(wind){ SFX.windLoop = playBuf('creepy-wind-410541.mp3',0.35,true,at); }
-    const closing=SFX.buffers[FILES.closing]; if(closing){ SFX.closingTrack = playBuf(FILES.closing,0.5,false,at+1.5); }
+    const wind=SFX.buffers['creepy-wind-410541.mp3']; if(wind){ SFX.windLoop = playBuf('creepy-wind-410541.mp3',0.4,true,at); }
+    const closing=SFX.buffers[FILES.closing]; if(closing){ SFX.closingTrack = playBuf(FILES.closing,0.6,false,at+1.2); }
   }
-  spawnPumpkinBurst(180);
-  spawnLightBats(28);
+  // visuals
+  spawnPumpkinBurst(260);
+  spawnLightBats(40);
+  setTimeout(()=>spawnPumpkinBurst(200), 800);
+  setTimeout(()=>spawnLightBats(36), 1200);
+  if(navigator.vibrate) navigator.vibrate([70,60,90,60,120]);
+
   clearTimeout(finaleTimer);
   finaleTimer=setTimeout(closeFinale, 15000);
 }
@@ -232,36 +249,65 @@ function closeFinale(){
 }
 
 /* Fireworks */
-function runFireworks(){
+function runFireworks(big=false){
   const canvas = document.getElementById('fw'), ctx = canvas.getContext('2d');
   let w=canvas.width=innerWidth*devicePixelRatio, h=canvas.height=innerHeight*devicePixelRatio;
   const parts=[];
   function addBurst(x,y,color){
-    const n=90+Math.random()*60;
+    const n=(big?160:100)+Math.random()*70;
     for(let i=0;i<n;i++){
-      const ang=Math.random()*Math.PI*2, sp=(1+Math.random()*3)*(w/1600);
-      parts.push({x,y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:60+Math.random()*30,color,alpha:1});
+      const ang=Math.random()*Math.PI*2, sp=(1.2+Math.random()*3.6)*(w/1600);
+      parts.push({x,y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:70+Math.random()*40,color,alpha:1});
     }
   }
   function tick(){
     ctx.clearRect(0,0,w,h);
     for(let i=parts.length-1;i>=0;i--){
-      const p=parts[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.02*devicePixelRatio; p.life--; p.alpha=Math.max(0,p.life/90);
-      ctx.globalAlpha=p.alpha; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,2.4*devicePixelRatio,0,Math.PI*2); ctx.fill();
+      const p=parts[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.018*devicePixelRatio; p.life--; p.alpha=Math.max(0,p.life/100);
+      ctx.globalAlpha=p.alpha; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y, (big?3.1:2.4)*devicePixelRatio,0,Math.PI*2); ctx.fill();
       if(p.life<=0) parts.splice(i,1);
     }
     if(document.getElementById('finale').classList.contains('show')) requestAnimationFrame(tick);
   }
   function launch(){
-    const x=(0.15+Math.random()*0.7)*w, y=(0.25+Math.random()*0.4)*h;
-    const palette=['#ffd35c','#fff1b8','#ff8a00','#ffe6b3','#ffe07a'];
+    const x=(0.1+Math.random()*0.8)*w, y=(0.18+Math.random()*0.5)*h;
+    const palette=['#ffd35c','#fff1b8','#ff8a00','#ffe6b3','#ffe07a','#ffffff'];
     addBurst(x,y, palette[Math.floor(Math.random()*palette.length)]);
   }
-  const launchTimer=setInterval(launch,420);
+  const rate = big ? 280 : 420;
+  const launchTimer=setInterval(launch,rate);
   window.addEventListener('resize',()=>{ w=canvas.width=innerWidth*devicePixelRatio; h=canvas.height=innerHeight*devicePixelRatio; });
   tick();
   const obs=new MutationObserver(()=>{ if(!document.getElementById('finale').classList.contains('show')){ clearInterval(launchTimer); obs.disconnect(); ctx.clearRect(0,0,w,h);} });
   obs.observe(document.getElementById('finale'),{attributes:true,attributeFilter:['class']});
+}
+
+/* Fog (simple Perlin-ish noise drift) */
+function runFog(){
+  const c = document.getElementById('fog'), x = c.getContext('2d');
+  let W = c.width = innerWidth, H = c.height = innerHeight;
+  const img = x.createImageData(W, H); const data = img.data; let t = 0;
+  function noise(nx, ny){ // value noise
+    function rnd(ix,iy){ const s=Math.sin(ix*127.1+iy*311.7)*43758.5453; return s - Math.floor(s); }
+    const x0=Math.floor(nx), y0=Math.floor(ny), xf=nx-x0, yf=ny-y0;
+    const v00=rnd(x0,y0), v10=rnd(x0+1,y0), v01=rnd(x0,y0+1), v11=rnd(x0+1,y0+1);
+    const u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
+    return (1-u)*(1-v)*v00 + u*(1-v)*v10 + (1-u)*v*v01 + u*v*v11;
+  }
+  function draw(){
+    const s = 0.009; t += 0.003;
+    for(let y=0, i=0; y<H; y++){
+      for(let x0=0; x0<W; x0++, i+=4){
+        const n = noise((x0+t*120)*s, (y+t*60)*s);
+        const v = 220 + n*25;
+        data[i]=v; data[i+1]=v; data[i+2]=v; data[i+3]=38; // alpha ~ 15%
+      }
+    }
+    x.putImageData(img,0,0);
+    if(document.getElementById('finale').classList.contains('show')) requestAnimationFrame(draw);
+  }
+  draw();
+  addEventListener('resize',()=>{ W=c.width=innerWidth; H=c.height=innerHeight; });
 }
 
 /* Spotlight */
@@ -297,7 +343,7 @@ const KEY=(k)=>`${EVENT_ID}:${k}`, $=(s)=>document.querySelector(s);
 let team=localStorage.getItem(KEY('team'))||''; let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
 function save(){ localStorage.setItem(KEY('team'),team); localStorage.setItem(KEY('index'),String(index)); }
 const wrapCard=(inner)=>`<div class="card p-4">${inner}</div>`;
-const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;","—":"—",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]||m));
+const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 function header(pct){
   return `<div class="card p-4">
     <div class="flex items-center justify-between mb-3">
@@ -366,7 +412,7 @@ function showMegaWinFX(){
   setTimeout(()=>{ flash.classList.remove('show'); vig.classList.remove('show'); document.documentElement.classList.remove('shake'); }, 650);
   const center=document.getElementById('fx-center'), banner=document.getElementById('fx-banner');
   center.classList.add('show'); banner.classList.add('show'); setTimeout(()=>{ center.classList.remove('show'); banner.classList.remove('show'); }, 950);
-  spawnPumpkinBurst(140); spawnLightBats(16);
+  spawnPumpkinBurst(180); spawnLightBats(18);
 }
 
 /* ===== Scanner (robust with status chip) ===== */
@@ -392,18 +438,15 @@ async function startScanner(expectedId){
   stopScanner();
   scanLock = false;
 
-  // Status chip
   const chip = document.createElement('div');
   chip.id = 'camStatus';
   chip.style.cssText = 'position:fixed;top:8px;left:8px;z-index:9999;background:#111827;color:#fef3c7;border:1px solid #374151;border-radius:8px;padding:6px 8px;font:12px/1.2 monospace';
   chip.textContent = 'Camera: starting…';
   document.body.appendChild(chip);
 
-  // HTTPS hint
   const insecure = location.protocol !== 'https:' && location.hostname !== 'localhost' && location.protocol !== 'file:';
   if (insecure) chip.textContent = 'Camera blocked: use HTTPS or localhost';
 
-  // Permission nudge
   try { await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } }); } catch(e){}
 
   const expectedNorm = normalizeQRText(expectedId);
@@ -440,7 +483,7 @@ async function startScanner(expectedId){
       if (index >= STOPS.length) localStorage.setItem(KEY('completed'), '1');
 
       stopScanner();
-      setTimeout(() => { chip.remove(); render(); }, 480);
+      setTimeout(() => { chip.remove(); render(); }, 520);
     });
   } catch (e) {
     chip.textContent = `Init error: ${e?.message || e}`;
