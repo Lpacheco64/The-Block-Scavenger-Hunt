@@ -470,12 +470,6 @@ async function startScanner(expectedId){
   }
 }
 function stopScanner(){ try { codeReader && codeReader.reset(); } catch(e){}; document.getElementById('camStatus')?.remove(); }
-
-/* Boot */
-render();
-</script>
-</body>
-</html>
 // 1) More realistic pumpkins (ribs, stem, darker outline; faces are rare)
 function pumpkinURI(variant='orange', face=false){
   let gradTop='#ffe8b3', gradMid='#ffb347', gradBot='#b25a00', stroke='#6e3a00';
@@ -538,6 +532,8 @@ function spawnPumpkinBurst(count=220, big=false){
     setTimeout(()=>el.remove(), dur+280);
   }
 }
-
-
-
+/* Boot */
+render();
+</script>
+</body>
+</html>
