@@ -87,17 +87,23 @@ video{border-radius:12px}
 <script>
 /* ===== Config ===== */
 const EVENT_ID = "haunted-block-2025";
-const ANALYTICS = { endpoint: "" };
 
-/* ===== WebAudio + File SFX (with synth fallback) ===== */
+/* ===== WebAudio + Random SFX (files in repo) ===== */
 let AC, masterGain, audioReady=false;
-// If you place sounds in /assets/, change to: const BASE = basePath() + 'assets/';
-const BASE = basePath();
-const SFX = {
-  thunder: { url: BASE + 'thunder.mp3', buffer: null },
-  witch:   { url: BASE + 'witch.mp3',   buffer: null }
+
+// Add/remove files here (relative to index.html)
+const FILES = {
+  hits: [ // picked randomly on each correct scan
+    'ghoul-ghost-scares-169233.mp3',
+    'witch-laugh-95203.mp3',
+    'creepy-wind-410541.mp3',
+    'scary-transition-401717.mp3'
+  ],
 };
-function basePath(){ const p=location.pathname; return p.endsWith('/')?p:p.slice(0,p.lastIndexOf('/')+1); }
+
+const SFX = { buffers: {} };
+
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)] }
 
 async function enableSFX(){
   if (audioReady) return;
@@ -106,29 +112,30 @@ async function enableSFX(){
   AC = AC || new Ctx(); if(AC.state==='suspended'){ try{ await AC.resume(); }catch{} }
   masterGain = masterGain || AC.createGain(); masterGain.gain.value = 1.0; masterGain.connect(AC.destination);
   audioReady = true;
-  Promise.all([loadBuf('thunder'), loadBuf('witch')]).catch(()=>{});
+  // Preload all
+  FILES.hits.forEach(u=>loadBuf(u));
 }
 window.addEventListener('pointerdown', ()=>{ if(!audioReady) enableSFX(); }, {once:true,capture:true});
 
-async function loadBuf(key){
+async function loadBuf(url){
   try{
-    const res = await fetch(SFX[key].url, { cache: 'force-cache' });
+    const res = await fetch(url, { cache: 'force-cache' });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const arr = await res.arrayBuffer();
-    SFX[key].buffer = await new Promise((resolv,rej)=> AC.decodeAudioData(arr, resolv, rej));
-  }catch(e){ SFX[key].buffer = null; }
+    const buf = await new Promise((ok,no)=>AC.decodeAudioData(arr, ok, no));
+    SFX.buffers[url] = buf;
+  }catch(e){ /* ignore; synth fallback will cover */ }
 }
-function playBuf(buf, vol=1, delay=0){
+function playBuf(url, vol=1, delay=0){
+  const buf = SFX.buffers[url];
   if (!AC || !buf) return;
   const src = AC.createBufferSource(); const g = AC.createGain(); g.gain.value = vol;
   src.buffer = buf; src.connect(g); g.connect(masterGain); src.start(AC.currentTime + delay);
 }
-function playThunder(){ if (SFX.thunder.buffer) playBuf(SFX.thunder.buffer, 1.0, 0); else synthThunder(); }
-function playWitch(){ if (SFX.witch.buffer) playBuf(SFX.witch.buffer, 0.9, 0); else synthWitch(); }
 
-/* ---- Synth fallbacks (kept) ---- */
+// Fallback synths (rarely used if files load)
 function synthThunder(){
-  if(!AC) return; const dur = 2.2;
+  if(!AC) return; const dur = 1.8;
   const nb = AC.createBuffer(1, Math.max(1, AC.sampleRate*dur|0), AC.sampleRate);
   const d = nb.getChannelData(0);
   for(let i=0;i<d.length;i++){ const t=i/AC.sampleRate, env=Math.pow(1-Math.min(1,t/dur),1.2); d[i]=(Math.random()*2-1)*env; }
@@ -136,23 +143,11 @@ function synthThunder(){
   const lp = AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1600;
   const g = AC.createGain(); g.gain.value=0.9;
   n.connect(lp); lp.connect(g); g.connect(masterGain); n.start();
-  const o = AC.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(70,AC.currentTime);
-  const rg = AC.createGain(); rg.gain.value=0.85; o.connect(rg); rg.connect(masterGain);
-  o.frequency.exponentialRampToValueAtTime(32, AC.currentTime+dur);
-  rg.gain.exponentialRampToValueAtTime(0.001, AC.currentTime+dur);
-  o.start(); o.stop(AC.currentTime+dur);
 }
-function synthWitch(){
-  if(!AC) return; const dur=1.4, t=AC.currentTime;
-  const c=AC.createOscillator(); c.type='square'; c.frequency.value=520;
-  const m=AC.createOscillator(); m.type='sine'; m.frequency.value=6.5;
-  const mg=AC.createGain(); mg.gain.value=280;
-  const out=AC.createGain(); out.gain.value=0;
-  m.connect(mg); mg.connect(c.frequency); c.connect(out); out.connect(masterGain);
-  out.gain.linearRampToValueAtTime(0, t); out.gain.linearRampToValueAtTime(0.95, t+0.06);
-  out.gain.exponentialRampToValueAtTime(0.001, t+dur);
-  c.frequency.exponentialRampToValueAtTime(360, t+dur);
-  c.start(t); m.start(t); c.stop(t+dur); m.stop(t+dur);
+function playHitRandom(){
+  const choice = pick(FILES.hits);
+  if (SFX.buffers[choice]) playBuf(choice, 1.0, 0);
+  else synthThunder();
 }
 
 /* ===== Game Data ===== */
@@ -180,7 +175,7 @@ const KEY=(k)=>`${EVENT_ID}:${k}`, $=(s)=>document.querySelector(s);
 let team=localStorage.getItem(KEY('team'))||''; let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
 function save(){ localStorage.setItem(KEY('team'),team); localStorage.setItem(KEY('index'),String(index)); }
 const wrapCard=(inner)=>`<div class="card p-4">${inner}</div>`;
-const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;","~":"&tilde;","\"":"&quot;","'":"&#039;"}[m]||m));
 function header(pct){
   return `<div class="card p-4">
     <div class="flex items-center justify-between mb-3">
@@ -307,13 +302,39 @@ function showMegaWinFX(){
 
 /* ===== Scanner ===== */
 let codeReader;
+let scanLock = false;
+
+function normalizeQRText(txt){
+  if (!txt) return '';
+  let t = (''+txt).trim();
+  try { t = decodeURIComponent(t); } catch(e){}
+  try{
+    if (/^https?:/i.test(t)){
+      const u = new URL(t);
+      const lastPath = u.pathname.split('/').filter(Boolean).pop() || '';
+      const hash = (u.hash||'').replace(/^#/, '');
+      const q = (u.searchParams.get('id')||'') || (u.searchParams.get('stop')||'');
+      const candidates = [q, hash, lastPath, t].filter(Boolean);
+      const found = candidates.find(v => /stop-[a-z0-9-]+/i.test(v));
+      if (found){
+        const m = found.match(/stop-[a-z0-9-]+/i);
+        return (m ? m[0] : found).toLowerCase();
+      }
+      return lastPath.toLowerCase();
+    }
+  }catch(e){}
+  return t.toLowerCase();
+}
+
 async function getCameras(){
   if (ZXing?.BrowserMultiFormatReader?.listVideoInputDevices) return await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
   if (navigator.mediaDevices?.enumerateDevices) return (await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');
   return [];
 }
+
 async function startScanner(expectedId){
   stopScanner();
+  scanLock = false;
   if (location.protocol!=='https:' && location.hostname!=='localhost'){
     document.getElementById('camera').insertAdjacentHTML('afterend', `<div class="text-xs text-red-300 mt-2">Camera requires HTTPS. Open over https://… or test on localhost.</div>`);
     return;
@@ -323,20 +344,24 @@ async function startScanner(expectedId){
   try{
     const devices=await getCameras();
     let camId=devices?.[0]?.deviceId; const back=devices.find(d=>/back|rear|environment/i.test(d.label)); if(back) camId=back.deviceId;
+
+    const expectedNorm = normalizeQRText(expectedId);
+
     await codeReader.decodeFromVideoDevice(camId,'preview',(result)=>{
-      if(result){
-        const text=result.getText();
-        if(text===expectedId){
-          playThunder(); setTimeout(()=>playWitch(), 350);
-          showMegaWinFX();
-          const cur=STOPS[index];
-          track('scan',{event_id:EVENT_ID,business:cur.business,title:cur.title,stop_id:cur.id});
-          index++; save();
-          if(index===STOPS.length && !localStorage.getItem(KEY('completed'))){ localStorage.setItem(KEY('completed'),'1'); track('complete',{event_id:EVENT_ID}); }
-          setTimeout(()=>{ stopScanner(); render(); }, 450);
-        } else {
-          document.body.animate([{backgroundColor:'transparent'},{backgroundColor:'#2a0d0d'},{backgroundColor:'transparent'}],{duration:350});
-        }
+      if(!result || scanLock) return;
+      const text = result.getText();
+      const got = normalizeQRText(text);
+      const isHit = got === expectedNorm || (got.includes('stop-') && got.includes(expectedNorm));
+      if(isHit){
+        scanLock = true;
+        showMegaWinFX();
+        playHitRandom();                 // <<=== random sound each success
+        setTimeout(playHitRandom, 450);  // sometimes a second one
+        index++; save();
+        if(index>=STOPS.length) localStorage.setItem(KEY('completed'),'1');
+        stopScanner(); setTimeout(render, 480);
+      } else {
+        document.body.animate([{backgroundColor:'transparent'},{backgroundColor:'#2a0d0d'},{backgroundColor:'transparent'}],{duration:350});
       }
     });
   }catch(e){
