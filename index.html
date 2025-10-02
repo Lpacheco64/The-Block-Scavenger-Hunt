@@ -21,7 +21,7 @@ body{background:linear-gradient(160deg,var(--block-bg),#171722);color:var(--bloc
 video{border-radius:12px}
 .ghost{position:fixed;inset:auto 0 0 50%;translate:-50% 0;width:80px;height:80px;background:#fff;border-radius:40px 40px 16px 16px/50px 50px 16px 16px;box-shadow:0 8px 30px rgba(0,0,0,.35);opacity:.08;pointer-events:none;animation:float 6s ease-in-out infinite}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-/* Win FX */
+/* Win FX containers */
 .win-wrap{position:fixed;inset:0;pointer-events:none;z-index:80}
 .flash{position:fixed;inset:0;background:radial-gradient(circle at 50% 50%, rgba(255,200,90,.85), rgba(0,0,0,0) 60%);opacity:0}
 .flash.show{animation:flashA .6s ease-out}@keyframes flashA{0%{opacity:1}100%{opacity:0}}
@@ -35,18 +35,10 @@ video{border-radius:12px}
 @keyframes bannerA{0%{transform:translateX(-50%) translateY(-12px);opacity:0}100%{transform:translateX(-50%) translateY(0);opacity:1}}
 .vignette{position:fixed;inset:0;box-shadow:inset 0 0 220px rgba(0,0,0,.7);opacity:0}
 .vignette.show{animation:vigA .6s ease-out}@keyframes vigA{0%{opacity:1}100%{opacity:0}}
-/* Light bats */
-.bat-light{
-  position:fixed;width:46px;aspect-ratio:2/1;
-  background:
-    conic-gradient(from 180deg,#fff6d6 0 180deg,transparent 0),
-    radial-gradient(50% 100% at 25% 50%,#fff2b3 60%,transparent 61%),
-    radial-gradient(50% 100% at 75% 50%,#fff2b3 60%,transparent 61%);
-  filter:drop-shadow(0 0 8px rgba(255,220,120,.8));
-  opacity:.95;transform:translate(-50%,-50%);
-}
-/* Pumpkin particle */
-.pump{position:fixed;width:22px;height:22px;will-change:transform,opacity;pointer-events:none;filter:drop-shadow(0 0 6px rgba(255,200,60,.8))}
+/* Particles (pumpkins + bats) */
+.pump,.bat{position:fixed;will-change:transform,opacity;pointer-events:none;background-repeat:no-repeat;background-size:contain;filter:drop-shadow(0 0 8px rgba(255,220,120,.9))}
+.pump{width:28px;height:28px}
+.bat{width:56px;height:28px}
 @media (prefers-reduced-motion:reduce){.shake,.flash.show,.win-center.show,.banner.show,.vignette.show{animation:none}}
 </style>
 </head>
@@ -88,22 +80,21 @@ video{border-radius:12px}
 /* ===== Config ===== */
 const EVENT_ID = "haunted-block-2025";
 
-/* ===== WebAudio + Random SFX (files in repo) ===== */
+/* ===== WebAudio + Random SFX (SIX files) ===== */
 let AC, masterGain, audioReady=false;
-
-// Add/remove files here (relative to index.html)
+// Ensure these filenames exactly match your files (same folder as index.html)
 const FILES = {
-  hits: [ // picked randomly on each correct scan
-    'ghoul-ghost-scares-169233.mp3',
+  hits: [
     'witch-laugh-95203.mp3',
+    'ghoul-ghost-scares-169233.mp3',
     'creepy-wind-410541.mp3',
-    'scary-transition-401717.mp3'
+    'spooky-scary-sound-410563.mp3',
+    'scary-transition-401717.mp3',
+    'halloween-wolf-howling-410542.mp3'
   ],
 };
-
 const SFX = { buffers: {} };
-
-function pick(arr){ return arr[Math.floor(Math.random()*arr.length)] }
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
 
 async function enableSFX(){
   if (audioReady) return;
@@ -112,7 +103,6 @@ async function enableSFX(){
   AC = AC || new Ctx(); if(AC.state==='suspended'){ try{ await AC.resume(); }catch{} }
   masterGain = masterGain || AC.createGain(); masterGain.gain.value = 1.0; masterGain.connect(AC.destination);
   audioReady = true;
-  // Preload all
   FILES.hits.forEach(u=>loadBuf(u));
 }
 window.addEventListener('pointerdown', ()=>{ if(!audioReady) enableSFX(); }, {once:true,capture:true});
@@ -124,7 +114,7 @@ async function loadBuf(url){
     const arr = await res.arrayBuffer();
     const buf = await new Promise((ok,no)=>AC.decodeAudioData(arr, ok, no));
     SFX.buffers[url] = buf;
-  }catch(e){ /* ignore; synth fallback will cover */ }
+  }catch(e){ /* ignore; synth fallback covers */ }
 }
 function playBuf(url, vol=1, delay=0){
   const buf = SFX.buffers[url];
@@ -132,8 +122,6 @@ function playBuf(url, vol=1, delay=0){
   const src = AC.createBufferSource(); const g = AC.createGain(); g.gain.value = vol;
   src.buffer = buf; src.connect(g); g.connect(masterGain); src.start(AC.currentTime + delay);
 }
-
-// Fallback synths (rarely used if files load)
 function synthThunder(){
   if(!AC) return; const dur = 1.8;
   const nb = AC.createBuffer(1, Math.max(1, AC.sampleRate*dur|0), AC.sampleRate);
@@ -148,6 +136,25 @@ function playHitRandom(){
   const choice = pick(FILES.hits);
   if (SFX.buffers[choice]) playBuf(choice, 1.0, 0);
   else synthThunder();
+}
+
+/* ===== Pumpkin & Bat SVG data-URIs ===== */
+function pumpkinURI(){
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+    <defs><radialGradient id="g" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#fff7cf"/><stop offset="70%" stop-color="#ffd35c"/><stop offset="100%" stop-color="#c07a00"/>
+    </radialGradient></defs>
+    <ellipse cx="32" cy="36" rx="22" ry="16" fill="url(#g)" stroke="#7a4900" stroke-width="2"/>
+    <rect x="29" y="14" width="6" height="6" rx="1" fill="#7a4900"/>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+function batURI(){
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 28">
+    <path d="M2,14 C10,8 14,8 22,12 C24,6 32,6 34,12 C42,8 46,8 54,14 C46,16 42,18 34,16 C32,22 24,22 22,16 C14,18 10,16 2,14 Z"
+      fill="#fff6d6" stroke="#e6c77a" stroke-width="1"/>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 
 /* ===== Game Data ===== */
@@ -175,7 +182,7 @@ const KEY=(k)=>`${EVENT_ID}:${k}`, $=(s)=>document.querySelector(s);
 let team=localStorage.getItem(KEY('team'))||''; let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
 function save(){ localStorage.setItem(KEY('team'),team); localStorage.setItem(KEY('index'),String(index)); }
 const wrapCard=(inner)=>`<div class="card p-4">${inner}</div>`;
-const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;","~":"&tilde;","\"":"&quot;","'":"&#039;"}[m]||m));
+const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 function header(pct){
   return `<div class="card p-4">
     <div class="flex items-center justify-between mb-3">
@@ -240,125 +247,67 @@ function renderStats(){ $("#game").innerHTML=wrapCard(`<h1 class="text-xl font-b
 function startTeam(){ enableSFX(); const inp=$("#teamInput"); const t=(inp.value||'').trim(); if(!t) return; team=t; index=0; save(); render(); }
 function resetProgress(){ localStorage.removeItem(KEY('team')); localStorage.removeItem(KEY('index')); team=''; index=0; render(); }
 
-/* ===== Visual Celebrate & FX (Pumpkins + Light Bats) ===== */
-function pumpkinSVG(){
-  return `
-  <svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true">
-    <defs>
-      <radialGradient id="pg2" cx="50%" cy="40%" r="60%">
-        <stop offset="0%" stop-color="#fff7cf"/><stop offset="70%" stop-color="#ffd35c"/><stop offset="100%" stop-color="#c07a00"/>
-      </radialGradient>
-    </defs>
-    <ellipse cx="32" cy="36" rx="22" ry="16" fill="url(#pg2)" stroke="#7a4900" stroke-width="2"/>
-    <rect x="29" y="14" width="6" height="6" rx="1" fill="#7a4900"/>
-  </svg>`;
-}
-function spawnPumpkinBurst(n=90){
-  const cx = innerWidth/2, cy = innerHeight/2;
+/* ===== Celebrate FX ===== */
+function pumpkinURI(){ const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><radialGradient id="g" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#fff7cf"/><stop offset="70%" stop-color="#ffd35c"/><stop offset="100%" stop-color="#c07a00"/></radialGradient></defs><ellipse cx="32" cy="36" rx="22" ry="16" fill="url(#g)" stroke="#7a4900" stroke-width="2"/><rect x="29" y="14" width="6" height="6" rx="1" fill="#7a4900"/></svg>`; return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg); }
+function batURI(){ const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 28"><path d="M2,14 C10,8 14,8 22,12 C24,6 32,6 34,12 C42,8 46,8 54,14 C46,16 42,18 34,16 C32,22 24,22 22,16 C14,18 10,16 2,14 Z" fill="#fff6d6" stroke="#e6c77a" stroke-width="1"/></svg>`; return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg); }
+function spawnPumpkinBurst(n=110){
+  const cx=innerWidth/2, cy=innerHeight/2, bg=pumpkinURI();
   for(let i=0;i<n;i++){
-    const el = document.createElement('div');
-    el.className = 'pump';
-    el.style.left = cx + 'px';
-    el.style.top  = cy + 'px';
-    el.innerHTML = pumpkinSVG();
-    const a = (i/n)*2*Math.PI + Math.random()*0.7;
-    const dist = 140 + Math.random()*360;
-    const dx = Math.cos(a)*dist, dy = Math.sin(a)*dist;
-    const rot = (Math.random()*240-120)+'deg';
-    const dur = 900 + Math.random()*700;
-    el.animate(
-      [{transform:'translate(-50%,-50%) scale(0.8) rotate(0)', opacity:1},
-       {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.9) rotate(${rot})`, opacity:0}],
-      {duration:dur, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards'}
-    );
-    document.body.appendChild(el);
-    setTimeout(()=>el.remove(), dur+40);
+    const el=document.createElement('div'); el.className='pump'; el.style.left=cx+'px'; el.style.top=cy+'px'; el.style.backgroundImage=`url("${bg}")`;
+    const a=(i/n)*2*Math.PI+Math.random()*0.7, dist=140+Math.random()*360, dx=Math.cos(a)*dist, dy=Math.sin(a)*dist, rot=(Math.random()*240-120)+'deg', dur=900+Math.random()*700;
+    el.animate([{transform:'translate(-50%,-50%) scale(0.85) rotate(0)',opacity:1},{transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.95) rotate(${rot})`,opacity:0}],{duration:dur,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
+    document.body.appendChild(el); setTimeout(()=>el.remove(),dur+60);
   }
 }
-function spawnLightBats(count=8){
+function spawnLightBats(count=12){
+  const bg=batURI();
   for(let i=0;i<count;i++){
-    const b=document.createElement('div'); b.className='bat-light';
-    const y = 0.15*innerHeight + Math.random()*0.7*innerHeight;
-    b.style.left='-60px'; b.style.top=y+'px';
-    b.animate(
-      [{transform:'translate(-50px,0) rotate(-6deg)', opacity:0.95},
-       {transform:`translate(${innerWidth+60}px, -8vh) rotate(10deg)`, opacity:0.9}],
-      {duration:2500+Math.random()*1800, easing:'ease-in-out', fill:'forwards'}
-    );
-    document.body.appendChild(b);
-    setTimeout(()=>b.remove(), 4500);
+    const b=document.createElement('div'); b.className='bat'; b.style.backgroundImage=`url("${bg}")`;
+    const y=0.15*innerHeight+Math.random()*0.7*innerHeight; b.style.left='-60px'; b.style.top=y+'px';
+    b.animate([{transform:'translate(-50px,0) rotate(-6deg)',opacity:0.98},{transform:`translate(${innerWidth+60}px,-8vh) rotate(10deg)`,opacity:0.95}],{duration:2500+Math.random()*1800,easing:'ease-in-out',fill:'forwards'});
+    document.body.appendChild(b); setTimeout(()=>b.remove(),4600);
   }
 }
+function celebrate(){ spawnPumpkinBurst(110); spawnLightBats(12); }
 function showMegaWinFX(){
-  if (navigator.vibrate) navigator.vibrate([40,40,60]);
+  if(navigator.vibrate) navigator.vibrate([40,40,60]);
   const flash=document.getElementById('fx-flash'), vig=document.getElementById('fx-vig');
   document.documentElement.classList.add('shake'); flash.classList.add('show'); vig.classList.add('show');
   setTimeout(()=>{ flash.classList.remove('show'); vig.classList.remove('show'); document.documentElement.classList.remove('shake'); }, 650);
   const center=document.getElementById('fx-center'), banner=document.getElementById('fx-banner');
   center.classList.add('show'); banner.classList.add('show'); setTimeout(()=>{ center.classList.remove('show'); banner.classList.remove('show'); }, 950);
-  spawnPumpkinBurst(90);
-  spawnLightBats(8);
+  celebrate();
 }
 
 /* ===== Scanner ===== */
-let codeReader;
-let scanLock = false;
-
+let codeReader; let scanLock=false;
 function normalizeQRText(txt){
-  if (!txt) return '';
-  let t = (''+txt).trim();
-  try { t = decodeURIComponent(t); } catch(e){}
-  try{
-    if (/^https?:/i.test(t)){
-      const u = new URL(t);
-      const lastPath = u.pathname.split('/').filter(Boolean).pop() || '';
-      const hash = (u.hash||'').replace(/^#/, '');
-      const q = (u.searchParams.get('id')||'') || (u.searchParams.get('stop')||'');
-      const candidates = [q, hash, lastPath, t].filter(Boolean);
-      const found = candidates.find(v => /stop-[a-z0-9-]+/i.test(v));
-      if (found){
-        const m = found.match(/stop-[a-z0-9-]+/i);
-        return (m ? m[0] : found).toLowerCase();
-      }
-      return lastPath.toLowerCase();
-    }
-  }catch(e){}
+  if(!txt) return ''; let t=(''+txt).trim(); try{ t=decodeURIComponent(t); }catch(e){}
+  try{ if(/^https?:/i.test(t)){ const u=new URL(t); const last=u.pathname.split('/').filter(Boolean).pop()||''; const hash=(u.hash||'').replace(/^#/,''); const q=(u.searchParams.get('id')||'')||(u.searchParams.get('stop')||''); const cand=[q,hash,last,t].filter(Boolean); const found=cand.find(v=>/stop-[a-z0-9-]+/i.test(v)); if(found){ const m=found.match(/stop-[a-z0-9-]+/i); return (m?m[0]:found).toLowerCase(); } return last.toLowerCase(); } }catch(e){}
   return t.toLowerCase();
 }
-
 async function getCameras(){
   if (ZXing?.BrowserMultiFormatReader?.listVideoInputDevices) return await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
   if (navigator.mediaDevices?.enumerateDevices) return (await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');
   return [];
 }
-
 async function startScanner(expectedId){
-  stopScanner();
-  scanLock = false;
-  if (location.protocol!=='https:' && location.hostname!=='localhost'){
-    document.getElementById('camera').insertAdjacentHTML('afterend', `<div class="text-xs text-red-300 mt-2">Camera requires HTTPS. Open over https://… or test on localhost.</div>`);
-    return;
-  }
+  stopScanner(); scanLock=false;
   try{ await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'} } }); }catch(e){}
   codeReader=new ZXing.BrowserMultiFormatReader();
   try{
     const devices=await getCameras();
     let camId=devices?.[0]?.deviceId; const back=devices.find(d=>/back|rear|environment/i.test(d.label)); if(back) camId=back.deviceId;
-
     const expectedNorm = normalizeQRText(expectedId);
-
     await codeReader.decodeFromVideoDevice(camId,'preview',(result)=>{
       if(!result || scanLock) return;
-      const text = result.getText();
-      const got = normalizeQRText(text);
-      const isHit = got === expectedNorm || (got.includes('stop-') && got.includes(expectedNorm));
+      const got = normalizeQRText(result.getText());
+      const isHit = got===expectedNorm || (got.includes('stop-') && got.includes(expectedNorm));
       if(isHit){
-        scanLock = true;
+        scanLock=true;
         showMegaWinFX();
-        playHitRandom();                 // <<=== random sound each success
-        setTimeout(playHitRandom, 450);  // sometimes a second one
-        index++; save();
-        if(index>=STOPS.length) localStorage.setItem(KEY('completed'),'1');
+        playHitRandom(); setTimeout(playHitRandom, 420);
+        index++; save(); if(index>=STOPS.length) localStorage.setItem(KEY('completed'),'1');
         stopScanner(); setTimeout(render, 480);
       } else {
         document.body.animate([{backgroundColor:'transparent'},{backgroundColor:'#2a0d0d'},{backgroundColor:'transparent'}],{duration:350});
@@ -375,3 +324,5 @@ render();
 </script>
 </body>
 </html>
+
+
