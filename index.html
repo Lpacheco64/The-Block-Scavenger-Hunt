@@ -39,10 +39,10 @@ video{border-radius:12px}
 
 /* Particles */
 .pump,.bat{position:fixed;will-change:transform,opacity;pointer-events:none;background-repeat:no-repeat;background-size:100% 100%;z-index:130}
-.pump{width:42px;height:42px;filter:drop-shadow(0 0 10px rgba(255,220,120,.95))}
+.pump{filter:drop-shadow(0 0 10px rgba(255,240,190,.95))}
 .bat{width:70px;height:36px;filter:drop-shadow(0 0 6px rgba(255,240,200,.7))}
 
-/* GRAND FINALE (BIG) */
+/* GRAND FINALE */
 .finale{position:fixed;inset:0;background:radial-gradient(1400px 700px at 50% 30%, rgba(255,128,0,.10), rgba(0,0,0,.95));display:none;z-index:200}
 .finale.show{display:block}
 .finale .center{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center}
@@ -61,9 +61,10 @@ video{border-radius:12px}
 .finale .strobe.show{animation:stb .12s ease-out 8}@keyframes stb{0%{opacity:.85}100%{opacity:0}}
 .finale .ring{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);width:min(90vw,700px);height:min(90vw,700px);border:6px solid rgba(255,200,90,.35);border-radius:9999px;filter:blur(2px);opacity:0;animation:ring 1.4s ease-out both .2s}
 @keyframes ring{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
-
-/* Fog layer */
 #fog{position:absolute;inset:0;opacity:.55;mix-blend-mode:screen;pointer-events:none}
+
+/* Hide game under finale for readability */
+.finale-open #game{visibility:hidden}
 
 /* a11y */
 @media (prefers-reduced-motion:reduce){.shake,.flash.show,.win-center.show,.banner.show,.vignette.show,.marquee{animation:none}}
@@ -168,14 +169,17 @@ function playBuf(url, vol=1, loop=false, when=0){
 function stopNode(n){ try{ n?.src?.stop(); n?.g?.disconnect(); }catch(e){} }
 function playHitRandom(){ const choice = pick(FILES.hits); if (SFX.buffers[choice]) playBuf(choice, 1.0, false, 0); }
 
-/* ===== Pumpkin & Bat SVGs ===== */
-function pumpkinURI(){
+/* ===== Pumpkin & Bat SVGs (3 pumpkin variants) ===== */
+function pumpkinURI(variant='orange'){
+  let gradTop = '#fffbe3', gradMid = '#ffd35c', gradBot = '#c07a00', stroke = '#7a4900';
+  if(variant==='white'){ gradTop='#ffffff'; gradMid='#f6f6f6'; gradBot='#c7c7c7'; stroke='#8a8a8a'; }
+  if(variant==='green'){ gradTop='#dfffd6'; gradMid='#a8ff7a'; gradBot='#3a7a00'; stroke='#2f5e00'; }
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
     <defs><radialGradient id="g" cx="50%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#fffbe3"/><stop offset="70%" stop-color="#ffd35c"/><stop offset="100%" stop-color="#c07a00"/>
+      <stop offset="0%" stop-color="${gradTop}"/><stop offset="70%" stop-color="${gradMid}"/><stop offset="100%" stop-color="${gradBot}"/>
     </radialGradient></defs>
-    <ellipse cx="32" cy="36" rx="22" ry="16" fill="url(#g)" stroke="#7a4900" stroke-width="2"/>
-    <rect x="29" y="14" width="6" height="6" rx="1" fill="#7a4900"/>
+    <ellipse cx="32" cy="36" rx="22" ry="16" fill="url(#g)" stroke="${stroke}" stroke-width="2"/>
+    <rect x="29" y="14" width="6" height="6" rx="1" fill="${stroke}"/>
   </svg>`;
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
@@ -187,20 +191,29 @@ function batURI(){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 
-/* ===== Particles ===== */
-function spawnPumpkinBurst(n=220){
-  const cx=innerWidth/2, cy=innerHeight/2, bg=pumpkinURI();
-  for(let i=0;i<n;i++){
-    const el=document.createElement('div'); el.className='pump'; el.style.left=cx+'px'; el.style.top=cy+'px'; el.style.backgroundImage=`url("${bg}")`;
-    const a=(i/n)*2*Math.PI+Math.random()*0.9, dist=220+Math.random()*520, dx=Math.cos(a)*dist, dy=Math.sin(a)*dist, rot=(Math.random()*360-180)+'deg', dur=1000+Math.random()*1200;
+/* ===== Particles (more pumpkin variety) ===== */
+function spawnPumpkinBurst(count=160, big=false){
+  const cx=innerWidth/2, cy=innerHeight/2;
+  const variants=['orange','white','green'];
+  for(let i=0;i<count;i++){
+    const v = variants[i % variants.length];
+    const el=document.createElement('div'); el.className='pump';
+    const size = big ? (40 + Math.random()*36) : (28 + Math.random()*24);
+    el.style.width = size+'px'; el.style.height = size+'px';
+    el.style.left=cx+'px'; el.style.top=cy+'px'; el.style.backgroundImage=`url("${pumpkinURI(v)}")`;
+    const a=(i/count)*2*Math.PI+Math.random()*0.8;
+    const dist=(big?260:180)+Math.random()*(big?560:420);
+    const dx=Math.cos(a)*dist, dy=Math.sin(a)*dist;
+    const rot=(Math.random()*360-180)+'deg';
+    const dur=(big?1200:950)+Math.random()*(big?1300:900);
     el.animate(
-      [{transform:'translate(-50%,-50%) scale(0.95) rotate(0)',opacity:1},
-       {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.1) rotate(${rot})`,opacity:0}],
+      [{transform:'translate(-50%,-50%) scale(0.9) rotate(0)',opacity:1},
+       {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.08) rotate(${rot})`,opacity:0}],
       {duration:dur,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
-    document.body.appendChild(el); setTimeout(()=>el.remove(),dur+150);
+    document.body.appendChild(el); setTimeout(()=>el.remove(),dur+160);
   }
 }
-function spawnLightBats(count=34){
+function spawnLightBats(count=24){
   const bg=batURI();
   for(let i=0;i<count;i++){
     const b=document.createElement('div'); b.className='bat'; b.style.backgroundImage=`url("${bg}")`;
@@ -213,16 +226,15 @@ function spawnLightBats(count=34){
   }
 }
 
-/* ===== GRAND FINALE (HUGE) ===== */
+/* ===== GRAND FINALE (30s) ===== */
 let finaleTimer=null;
 function grandFinale(){
+  document.body.classList.add('finale-open'); // hide underlying game for readability
   const overlay = document.getElementById('finale');
   document.getElementById('finaleTeam').textContent = escapeHtml(team||'—');
   overlay.classList.add('show');
   runSpotlight(); runFireworks(true); runFog();
-  // strobes
   const st = document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
-  // audio sequence
   if(audioReady){
     let at=0;
     ['scary-transition-401717.mp3','witch-laugh-95203.mp3','halloween-wolf-howling-410542.mp3','spooky-scary-sound-410563.mp3'].forEach(name=>{
@@ -232,18 +244,18 @@ function grandFinale(){
     const closing=SFX.buffers[FILES.closing]; if(closing){ SFX.closingTrack = playBuf(FILES.closing,0.6,false,at+1.2); }
   }
   // visuals
-  spawnPumpkinBurst(260);
+  spawnPumpkinBurst(260,true);
   spawnLightBats(40);
-  setTimeout(()=>spawnPumpkinBurst(200), 800);
+  setTimeout(()=>spawnPumpkinBurst(220,true), 900);
   setTimeout(()=>spawnLightBats(36), 1200);
   if(navigator.vibrate) navigator.vibrate([70,60,90,60,120]);
-
   clearTimeout(finaleTimer);
-  finaleTimer=setTimeout(closeFinale, 15000);
+  finaleTimer=setTimeout(closeFinale, 30000); // 30s
 }
 function closeFinale(){
   const overlay = document.getElementById('finale');
   overlay.classList.remove('show');
+  document.body.classList.remove('finale-open'); // show game again
   stopNode(SFX.windLoop); SFX.windLoop=null;
   stopNode(SFX.closingTrack); SFX.closingTrack=null;
 }
@@ -282,12 +294,12 @@ function runFireworks(big=false){
   obs.observe(document.getElementById('finale'),{attributes:true,attributeFilter:['class']});
 }
 
-/* Fog (simple Perlin-ish noise drift) */
+/* Fog */
 function runFog(){
   const c = document.getElementById('fog'), x = c.getContext('2d');
   let W = c.width = innerWidth, H = c.height = innerHeight;
   const img = x.createImageData(W, H); const data = img.data; let t = 0;
-  function noise(nx, ny){ // value noise
+  function noise(nx, ny){
     function rnd(ix,iy){ const s=Math.sin(ix*127.1+iy*311.7)*43758.5453; return s - Math.floor(s); }
     const x0=Math.floor(nx), y0=Math.floor(ny), xf=nx-x0, yf=ny-y0;
     const v00=rnd(x0,y0), v10=rnd(x0+1,y0), v01=rnd(x0,y0+1), v11=rnd(x0+1,y0+1);
@@ -300,7 +312,7 @@ function runFog(){
       for(let x0=0; x0<W; x0++, i+=4){
         const n = noise((x0+t*120)*s, (y+t*60)*s);
         const v = 220 + n*25;
-        data[i]=v; data[i+1]=v; data[i+2]=v; data[i+3]=38; // alpha ~ 15%
+        data[i]=v; data[i+1]=v; data[i+2]=v; data[i+3]=38;
       }
     }
     x.putImageData(img,0,0);
@@ -412,7 +424,8 @@ function showMegaWinFX(){
   setTimeout(()=>{ flash.classList.remove('show'); vig.classList.remove('show'); document.documentElement.classList.remove('shake'); }, 650);
   const center=document.getElementById('fx-center'), banner=document.getElementById('fx-banner');
   center.classList.add('show'); banner.classList.add('show'); setTimeout(()=>{ center.classList.remove('show'); banner.classList.remove('show'); }, 950);
-  spawnPumpkinBurst(180); spawnLightBats(18);
+  spawnPumpkinBurst(200,false); // more variety per scan
+  spawnLightBats(18);
 }
 
 /* ===== Scanner (robust with status chip) ===== */
@@ -498,4 +511,3 @@ render();
 </script>
 </body>
 </html>
-
