@@ -123,7 +123,7 @@ const FILES = {
     'scary-transition-401717.mp3',
     'halloween-wolf-howling-410542.mp3'
   ],
-  closing: 'halloween-spooky-music-411457.mp3' // your closing music (optional)
+  closing: 'halloween-spooky-music-411457.mp3' // optional closing music
 };
 const SFX = { buffers: {}, windLoop:null, closingTrack:null };
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
@@ -156,11 +156,7 @@ function playBuf(url, vol=1, loop=false, when=0){
   return {src, g};
 }
 function stopNode(n){ try{ n?.src?.stop(); n?.g?.disconnect(); }catch(e){} }
-
-function playHitRandom(){
-  const choice = pick(FILES.hits);
-  if (SFX.buffers[choice]) playBuf(choice, 1.0, false, 0);
-}
+function playHitRandom(){ const choice = pick(FILES.hits); if (SFX.buffers[choice]) playBuf(choice, 1.0, false, 0); }
 
 /* ===== Pumpkin & Bat SVGs ===== */
 function pumpkinURI(){
@@ -214,7 +210,7 @@ function grandFinale(){
   document.getElementById('finaleTeam').textContent = escapeHtml(team||'—');
   overlay.classList.add('show');
   runSpotlight(); runFireworks();
-  // sequence (thunder -> witch -> wolf) + soft wind + closing music
+  // sequence (thunder -> witch -> wolf) + soft wind + optional closing music
   if(audioReady){
     let at=0;
     ['scary-transition-401717.mp3','witch-laugh-95203.mp3','halloween-wolf-howling-410542.mp3'].forEach(name=>{
@@ -225,7 +221,6 @@ function grandFinale(){
   }
   spawnPumpkinBurst(180);
   spawnLightBats(28);
-  // auto close
   clearTimeout(finaleTimer);
   finaleTimer=setTimeout(closeFinale, 15000);
 }
@@ -302,7 +297,7 @@ const KEY=(k)=>`${EVENT_ID}:${k}`, $=(s)=>document.querySelector(s);
 let team=localStorage.getItem(KEY('team'))||''; let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
 function save(){ localStorage.setItem(KEY('team'),team); localStorage.setItem(KEY('index'),String(index)); }
 const wrapCard=(inner)=>`<div class="card p-4">${inner}</div>`;
-const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+const escapeHtml=(s)=>s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;","—":"—",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]||m));
 function header(pct){
   return `<div class="card p-4">
     <div class="flex items-center justify-between mb-3">
@@ -337,7 +332,6 @@ function render(){
       <div class="text-xs text-gray-500 mt-2">If the camera doesn’t start, allow camera permissions in your browser.</div>`);
     $("#game").innerHTML=html; startScanner(cur.id);
   }else{
-    // no options text; just show simple completion card, then the finale takes over
     html+=wrapCard(`<h1 class="text-2xl font-bold text-center">🎉 Completed!</h1>
       <p class="text-base text-center mt-1">Team <strong>${escapeHtml(team)}</strong> finished the Haunted Block Hunt!</p>`);
     $("#game").innerHTML=html;
@@ -375,54 +369,89 @@ function showMegaWinFX(){
   spawnPumpkinBurst(140); spawnLightBats(16);
 }
 
-/* Scanner */
-let codeReader; let scanLock=false;
+/* ===== Scanner (robust with status chip) ===== */
+let codeReader; let scanLock = false;
+
 function normalizeQRText(txt){
-  if(!txt) return ''; let t=(''+txt).trim(); try{ t=decodeURIComponent(t); }catch(e){}
-  try{ if(/^https?:/i.test(t)){ const u=new URL(t); const last=u.pathname.split('/').filter(Boolean).pop()||''; const hash=(u.hash||'').replace(/^#/,''); const q=(u.searchParams.get('id')||'')||(u.searchParams.get('stop')||''); const cand=[q,hash,last,t].filter(Boolean); const found=cand.find(v=>/stop-[a-z0-9-]+/i.test(v)); if(found){ const m=found.match(/stop-[a-z0-9-]+/i); return (m?m[0]:found).toLowerCase(); } return last.toLowerCase(); } }catch(e){}
+  if(!txt) return '';
+  let t = (''+txt).trim();
+  try { t = decodeURIComponent(t); } catch(e){}
+  if (/^https?:/i.test(t)) {
+    try {
+      const u = new URL(t);
+      const cand = u.searchParams.get('id') || u.searchParams.get('stop') ||
+                   (u.hash||'').replace(/^#/,'') ||
+                   u.pathname.split('/').filter(Boolean).pop();
+      if (cand) return cand.trim().toLowerCase();
+    } catch(e){}
+  }
   return t.toLowerCase();
 }
-async function getCameras(){
-  if (ZXing?.BrowserMultiFormatReader?.listVideoInputDevices) return await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-  if (navigator.mediaDevices?.enumerateDevices) return (await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');
-  return [];
-}
+
 async function startScanner(expectedId){
-  stopScanner(); scanLock=false;
-  try{ await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'} } }); }catch(e){}
-  codeReader=new ZXing.BrowserMultiFormatReader();
-  try{
-    const devices=await getCameras();
-    let camId=devices?.[0]?.deviceId; const back=devices.find(d=>/back|rear|environment/i.test(d.label)); if(back) camId=back.deviceId;
-    const expectedNorm = normalizeQRText(expectedId);
-    await codeReader.decodeFromVideoDevice(camId,'preview',(result)=>{
-      if(!result || scanLock) return;
-      const got = normalizeQRText(result.getText());
-      const isHit = got===expectedNorm || (got.includes('stop-') && got.includes(expectedNorm));
-      if(isHit){
-        scanLock=true;
-        showMegaWinFX();
-        playHitRandom(); setTimeout(playHitRandom, 420);
-        index++; save(); if(index>=STOPS.length) localStorage.setItem(KEY('completed'),'1');
-        stopScanner(); setTimeout(render, 480);
-      } else {
-        document.body.animate([{backgroundColor:'transparent'},{backgroundColor:'#2a0d0d'},{backgroundColor:'transparent'}],{duration:350});
+  stopScanner();
+  scanLock = false;
+
+  // Status chip
+  const chip = document.createElement('div');
+  chip.id = 'camStatus';
+  chip.style.cssText = 'position:fixed;top:8px;left:8px;z-index:9999;background:#111827;color:#fef3c7;border:1px solid #374151;border-radius:8px;padding:6px 8px;font:12px/1.2 monospace';
+  chip.textContent = 'Camera: starting…';
+  document.body.appendChild(chip);
+
+  // HTTPS hint
+  const insecure = location.protocol !== 'https:' && location.hostname !== 'localhost' && location.protocol !== 'file:';
+  if (insecure) chip.textContent = 'Camera blocked: use HTTPS or localhost';
+
+  // Permission nudge
+  try { await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } }); } catch(e){}
+
+  const expectedNorm = normalizeQRText(expectedId);
+  codeReader = new ZXing.BrowserMultiFormatReader();
+
+  try {
+    let devices = [];
+    try { devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices(); } catch(_) {}
+    let camId = null;
+    if (devices && devices.length) {
+      chip.textContent = `Camera: ${devices.length} found`;
+      const back = devices.find(d => /back|rear|environment/i.test(d.label));
+      camId = (back || devices[0]).deviceId;
+    } else {
+      chip.textContent = 'Camera: using default';
+    }
+
+    await codeReader.decodeFromVideoDevice(camId, 'preview', (result, err) => {
+      if (err && !(err instanceof ZXing.NotFoundException)) {
+        chip.textContent = `Camera error: ${err?.message || err}`;
       }
+      if (!result || scanLock) return;
+
+      const got = normalizeQRText(result.getText());
+      const hit = (got === expectedNorm) || (got.includes('stop-') && got.includes(expectedNorm));
+      if (!hit) return;
+
+      scanLock = true;
+      chip.textContent = 'Scan: matched!';
+      showMegaWinFX();
+      playHitRandom(); setTimeout(playHitRandom, 420);
+
+      index++; save();
+      if (index >= STOPS.length) localStorage.setItem(KEY('completed'), '1');
+
+      stopScanner();
+      setTimeout(() => { chip.remove(); render(); }, 480);
     });
-  }catch(e){
-    document.getElementById('camera').insertAdjacentHTML('afterend', `<div class="text-xs text-red-300 mt-2">Camera error: ${e?.message||e}</div>`);
+  } catch (e) {
+    chip.textContent = `Init error: ${e?.message || e}`;
+    document.getElementById('camera')
+      ?.insertAdjacentHTML('afterend', `<div class="text-xs text-red-300 mt-2">Camera error: ${e?.message||e}</div>`);
   }
 }
-function stopScanner(){ try{ codeReader && codeReader.reset(); }catch(e){} }
+function stopScanner(){ try { codeReader && codeReader.reset(); } catch(e){}; document.getElementById('camStatus')?.remove(); }
 
 /* Boot */
 render();
 </script>
 </body>
 </html>
-
-
-
-
-
-
