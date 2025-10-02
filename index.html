@@ -62,11 +62,8 @@ video{border-radius:12px}
 .finale .ring{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);width:min(90vw,700px);height:min(90vw,700px);border:6px solid rgba(255,200,90,.35);border-radius:9999px;filter:blur(2px);opacity:0;animation:ring 1.4s ease-out both .2s}
 @keyframes ring{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
 #fog{position:absolute;inset:0;opacity:.55;mix-blend-mode:screen;pointer-events:none}
-
-/* Hide game under finale for readability */
 .finale-open #game{visibility:hidden}
 
-/* a11y */
 @media (prefers-reduced-motion:reduce){.shake,.flash.show,.win-center.show,.banner.show,.vignette.show,.marquee{animation:none}}
 </style>
 </head>
@@ -99,7 +96,7 @@ video{border-radius:12px}
     </div>
   </div>
 
-  <!-- GRAND FINALE (auto-closes after 30s) -->
+  <!-- GRAND FINALE (30s) -->
   <div id="finale" class="finale" aria-hidden="true">
     <canvas id="fw" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
     <canvas id="fog"></canvas>
@@ -123,7 +120,7 @@ video{border-radius:12px}
 /* ===== Config ===== */
 const EVENT_ID = "haunted-block-2025";
 
-/* ===== Audio (6 hits + optional closing track) ===== */
+/* ===== Audio ===== */
 let AC, masterGain, audioReady=false;
 const FILES = {
   hits: [
@@ -134,7 +131,7 @@ const FILES = {
     'scary-transition-401717.mp3',
     'halloween-wolf-howling-410542.mp3'
   ],
-  closing: 'halloween-spooky-music-411457.mp3' // optional closing music
+  closing: 'halloween-spooky-music-411457.mp3'
 };
 const SFX = { buffers: {}, windLoop:null, closingTrack:null };
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
@@ -167,19 +164,22 @@ function playBuf(url, vol=1, loop=false, when=0){
   return {src, g};
 }
 function stopNode(n){ try{ n?.src?.stop(); n?.g?.disconnect(); }catch(e){} }
-function playHitRandom(){ const choice = pick(FILES.hits); if (SFX.buffers[choice]) playBuf(choice, 1.0, false, 0); }
+function playHitRandom(){ const c = pick(FILES.hits); if (SFX.buffers[c]) playBuf(c, 1.0, false, 0); }
 
-/* ===== Pumpkin & Bat SVGs (3 pumpkin variants) ===== */
-function pumpkinURI(variant='orange'){
+/* ===== Pumpkin & Bat SVGs ===== */
+function pumpkinURI(variant='orange', face=true){
   let gradTop = '#fffbe3', gradMid = '#ffd35c', gradBot = '#c07a00', stroke = '#7a4900';
-  if(variant==='white'){ gradTop='#ffffff'; gradMid='#f6f6f6'; gradBot='#c7c7c7'; stroke='#8a8a8a'; }
-  if(variant==='green'){ gradTop='#dfffd6'; gradMid='#a8ff7a'; gradBot='#3a7a00'; stroke='#2f5e00'; }
+  if(variant==='white'){ gradTop='#ffffff'; gradMid='#f0f0f0'; gradBot='#c7c7c7'; stroke='#8a8a8a'; }
+  if(variant==='green'){ gradTop='#e4ffd8'; gradMid='#b4ff85'; gradBot='#3a7a00'; stroke='#2f5e00'; }
+  const mouth = face ? `<path d="M18 42 q14 10 28 0" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>
+                       <circle cx="24" cy="36" r="2.6" fill="#000"/><circle cx="40" cy="36" r="2.6" fill="#000"/>` : '';
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
     <defs><radialGradient id="g" cx="50%" cy="40%" r="60%">
       <stop offset="0%" stop-color="${gradTop}"/><stop offset="70%" stop-color="${gradMid}"/><stop offset="100%" stop-color="${gradBot}"/>
     </radialGradient></defs>
     <ellipse cx="32" cy="36" rx="22" ry="16" fill="url(#g)" stroke="${stroke}" stroke-width="2"/>
     <rect x="29" y="14" width="6" height="6" rx="1" fill="${stroke}"/>
+    ${mouth}
   </svg>`;
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
@@ -191,25 +191,33 @@ function batURI(){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 
-/* ===== Particles (more pumpkin variety) ===== */
-function spawnPumpkinBurst(count=160, big=false){
-  const cx=innerWidth/2, cy=innerHeight/2;
+/* ===== Particles ===== */
+function spawnPumpkinBurst(count=220, big=false){
   const variants=['orange','white','green'];
+  const cx = innerWidth* (0.35 + Math.random()*0.3); // random X band
+  const cy = innerHeight* (0.35 + Math.random()*0.3); // random Y band
   for(let i=0;i<count;i++){
     const v = variants[i % variants.length];
     const el=document.createElement('div'); el.className='pump';
-    const size = big ? (40 + Math.random()*36) : (28 + Math.random()*24);
+    const sizeBase = big ? 44 : 30;
+    const size = sizeBase + Math.random()*(big?38:26);
     el.style.width = size+'px'; el.style.height = size+'px';
-    el.style.left=cx+'px'; el.style.top=cy+'px'; el.style.backgroundImage=`url("${pumpkinURI(v)}")`;
-    const a=(i/count)*2*Math.PI+Math.random()*0.8;
-    const dist=(big?260:180)+Math.random()*(big?560:420);
-    const dx=Math.cos(a)*dist, dy=Math.sin(a)*dist;
+    el.style.left=cx+'px'; el.style.top=cy+'px';
+    // 70% with faces, 30% plain
+    const withFace = Math.random() < 0.7;
+    el.style.backgroundImage=`url("${pumpkinURI(v, withFace)}")`;
+
+    const angle = (i/count)*2*Math.PI + Math.random()*0.9;
+    const dist = (big?260:180) + Math.random()*(big?560:420);
+    const dx = Math.cos(angle)*dist, dy=Math.sin(angle)*dist;
     const rot=(Math.random()*360-180)+'deg';
-    const dur=(big?1200:950)+Math.random()*(big?1300:900);
+    const dur=(big?1300:1000) + Math.random()*(big?1400:950);
+
     el.animate(
-      [{transform:'translate(-50%,-50%) scale(0.9) rotate(0)',opacity:1},
-       {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.08) rotate(${rot})`,opacity:0}],
-      {duration:dur,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
+      [{transform:'translate(-50%,-50%) scale(0.92) rotate(0)',opacity:1},
+       {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.1) rotate(${rot})`,opacity:0}],
+      {duration:dur,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'}
+    );
     document.body.appendChild(el); setTimeout(()=>el.remove(),dur+160);
   }
 }
@@ -229,7 +237,7 @@ function spawnLightBats(count=24){
 /* ===== GRAND FINALE (30s) ===== */
 let finaleTimer=null;
 function grandFinale(){
-  document.body.classList.add('finale-open'); // hide underlying game for readability
+  document.body.classList.add('finale-open');
   const overlay = document.getElementById('finale');
   document.getElementById('finaleTeam').textContent = escapeHtml(team||'—');
   overlay.classList.add('show');
@@ -243,19 +251,18 @@ function grandFinale(){
     const wind=SFX.buffers['creepy-wind-410541.mp3']; if(wind){ SFX.windLoop = playBuf('creepy-wind-410541.mp3',0.4,true,at); }
     const closing=SFX.buffers[FILES.closing]; if(closing){ SFX.closingTrack = playBuf(FILES.closing,0.6,false,at+1.2); }
   }
-  // visuals
-  spawnPumpkinBurst(260,true);
-  spawnLightBats(40);
-  setTimeout(()=>spawnPumpkinBurst(220,true), 900);
-  setTimeout(()=>spawnLightBats(36), 1200);
+  spawnPumpkinBurst(300,true);
+  spawnLightBats(46);
+  setTimeout(()=>spawnPumpkinBurst(260,true), 900);
+  setTimeout(()=>spawnLightBats(40), 1200);
   if(navigator.vibrate) navigator.vibrate([70,60,90,60,120]);
   clearTimeout(finaleTimer);
-  finaleTimer=setTimeout(closeFinale, 30000); // 30s
+  finaleTimer=setTimeout(closeFinale, 30000);
 }
 function closeFinale(){
   const overlay = document.getElementById('finale');
   overlay.classList.remove('show');
-  document.body.classList.remove('finale-open'); // show game again
+  document.body.classList.remove('finale-open');
   stopNode(SFX.windLoop); SFX.windLoop=null;
   stopNode(SFX.closingTrack); SFX.closingTrack=null;
 }
@@ -393,7 +400,7 @@ function render(){
     html+=wrapCard(`<h1 class="text-2xl font-bold text-center">🎉 Completed!</h1>
       <p class="text-base text-center mt-1">Team <strong>${escapeHtml(team)}</strong> finished the Haunted Block Hunt!</p>`);
     $("#game").innerHTML=html;
-    grandFinale(); // auto show
+    grandFinale();
   }
 }
 function renderAdmin(){
@@ -424,13 +431,15 @@ function showMegaWinFX(){
   setTimeout(()=>{ flash.classList.remove('show'); vig.classList.remove('show'); document.documentElement.classList.remove('shake'); }, 650);
   const center=document.getElementById('fx-center'), banner=document.getElementById('fx-banner');
   center.classList.add('show'); banner.classList.add('show'); setTimeout(()=>{ center.classList.remove('show'); banner.classList.remove('show'); }, 950);
-  spawnPumpkinBurst(200,false); // more variety per scan
+
+  // BIGGER: two bursts + bats
+  spawnPumpkinBurst(260,false);
+  setTimeout(()=>spawnPumpkinBurst(220,false), 180);
   spawnLightBats(18);
 }
 
-/* ===== Scanner (robust with status chip) ===== */
+/* Scanner */
 let codeReader; let scanLock = false;
-
 function normalizeQRText(txt){
   if(!txt) return '';
   let t = (''+txt).trim();
@@ -446,62 +455,44 @@ function normalizeQRText(txt){
   }
   return t.toLowerCase();
 }
-
 async function startScanner(expectedId){
-  stopScanner();
-  scanLock = false;
-
+  stopScanner(); scanLock = false;
   const chip = document.createElement('div');
   chip.id = 'camStatus';
   chip.style.cssText = 'position:fixed;top:8px;left:8px;z-index:9999;background:#111827;color:#fef3c7;border:1px solid #374151;border-radius:8px;padding:6px 8px;font:12px/1.2 monospace';
-  chip.textContent = 'Camera: starting…';
-  document.body.appendChild(chip);
-
+  chip.textContent = 'Camera: starting…'; document.body.appendChild(chip);
   const insecure = location.protocol !== 'https:' && location.hostname !== 'localhost' && location.protocol !== 'file:';
   if (insecure) chip.textContent = 'Camera blocked: use HTTPS or localhost';
-
   try { await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } }); } catch(e){}
 
   const expectedNorm = normalizeQRText(expectedId);
   codeReader = new ZXing.BrowserMultiFormatReader();
-
   try {
-    let devices = [];
-    try { devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices(); } catch(_) {}
+    let devices = []; try { devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices(); } catch(_) {}
     let camId = null;
     if (devices && devices.length) {
       chip.textContent = `Camera: ${devices.length} found`;
       const back = devices.find(d => /back|rear|environment/i.test(d.label));
       camId = (back || devices[0]).deviceId;
-    } else {
-      chip.textContent = 'Camera: using default';
-    }
+    } else { chip.textContent = 'Camera: using default'; }
 
     await codeReader.decodeFromVideoDevice(camId, 'preview', (result, err) => {
-      if (err && !(err instanceof ZXing.NotFoundException)) {
-        chip.textContent = `Camera error: ${err?.message || err}`;
-      }
+      if (err && !(err instanceof ZXing.NotFoundException)) chip.textContent = `Camera error: ${err?.message || err}`;
       if (!result || scanLock) return;
 
       const got = normalizeQRText(result.getText());
       const hit = (got === expectedNorm) || (got.includes('stop-') && got.includes(expectedNorm));
       if (!hit) return;
 
-      scanLock = true;
-      chip.textContent = 'Scan: matched!';
-      showMegaWinFX();
-      playHitRandom(); setTimeout(playHitRandom, 420);
+      scanLock = true; chip.textContent = 'Scan: matched!';
+      showMegaWinFX(); playHitRandom(); setTimeout(playHitRandom, 420);
 
-      index++; save();
-      if (index >= STOPS.length) localStorage.setItem(KEY('completed'), '1');
-
-      stopScanner();
-      setTimeout(() => { chip.remove(); render(); }, 520);
+      index++; save(); if (index >= STOPS.length) localStorage.setItem(KEY('completed'), '1');
+      stopScanner(); setTimeout(() => { chip.remove(); render(); }, 520);
     });
   } catch (e) {
     chip.textContent = `Init error: ${e?.message || e}`;
-    document.getElementById('camera')
-      ?.insertAdjacentHTML('afterend', `<div class="text-xs text-red-300 mt-2">Camera error: ${e?.message||e}</div>`);
+    document.getElementById('camera')?.insertAdjacentHTML('afterend', `<div class="text-xs text-red-300 mt-2">Camera error: ${e?.message||e}</div>`);
   }
 }
 function stopScanner(){ try { codeReader && codeReader.reset(); } catch(e){}; document.getElementById('camStatus')?.remove(); }
