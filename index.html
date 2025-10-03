@@ -1,38 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Haunted Block Hunt</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
-  <style>
-    :root{--ink:#f6f3ff;--bg:#0b0b0e;--card:#14141a}
-    body{background:#0b0b0e;color:var(--ink);font-family:Poppins,system-ui,sans-serif;min-height:100vh;padding:16px}
-    .card{background:var(--card);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:16px}
-    .btn{border-radius:14px;padding:14px 18px;font-weight:700;background:#ff6600;color:#000}
-    video{border-radius:12px}
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Haunted Block Hunt</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@zxing/library@0.20.0"></script>
+<style>
+  :root{--ink:#f6f3ff;--bg:#0b0b0e;--card:#14141a}
+  body{background:#0b0b0e;color:var(--ink);font-family:Poppins,system-ui,sans-serif;min-height:100vh;padding:16px}
+  .card{background:var(--card);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:16px}
+  .btn{border-radius:14px;padding:14px 18px;font-weight:700;background:#ff6600;color:#000}
+  video{border-radius:12px}
 
-    /* Particle sprites */
-    .pump,.bat,.ghost{position:fixed;pointer-events:none;z-index:1000;background-size:100% 100%;background-repeat:no-repeat;will-change:transform,opacity}
-    .pump{filter:drop-shadow(0 0 10px rgba(255,240,190,.9))}
-    .bat {width:70px;height:36px;filter:drop-shadow(0 0 6px rgba(255,240,200,.7))}
-    .ghost{width:52px;height:64px;filter:drop-shadow(0 0 10px rgba(255,255,255,.6))}
-    #closingOverlay{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;
-      background:radial-gradient(circle at center,#000 30%,#0b0b0e 100%);color:#fff;z-index:2000;text-align:center}
-  </style>
+  /* Particles */
+  .pump,.bat,.ghost{position:fixed;pointer-events:none;z-index:1000;background-size:100% 100%;background-repeat:no-repeat;will-change:transform,opacity}
+  .pump{filter:drop-shadow(0 0 10px rgba(255,240,190,.9))}
+  .bat {width:70px;height:36px;filter:drop-shadow(0 0 6px rgba(255,240,200,.7))}
+  .ghost{width:52px;height:64px;filter:drop-shadow(0 0 10px rgba(255,255,255,.6))}
+
+  /* Finale */
+  #finale{position:fixed;inset:0;display:none;z-index:2000;background:radial-gradient(1400px 700px at 50% 30%, rgba(255,128,0,.10), rgba(0,0,0,.95))}
+  #finale.show{display:block}
+  #fw,#fog{position:absolute;inset:0;width:100%;height:100%}
+  #spot{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;background:radial-gradient(450px 220px at var(--x,50%) var(--y,30%), rgba(255,200,100,.3), rgba(0,0,0,0) 60%)}
+  .strobe{position:absolute;inset:0;background:radial-gradient(400px 200px at 50% 40%, rgba(255,255,255,.85), rgba(0,0,0,0) 60%);opacity:0;pointer-events:none}
+  .strobe.show{animation:stb .12s ease-out 8}
+  @keyframes stb{0%{opacity:.85}100%{opacity:0}}
+
+  /* Sound gate button */
+  #audioGate{position:fixed;inset:auto 0 16px 0;display:flex;justify-content:center;pointer-events:none;z-index:3000}
+  #audioGate button{pointer-events:auto;background:#ffd35c;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,200,90,.35);border:none}
+</style>
 </head>
 <body>
   <div id="game" class="max-w-md mx-auto space-y-4"></div>
-  <!-- Closing music (place file next to this HTML) -->
+
+  <!-- Finale layer (no text) -->
+  <div id="finale" aria-hidden="true">
+    <canvas id="fw"></canvas>
+    <canvas id="fog"></canvas>
+    <div id="spot"></div>
+    <div id="strobe" class="strobe"></div>
+  </div>
+
+  <!-- Sound enable -->
+  <div id="audioGate"><button onclick="enableSFX()">🔊 Enable Sound</button></div>
+
+  <!-- Finale music -->
   <audio id="closingMusic" src="halloween-spooky-music-411457.mp3"></audio>
 
 <script>
-/* ===================== CONFIG ===================== */
+/* ============ CONFIG ============ */
 const EVENT_ID = "haunted-block-2025";
 
-/* ===================== GAME DATA ===================== */
+/* ============ AUDIO ============ */
+let AC, masterGain, audioReady=false;
+const FILES = {
+  hits: [
+    'witch-laugh-95203.mp3',
+    'ghoul-ghost-scares-169233.mp3',
+    'creepy-wind-410541.mp3',
+    'spooky-scary-sound-410563.mp3',
+    'scary-transition-401717.mp3',
+    'halloween-wolf-howling-410542.mp3'
+  ],
+  closing: 'halloween-spooky-music-411457.mp3'
+};
+const SFX = { buffers:{}, closingNode:null };
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+
+async function enableSFX(){
+  if (audioReady) return;
+  const Ctx = window.AudioContext||window.webkitAudioContext; if(!Ctx) return;
+  AC = AC || new Ctx();
+  if(AC.state==='suspended'){ try{ await AC.resume(); }catch{} }
+  masterGain = masterGain || AC.createGain();
+  masterGain.gain.value = 1.0; masterGain.connect(AC.destination);
+  audioReady = true;
+  document.getElementById('audioGate')?.remove();
+  // Preload
+  [...FILES.hits, FILES.closing].forEach(url=>loadBuf(url));
+}
+window.addEventListener('pointerdown', ()=>{ if(!audioReady) enableSFX(); }, {once:true,capture:true});
+
+async function loadBuf(url){
+  try{
+    const res = await fetch(url, {cache:'force-cache'}); if(!res.ok) return;
+    const arr = await res.arrayBuffer();
+    const buf = await new Promise((ok,no)=>AC.decodeAudioData(arr, ok, no));
+    SFX.buffers[url] = buf;
+  }catch(e){}
+}
+function playBuf(url, vol=1, loop=false){
+  const buf=SFX.buffers[url]; if(!AC||!buf) return null;
+  const src=AC.createBufferSource(); const g=AC.createGain();
+  g.gain.value = vol; src.buffer=buf; src.loop=loop;
+  src.connect(g); g.connect(masterGain); src.start();
+  return {src,g};
+}
+function stopNode(n){ try{n?.src?.stop(); n?.g?.disconnect();}catch(e){} }
+function playHit(){ const url = pick(FILES.hits); if (audioReady && SFX.buffers[url]) playBuf(url,1,false); }
+
+/* ============ GAME DATA ============ */
 const STOPS = [
   { id:"stop-el-chamo", business:"El Chamo", title:"Venezuelan Vampire Bites", riddle:"A hungry vampire craves arepas—follow the smell of sizzling corn cakes!" },
   { id:"stop-kukri", business:"Kukri", title:"Crispy Chicken Crown", riddle:"A raven guards a crispy crown—find the throne of the mighty chicken!" },
@@ -52,7 +123,7 @@ const STOPS = [
   { id:"stop-candy-bar", business:"The Candy Bar", title:"Trick-or-Treat Counter", riddle:"Count the sweets if you dare—trick-or-treats await your stare." }
 ];
 
-/* ===================== STATE/UI ===================== */
+/* ============ STATE / UI ============ */
 const KEY = (k)=>`${EVENT_ID}:${k}`;
 let team = localStorage.getItem(KEY('team')) || '';
 let index = parseInt(localStorage.getItem(KEY('index'))||'0',10);
@@ -80,7 +151,7 @@ function render(){
         <div class="text-xs text-gray-500 mt-2">If the camera doesn’t start, allow camera permissions in your browser.</div>`);
     startScanner(cur.id);
   } else {
-    finale();
+    grandFinale();
   }
 }
 function startTeam(){
@@ -88,7 +159,7 @@ function startTeam(){
   team=(inp.value||'').trim(); index=0; save(); render();
 }
 
-/* ===================== SCANNER ===================== */
+/* ============ SCANNER ============ */
 let codeReader; let scanLock=false;
 function normalizeQRText(txt){return (''+txt).trim().toLowerCase();}
 
@@ -102,7 +173,7 @@ async function startScanner(expectedId){
       const got=normalizeQRText(result.getText());
       if (got!==expectedNorm) return;
       scanLock=true;
-      spawnBurst(140,false);              // << pumpkins + bats + ghosts
+      spawnBurst(150,false); playHit();
       index++; save(); stopScanner();
       setTimeout(render, 900);
     });
@@ -113,13 +184,12 @@ async function startScanner(expectedId){
 }
 function stopScanner(){try{codeReader&&codeReader.reset();}catch{}}
 
-/* ===================== SPRITES (SVG data URIs) ===================== */
+/* ============ SPRITES (SVG URIs) ============ */
 function pumpkinURI(variant='orange', face=false){
-  // richer pumpkin with ribs; faces rare by default
   let gradTop='#ffe8b3', gradMid='#ffb347', gradBot='#b25a00', stroke='#6e3a00';
   if(variant==='white'){ gradTop='#ffffff'; gradMid='#f0f0f0'; gradBot='#bdbdbd'; stroke='#6f6f6f'; }
   if(variant==='green'){ gradTop='#e8ffd9'; gradMid='#b7ff89'; gradBot='#337000'; stroke='#2a5700'; }
-  const showFace = face || (Math.random() < 0.10);
+  const showFace = face || (Math.random() < 0.08);
   const faceSVG = showFace ? `
     <path d="M20 40 q12 10 24 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/>
     <circle cx="26" cy="34" r="2.2" fill="#1a1206"/><circle cx="38" cy="34" r="2.2" fill="#1a1206"/>
@@ -159,8 +229,8 @@ function ghostURI(){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 
-/* ===================== BURSTS (pumpkins + bats + ghosts) ===================== */
-function spawnBurst(count=140, big=false){
+/* ============ BURSTS (pumpkins + bats + ghosts) ============ */
+function spawnBurst(count=160, big=false){
   const cx = innerWidth * (0.35 + Math.random()*0.3);
   const cy = innerHeight * (0.35 + Math.random()*0.3);
   const batImg = batURI(), ghostImg = ghostURI();
@@ -191,7 +261,7 @@ function spawnBurst(count=140, big=false){
       );
       document.body.appendChild(p); setTimeout(()=>p.remove(), dur+280);
     } else if (roll < 0.85){
-      // Bat (left-to-right glide)
+      // Bat glide
       const b=document.createElement('div'); b.className='bat';
       b.style.backgroundImage=`url("${batImg}")`;
       const y = 0.1*innerHeight + Math.random()*0.8*innerHeight;
@@ -207,7 +277,7 @@ function spawnBurst(count=140, big=false){
       );
       document.body.appendChild(b); setTimeout(()=>b.remove(), dur+600);
     } else {
-      // Ghost (float up & fade)
+      // Ghost float
       const g=document.createElement('div'); g.className='ghost';
       g.style.backgroundImage=`url("${ghostImg}")`;
       const x = cx + (Math.random()*2-1) * (big?280:180);
@@ -227,23 +297,118 @@ function spawnBurst(count=140, big=false){
   }
 }
 
-/* ===================== FINALE ===================== */
-function finale(){
-  document.getElementById('game').innerHTML='';
-  const overlay=document.createElement('div');overlay.id='closingOverlay';
-  overlay.innerHTML=`<h1 class="text-4xl font-bold mb-4">🎉 You did it!</h1>
-    <p class="text-lg mb-2">Team <strong>${team}</strong> completed the Haunted Block Hunt!</p>
-    <p class="text-sm text-gray-300">Happy Halloween 🎃👻🕷️</p>`;
-  document.body.appendChild(overlay);
+/* ============ FINALE (graphics + music, no text) ============ */
+let finaleTimer=null;
+function grandFinale(){
+  // Show layer
+  const overlay = document.getElementById('finale');
+  overlay.classList.add('show');
 
-  // Big opening burst + rolling variety
-  spawnBurst(420,true);
-  const music=document.getElementById('closingMusic'); music?.play?.().catch(()=>{});
-  const burstTimer = setInterval(()=>spawnBurst(160,false), 3200);
-  setTimeout(()=>{ clearInterval(burstTimer); overlay.innerHTML+='<p class="mt-6 text-xs text-gray-500">The End</p>'; }, 30000);
+  // Strobe + spotlight motion
+  const st = document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
+  runSpotlight(); runFireworks(true); runFog();
+
+  // Big mixed bursts over time
+  spawnBurst(500,true);
+  const interval = setInterval(()=>spawnBurst(220,false), 3000);
+
+  // Music
+  const music = document.getElementById('closingMusic');
+  if (audioReady) {
+    // Prefer WebAudio for consistent volume
+    const buf = SFX.buffers[FILES.closing];
+    if (buf){ SFX.closingNode = playBuf(FILES.closing, 0.7, false); }
+    else { music.volume = 0.7; music.play().catch(()=>{}); }
+  } else {
+    music.volume = 0.7; music.play().catch(()=>{});
+  }
+
+  // Auto close after 30s
+  clearTimeout(finaleTimer);
+  finaleTimer = setTimeout(()=>{
+    clearInterval(interval);
+    stopNode(SFX.closingNode); SFX.closingNode=null;
+    music.pause?.(); music.currentTime = 0;
+    overlay.classList.remove('show');
+  }, 30000);
 }
 
-/* ===================== BOOT ===================== */
+/* Fireworks */
+function runFireworks(big=false){
+  const canvas = document.getElementById('fw'), ctx = canvas.getContext('2d');
+  let w=canvas.width=innerWidth*devicePixelRatio, h=canvas.height=innerHeight*devicePixelRatio;
+  const parts=[];
+  function addBurst(x,y,color){
+    const n=(big?160:100)+Math.random()*70;
+    for(let i=0;i<n;i++){
+      const ang=Math.random()*Math.PI*2, sp=(1.2+Math.random()*3.6)*(w/1600);
+      parts.push({x,y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:70+Math.random()*40,color,alpha:1});
+    }
+  }
+  function tick(){
+    ctx.clearRect(0,0,w,h);
+    for(let i=parts.length-1;i>=0;i--){
+      const p=parts[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.018*devicePixelRatio; p.life--; p.alpha=Math.max(0,p.life/100);
+      ctx.globalAlpha=p.alpha; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,(big?3.1:2.4)*devicePixelRatio,0,Math.PI*2); ctx.fill();
+      if(p.life<=0) parts.splice(i,1);
+    }
+    if(document.getElementById('finale').classList.contains('show')) requestAnimationFrame(tick);
+  }
+  function launch(){
+    const x=(0.1+Math.random()*0.8)*w, y=(0.18+Math.random()*0.5)*h;
+    const palette=['#ffd35c','#fff1b8','#ff8a00','#ffe6b3','#ffe07a','#ffffff'];
+    addBurst(x,y, palette[Math.floor(Math.random()*palette.length)]);
+  }
+  const rate = big ? 280 : 420;
+  const launchTimer=setInterval(launch,rate);
+  window.addEventListener('resize',()=>{ w=canvas.width=innerWidth*devicePixelRatio; h=canvas.height=innerHeight*devicePixelRatio; });
+  tick();
+  const obs=new MutationObserver(()=>{ if(!document.getElementById('finale').classList.contains('show')){ clearInterval(launchTimer); obs.disconnect(); ctx.clearRect(0,0,w,h);} });
+  obs.observe(document.getElementById('finale'),{attributes:true,attributeFilter:['class']});
+}
+
+/* Fog */
+function runFog(){
+  const c = document.getElementById('fog'), x = c.getContext('2d');
+  let W = c.width = innerWidth, H = c.height = innerHeight;
+  const img = x.createImageData(W, H); const data = img.data; let t = 0;
+  function noise(nx, ny){
+    function rnd(ix,iy){ const s=Math.sin(ix*127.1+iy*311.7)*43758.5453; return s - Math.floor(s); }
+    const x0=Math.floor(nx), y0=Math.floor(ny), xf=nx-x0, yf=ny-y0;
+    const v00=rnd(x0,y0), v10=rnd(x0+1,y0), v01=rnd(x0,y0+1), v11=rnd(x0+1,y0+1);
+    const u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
+    return (1-u)*(1-v)*v00 + u*(1-v)*v10 + (1-u)*v*v01 + u*v*v11;
+  }
+  function draw(){
+    const s = 0.009; t += 0.003;
+    for(let y=0, i=0; y<H; y++){
+      for(let x0=0; x0<W; x0++, i+=4){
+        const n = noise((x0+t*120)*s, (y+t*60)*s);
+        const v = 220 + n*25;
+        data[i]=v; data[i+1]=v; data[i+2]=v; data[i+3]=38;
+      }
+    }
+    x.putImageData(img,0,0);
+    if(document.getElementById('finale').classList.contains('show')) requestAnimationFrame(draw);
+  }
+  draw();
+  addEventListener('resize',()=>{ W=c.width=innerWidth; H=c.height=innerHeight; });
+}
+
+/* Spotlight */
+function runSpotlight(){
+  const spot=document.getElementById('spot'); let t=0;
+  (function step(){ t+=0.015; spot.style.setProperty('--x', (50+Math.sin(t)*30)+'%'); spot.style.setProperty('--y',(30+Math.cos(t*0.7)*8)+'%');
+    if(document.getElementById('finale').classList.contains('show')) requestAnimationFrame(step);
+  })();
+}
+
+/* ============ FLOW ============ */
+function grandFinale(){ // exposed above
+  // already defined here
+}
+
+/* ============ BOOT ============ */
 render();
 </script>
 </body>
