@@ -53,7 +53,7 @@
     <canvas id="fw"></canvas>
     <canvas id="fog"></canvas>
     <div id="spot"></div>
-    <div id="strobe" class="strobe"></div>
+    <div class="strobe" id="strobe"></div>
   </div>
   <div id="lightning"></div>
   <div id="fadeBlack"></div>
@@ -61,11 +61,11 @@
   <!-- Sound enable -->
   <div id="audioGate"><button onclick="enableSFX()">🔊 Enable Sound</button></div>
 
-  <!-- Finale music -->
+  <!-- Finale music (fallback if WebAudio buffer not ready) -->
   <audio id="closingMusic" src="halloween-spooky-music-411457.mp3"></audio>
 
 <script>
-/* ===== Error toast for quick debugging ===== */
+/* ===== Error toast ===== */
 window.addEventListener('error', (e)=>{
   const t=document.createElement('div'); t.id='errToast';
   t.textContent = 'Error: ' + (e?.message||e) + (e?.filename?'\n'+e.filename+' : '+e.lineno+':'+e.colno:'');
@@ -91,9 +91,10 @@ const FILES = {
     'scary-transition-401717.mp3',
     'halloween-wolf-howling-410542.mp3'
   ],
-  closing: 'halloween-spooky-music-411457.mp3'
+  closing: 'halloween-spooky-music-411457.mp3',
+  bg: 'bg-halloween.mp3'     // ← your new looping background track
 };
-const SFX = { buffers:{}, closingNode:null };
+const SFX = { buffers:{}, closingNode:null, bgNode:null };
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
 
 async function enableSFX(){
@@ -105,7 +106,10 @@ async function enableSFX(){
   masterGain.gain.value = 1.0; masterGain.connect(AC.destination);
   audioReady = true;
   document.getElementById('audioGate')?.remove();
-  [...FILES.hits, FILES.closing].forEach(url=>loadBuf(url));
+  // preload all
+  [...FILES.hits, FILES.closing, FILES.bg].forEach(url=>loadBuf(url));
+  // start BG once buffers begin to decode (first user gesture already happened)
+  setTimeout(()=>startBG(), 200);
 }
 window.addEventListener('pointerdown', ()=>{ if(!audioReady) enableSFX(); }, {once:true,capture:true});
 
@@ -125,7 +129,31 @@ function playBuf(url, vol=1, loop=false){
   return {src,g};
 }
 function stopNode(n){ try{n?.src?.stop(); n?.g?.disconnect();}catch(e){} }
-function playHit(){ const url = pick(FILES.hits); if (audioReady && SFX.buffers[url]) playBuf(url,1,false); }
+function playHit(){ const url = pick(FILES.hits); if (audioReady && SFX.buffers[url]) { playBuf(url,1,false); duckBG(1500,0.08); } }
+
+/* Background loop control */
+function startBG(){
+  if (!audioReady || SFX.bgNode || !SFX.buffers[FILES.bg]) return;
+  const node = playBuf(FILES.bg, 0.25, true);  // soft loop
+  if (node?.src?.buffer?.duration){
+    node.src.loopStart = 0.0;
+    node.src.loopEnd   = node.src.buffer.duration - 0.05; // avoid edge clicks
+  }
+  SFX.bgNode = node;
+}
+function stopBG(){
+  if (SFX.bgNode){ stopNode(SFX.bgNode); SFX.bgNode = null; }
+}
+/* briefly lower BG volume under hits */
+function duckBG(ms=1200, to=0.10){
+  if (!SFX.bgNode || !AC) return;
+  const g = SFX.bgNode.g, now = AC.currentTime;
+  try{
+    g.gain.cancelScheduledValues(now);
+    g.gain.linearRampToValueAtTime(to, now + 0.05);
+    g.gain.linearRampToValueAtTime(0.25, now + ms/1000);
+  }catch(e){}
+}
 
 /* ============ GAME DATA ============ */
 const STOPS = [
@@ -174,6 +202,7 @@ function render(){
         </div>
         <div class="text-xs text-gray-500 mt-2">If the camera doesn’t start, allow camera permissions in your browser.</div>`);
     startScanner(cur.id);
+    startBG(); // ensure BG is running during gameplay
   } else {
     grandFinale();
   }
@@ -181,12 +210,11 @@ function render(){
 function startTeam(){
   const inp=document.getElementById('teamInput'); 
   team=(inp.value||'').trim(); index=0; save(); render();
+  startBG(); // start immediately after team begins
 }
 
-/* ======= Restart helper (tap to exit or after finale) ======= */
-function restartHunt(){
-  index = 0; save(); render();
-}
+/* Restart helper (tap to exit or after finale) */
+function restartHunt(){ index = 0; save(); render(); }
 
 /* ============ SCANNER ============ */
 let codeReader; let scanLock=false;
@@ -215,7 +243,6 @@ function stopScanner(){try{codeReader&&codeReader.reset();}catch{}}
 
 /* ============ SPRITES (SVG URIs) ============ */
 function pumpkinURI(variant='orange'){
-  // 3 face styles, ~18% chance total
   const faces = [
     `<path d="M24 34 q4 -3 8 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.2" fill="#1a1206"/><circle cx="38" cy="30" r="2.2" fill="#1a1206"/>`,
     `<path d="M22 38 q10 6 20 0" fill="none" stroke="#1a1206" stroke-width="3.2" stroke-linecap="round"/><path d="M24 30 l4 3 l-4 3 z" fill="#1a1206"/><path d="M40 30 l4 3 l-4 3 z" fill="#1a1206"/>`,
@@ -261,7 +288,7 @@ function ghostURI(){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 
-/* ============ BURSTS (pumpkins + bats + ghosts) ============ */
+/* ============ BURSTS ============ */
 function spawnBurst(count=180, big=false){
   const cx = innerWidth * (0.35 + Math.random()*0.3);
   const cy = innerHeight * (0.35 + Math.random()*0.3);
@@ -325,7 +352,7 @@ function spawnBurst(count=180, big=false){
   }
 }
 
-/* ============ FINALE (graphics + music, tap-to-exit, auto-restart) ============ */
+/* ============ FINALE (tap-to-exit, auto-restart) ============ */
 let finaleTimer=null, finaleInterval=null, fireworksTimer=null;
 function lightning(){
   const l = document.getElementById('lightning');
@@ -348,6 +375,8 @@ function grandFinale(){
   };
   overlay.addEventListener('click', quickExit);
 
+  stopBG(); // stop background loop for big finale
+
   // Visual systems
   const st = document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
   runSpotlight(); runFireworks(true); runFog();
@@ -365,7 +394,6 @@ function grandFinale(){
   } else {
     music.volume = 0.7; music.play().catch(()=>{});
   }
-  // Stingers & lightning cues
   const cue = (t, fn)=>setTimeout(fn, t);
   cue(8000, ()=>{ playHit(); lightning(); });
   cue(12000, ()=>{ playHit(); });
@@ -387,6 +415,7 @@ function grandFinale(){
       fb.style.opacity = 0;
       overlay.removeEventListener('click', quickExit);
       restartHunt();            // auto restart after finale ends
+      startBG();                // resume background after restart
     }, 2200);
   }, 30000);
 }
@@ -417,7 +446,6 @@ function runFireworks(big=false){
     const palette=['#ffd35c','#fff1b8','#ff8a00','#ffe6b3','#ffe07a','#ffffff'];
     addBurst(x,y, palette[Math.floor(Math.random()*palette.length)], scale);
   }
-  // three quick bursts -> one giant
   wave(1.0); setTimeout(()=>wave(1.2),220); setTimeout(()=>wave(1.0),440); setTimeout(()=>wave(1.6),900);
   window.addEventListener('resize',()=>{ w=canvas.width=innerWidth*devicePixelRatio; h=canvas.height=innerHeight*devicePixelRatio; });
   tick();
