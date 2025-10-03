@@ -29,6 +29,14 @@
   .strobe.show{animation:stb .12s ease-out 8}
   @keyframes stb{0%{opacity:.85}100%{opacity:0}}
 
+  /* Lightning flash overlay */
+  #lightning{position:fixed;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.0),rgba(255,255,255,.0));opacity:0;z-index:2500}
+  .zap{animation:zap .6s ease-out}
+  @keyframes zap{0%{opacity:0}10%{opacity:.95;background:radial-gradient(800px 400px at 40% 30%, rgba(255,255,255,.95), rgba(255,255,255,0) 60%)}25%{opacity:0}40%{opacity:.9;background:radial-gradient(600px 300px at 70% 20%, rgba(255,255,255,.9), rgba(255,255,255,0) 60%)}100%{opacity:0}}
+
+  /* Finale fade to black */
+  #fadeBlack{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:3000;transition:opacity 2s ease}
+
   /* Sound gate button */
   #audioGate{position:fixed;inset:auto 0 16px 0;display:flex;justify-content:center;pointer-events:none;z-index:3000}
   #audioGate button{pointer-events:auto;background:#ffd35c;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,200,90,.35);border:none}
@@ -47,6 +55,8 @@
     <div id="spot"></div>
     <div id="strobe" class="strobe"></div>
   </div>
+  <div id="lightning"></div>
+  <div id="fadeBlack"></div>
 
   <!-- Sound enable -->
   <div id="audioGate"><button onclick="enableSFX()">🔊 Enable Sound</button></div>
@@ -55,7 +65,7 @@
   <audio id="closingMusic" src="halloween-spooky-music-411457.mp3"></audio>
 
 <script>
-/* ===== Error toast so “black screen” shows the cause ===== */
+/* ===== Error toast for quick debugging ===== */
 window.addEventListener('error', (e)=>{
   const t=document.createElement('div'); t.id='errToast';
   t.textContent = 'Error: ' + (e?.message||e) + (e?.filename?'\n'+e.filename+' : '+e.lineno+':'+e.colno:'');
@@ -187,9 +197,9 @@ async function startScanner(expectedId){
       const got=normalizeQRText(result.getText());
       if (got!==expectedNorm) return;
       scanLock=true;
-      spawnBurst(150,false); playHit();
+      spawnBurst(180,false); playHit();
       index++; save(); stopScanner();
-      setTimeout(render, 900);
+      setTimeout(render, 1000);
     });
   }catch(e){
     document.getElementById('camera')?.insertAdjacentHTML(
@@ -199,15 +209,18 @@ async function startScanner(expectedId){
 function stopScanner(){try{codeReader&&codeReader.reset();}catch{}}
 
 /* ============ SPRITES (SVG URIs) ============ */
-function pumpkinURI(variant='orange', face=false){
+function pumpkinURI(variant='orange'){
+  // 3 face styles, ~18% chance total
+  const faces = [
+    `<path d="M24 34 q4 -3 8 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.2" fill="#1a1206"/><circle cx="38" cy="30" r="2.2" fill="#1a1206"/>`,
+    `<path d="M22 38 q10 6 20 0" fill="none" stroke="#1a1206" stroke-width="3.2" stroke-linecap="round"/><path d="M24 30 l4 3 l-4 3 z" fill="#1a1206"/><path d="M40 30 l4 3 l-4 3 z" fill="#1a1206"/>`,
+    `<path d="M24 38 q8 -6 16 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.8" fill="#1a1206"/><rect x="36" y="28" width="5" height="5" fill="#1a1206" rx="1"/>`
+  ];
+  const showFace = Math.random() < 0.18;
+  const faceSVG = showFace ? faces[Math.floor(Math.random()*faces.length)] : '';
   let gradTop='#ffe8b3', gradMid='#ffb347', gradBot='#b25a00', stroke='#6e3a00';
   if(variant==='white'){ gradTop='#ffffff'; gradMid='#f0f0f0'; gradBot='#bdbdbd'; stroke='#6f6f6f'; }
   if(variant==='green'){ gradTop='#e8ffd9'; gradMid='#b7ff89'; gradBot='#337000'; stroke='#2a5700'; }
-  const showFace = face || (Math.random() < 0.08);
-  const faceSVG = showFace ? `
-    <path d="M20 40 q12 10 24 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/>
-    <circle cx="26" cy="34" r="2.2" fill="#1a1206"/><circle cx="38" cy="34" r="2.2" fill="#1a1206"/>
-  ` : '';
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
     <defs><radialGradient id="g" cx="50%" cy="40%" r="62%">
       <stop offset="0%" stop-color="${gradTop}"/><stop offset="68%" stop-color="${gradMid}"/><stop offset="100%" stop-color="${gradBot}"/>
@@ -244,7 +257,7 @@ function ghostURI(){
 }
 
 /* ============ BURSTS (pumpkins + bats + ghosts) ============ */
-function spawnBurst(count=160, big=false){
+function spawnBurst(count=180, big=false){
   const cx = innerWidth * (0.35 + Math.random()*0.3);
   const cy = innerHeight * (0.35 + Math.random()*0.3);
   const batImg = batURI(), ghostImg = ghostURI();
@@ -253,70 +266,79 @@ function spawnBurst(count=160, big=false){
   for (let i=0;i<count;i++){
     const roll = Math.random();
     if (roll < 0.65){
+      // Pumpkin (slower/larger)
       const p=document.createElement('div'); p.className='pump';
-      const sizeBase = big ? 46 : 32;
-      const size = sizeBase + Math.random()*(big?42:28);
+      const sizeBase = big ? 54 : 36;
+      const size = sizeBase + Math.random()*(big?52:28);
       p.style.width=size+'px'; p.style.height=size+'px';
       p.style.left=cx+'px'; p.style.top=cy+'px';
-      p.style.backgroundImage=`url("${pumpkinURI(pumpkinVariants[i%3], false)}")`;
+      p.style.backgroundImage=`url("${pumpkinURI(pumpkinVariants[i%3])}")`;
       const angle = (i/count)*2*Math.PI + Math.random()*0.7;
-      const dist  = (big?300:200) + Math.random()*(big?620:460);
+      const dist  = (big?360:220) + Math.random()*(big?720:520);
       const dx=Math.cos(angle)*dist, dy=Math.sin(angle)*dist;
       const rot=(Math.random()*360-180)+'deg';
-      const dur=2200 + Math.random()*1500;
+      const dur=2600 + Math.random()*1900;
       p.animate(
         [
-          { transform:'translate(-50%,-50%) scale(0.85) rotate(0)', opacity:0.0 },
-          { transform:'translate(-50%,-50%) scale(1.02) rotate(0)', opacity:1.0, offset:0.18 },
-          { transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.1) rotate(${rot})`, opacity:0 }
+          { transform:'translate(-50%,-50%) scale(0.8) rotate(0)', opacity:0.0 },
+          { transform:'translate(-50%,-50%) scale(1.05) rotate(0)', opacity:1.0, offset:0.22 },
+          { transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.12) rotate(${rot})`, opacity:0 }
         ],
         { duration:dur, easing:'cubic-bezier(.15,.7,.2,1)', fill:'forwards' }
       );
-      document.body.appendChild(p); setTimeout(()=>p.remove(), dur+280);
+      document.body.appendChild(p); setTimeout(()=>p.remove(), dur+320);
     } else if (roll < 0.85){
+      // Bat glide
       const b=document.createElement('div'); b.className='bat';
       b.style.backgroundImage=`url("${batImg}")`;
       const y = 0.1*innerHeight + Math.random()*0.8*innerHeight;
-      b.style.left='-120px'; b.style.top=y+'px';
-      const dur = 5200 + Math.random()*2200;
+      b.style.left='-140px'; b.style.top=y+'px';
+      const dur = 5600 + Math.random()*2400;
       const up = (Math.random() * 14) - 7;
       b.animate(
-        [
-          { transform: 'translate(-120px,0) rotate(-8deg)', opacity: 0.98 },
-          { transform: `translate(${innerWidth+140}px, ${up}vh) rotate(12deg)`, opacity: 0.96 }
-        ],
+        [{ transform: 'translate(-140px,0) rotate(-8deg)', opacity: 0.98 },
+         { transform: `translate(${innerWidth+160}px, ${up}vh) rotate(12deg)`, opacity: 0.96 }],
         { duration: dur, easing: 'ease-in-out', fill: 'forwards' }
       );
-      document.body.appendChild(b); setTimeout(()=>b.remove(), dur+600);
+      document.body.appendChild(b); setTimeout(()=>b.remove(), dur+700);
     } else {
+      // Ghost float
       const g=document.createElement('div'); g.className='ghost';
       g.style.backgroundImage=`url("${ghostImg}")`;
-      const x = cx + (Math.random()*2-1) * (big?280:180);
+      const x = cx + (Math.random()*2-1) * (big?300:200);
       const y0 = cy + (Math.random()*80 - 40);
       g.style.left = x+'px'; g.style.top = (y0+60)+'px';
-      const dur = 2600 + Math.random()*1800;
+      const dur = 3000 + Math.random()*2000;
       g.animate(
-        [
-          { transform:'translate(-50%,-50%) scale(0.85)', opacity:0.0 },
-          { transform:'translate(-50%,-60%) scale(1.0)', opacity:0.95, offset:0.2 },
-          { transform:'translate(-50%,-120%) scale(1.05)', opacity:0.0 }
-        ],
+        [{ transform:'translate(-50%,-50%) scale(0.85)', opacity:0.0 },
+         { transform:'translate(-50%,-60%) scale(1.0)', opacity:0.95, offset:0.22 },
+         { transform:'translate(-50%,-125%) scale(1.06)', opacity:0.0 }],
         { duration: dur, easing:'ease-out', fill:'forwards' }
       );
-      document.body.appendChild(g); setTimeout(()=>g.remove(), dur+240);
+      document.body.appendChild(g); setTimeout(()=>g.remove(), dur+260);
     }
   }
 }
 
 /* ============ FINALE (graphics + music, no text) ============ */
-let finaleTimer=null;
+let finaleTimer=null, finaleInterval=null, fireworksTimer=null;
+function lightning(){
+  const l = document.getElementById('lightning');
+  l.classList.remove('zap'); void l.offsetWidth; l.classList.add('zap');
+}
 function grandFinale(){
   const overlay = document.getElementById('finale');
   overlay.classList.add('show');
+
+  // Visual systems
   const st = document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
   runSpotlight(); runFireworks(true); runFog();
-  spawnBurst(500,true);
-  const interval = setInterval(()=>spawnBurst(220,false), 3000);
+
+  // Mixed bursts loop during finale
+  spawnBurst(520,true);
+  finaleInterval = setInterval(()=>spawnBurst(240,false), 3000);
+
+  // Music + layered stingers (timed)
   const music = document.getElementById('closingMusic');
   if (audioReady) {
     const buf = SFX.buffers[FILES.closing];
@@ -325,12 +347,24 @@ function grandFinale(){
   } else {
     music.volume = 0.7; music.play().catch(()=>{});
   }
+  // Stingers & lightning cues
+  const cue = (t, fn)=>setTimeout(fn, t);
+  cue(8000, ()=>{ playHit(); lightning(); });
+  cue(12000, ()=>{ playHit(); });
+  cue(18000, ()=>{ playHit(); lightning(); });
+  cue(24000, ()=>{ playHit(); });
+
+  // Fireworks pacing: small -> big waves
+  fireworksTimer = setInterval(()=>runFireworks(false), 6000);
+
+  // Fade to black at end
   clearTimeout(finaleTimer);
   finaleTimer = setTimeout(()=>{
-    clearInterval(interval);
+    clearInterval(finaleInterval); clearInterval(fireworksTimer);
     stopNode(SFX.closingNode); SFX.closingNode=null;
     music.pause?.(); music.currentTime = 0;
-    overlay.classList.remove('show');
+    const fb = document.getElementById('fadeBlack'); fb.style.opacity = 1;
+    setTimeout(()=>{ overlay.classList.remove('show'); fb.style.opacity=0; }, 2200);
   }, 30000);
 }
 
@@ -339,10 +373,10 @@ function runFireworks(big=false){
   const canvas = document.getElementById('fw'), ctx = canvas.getContext('2d');
   let w=canvas.width=innerWidth*devicePixelRatio, h=canvas.height=innerHeight*devicePixelRatio;
   const parts=[];
-  function addBurst(x,y,color){
-    const n=(big?160:100)+Math.random()*70;
+  function addBurst(x,y,color,scale=1){
+    const n=((big?180:120)*scale)|0;
     for(let i=0;i<n;i++){
-      const ang=Math.random()*Math.PI*2, sp=(1.2+Math.random()*3.6)*(w/1600);
+      const ang=Math.random()*Math.PI*2, sp=(1.2+Math.random()*3.6)*(w/1600)*scale;
       parts.push({x,y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:70+Math.random()*40,color,alpha:1});
     }
   }
@@ -350,21 +384,22 @@ function runFireworks(big=false){
     ctx.clearRect(0,0,w,h);
     for(let i=parts.length-1;i>=0;i--){
       const p=parts[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.018*devicePixelRatio; p.life--; p.alpha=Math.max(0,p.life/100);
-      ctx.globalAlpha=p.alpha; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,(big?3.1:2.4)*devicePixelRatio,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=p.alpha; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,(big?3.6:2.6)*devicePixelRatio,0,Math.PI*2); ctx.fill();
       if(p.life<=0) parts.splice(i,1);
     }
     if(document.getElementById('finale').classList.contains('show')) requestAnimationFrame(tick);
   }
-  function launch(){
+  function wave(scale){
     const x=(0.1+Math.random()*0.8)*w, y=(0.18+Math.random()*0.5)*h;
     const palette=['#ffd35c','#fff1b8','#ff8a00','#ffe6b3','#ffe07a','#ffffff'];
-    addBurst(x,y, palette[Math.floor(Math.random()*palette.length)]);
+    addBurst(x,y, palette[Math.floor(Math.random()*palette.length)], scale);
   }
-  const rate = big ? 280 : 420;
-  const launchTimer=setInterval(launch,rate);
+  // three quick bursts -> one giant
+  wave(1.0); setTimeout(()=>wave(1.2),220); setTimeout(()=>wave(1.0),440); setTimeout(()=>wave(1.6),900);
   window.addEventListener('resize',()=>{ w=canvas.width=innerWidth*devicePixelRatio; h=canvas.height=innerHeight*devicePixelRatio; });
   tick();
-  const obs=new MutationObserver(()=>{ if(!document.getElementById('finale').classList.contains('show')){ clearInterval(launchTimer); obs.disconnect(); ctx.clearRect(0,0,w,h);} });
+  // stop when overlay hides
+  const obs=new MutationObserver(()=>{ if(!document.getElementById('finale').classList.contains('show')){ obs.disconnect(); ctx.clearRect(0,0,w,h);} });
   obs.observe(document.getElementById('finale'),{attributes:true,attributeFilter:['class']});
 }
 
@@ -405,9 +440,8 @@ function runSpotlight(){
 }
 
 /* BOOT */
+function finale(){ /* not used */ }
 render();
 </script>
 </body>
 </html>
-
-
