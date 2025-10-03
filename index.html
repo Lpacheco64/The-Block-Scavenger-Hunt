@@ -183,6 +183,11 @@ function startTeam(){
   team=(inp.value||'').trim(); index=0; save(); render();
 }
 
+/* ======= Restart helper (tap to exit or after finale) ======= */
+function restartHunt(){
+  index = 0; save(); render();
+}
+
 /* ============ SCANNER ============ */
 let codeReader; let scanLock=false;
 function normalizeQRText(txt){return (''+txt).trim().toLowerCase();}
@@ -320,7 +325,7 @@ function spawnBurst(count=180, big=false){
   }
 }
 
-/* ============ FINALE (graphics + music, no text) ============ */
+/* ============ FINALE (graphics + music, tap-to-exit, auto-restart) ============ */
 let finaleTimer=null, finaleInterval=null, fireworksTimer=null;
 function lightning(){
   const l = document.getElementById('lightning');
@@ -329,6 +334,19 @@ function lightning(){
 function grandFinale(){
   const overlay = document.getElementById('finale');
   overlay.classList.add('show');
+
+  // Tap anywhere on finale to exit & restart
+  const quickExit = () => {
+    overlay.classList.remove('show');
+    document.getElementById('fadeBlack').style.opacity = 0;
+    stopNode(SFX.closingNode); SFX.closingNode=null;
+    const music = document.getElementById('closingMusic');
+    music.pause?.(); music.currentTime = 0;
+    clearInterval(finaleInterval); clearInterval(fireworksTimer); clearTimeout(finaleTimer);
+    overlay.removeEventListener('click', quickExit);
+    restartHunt();
+  };
+  overlay.addEventListener('click', quickExit);
 
   // Visual systems
   const st = document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
@@ -357,14 +375,19 @@ function grandFinale(){
   // Fireworks pacing: small -> big waves
   fireworksTimer = setInterval(()=>runFireworks(false), 6000);
 
-  // Fade to black at end
+  // Fade to black at end + auto-restart
   clearTimeout(finaleTimer);
   finaleTimer = setTimeout(()=>{
     clearInterval(finaleInterval); clearInterval(fireworksTimer);
     stopNode(SFX.closingNode); SFX.closingNode=null;
     music.pause?.(); music.currentTime = 0;
     const fb = document.getElementById('fadeBlack'); fb.style.opacity = 1;
-    setTimeout(()=>{ overlay.classList.remove('show'); fb.style.opacity=0; }, 2200);
+    setTimeout(()=>{
+      overlay.classList.remove('show');
+      fb.style.opacity = 0;
+      overlay.removeEventListener('click', quickExit);
+      restartHunt();            // auto restart after finale ends
+    }, 2200);
   }, 30000);
 }
 
@@ -398,7 +421,6 @@ function runFireworks(big=false){
   wave(1.0); setTimeout(()=>wave(1.2),220); setTimeout(()=>wave(1.0),440); setTimeout(()=>wave(1.6),900);
   window.addEventListener('resize',()=>{ w=canvas.width=innerWidth*devicePixelRatio; h=canvas.height=innerHeight*devicePixelRatio; });
   tick();
-  // stop when overlay hides
   const obs=new MutationObserver(()=>{ if(!document.getElementById('finale').classList.contains('show')){ obs.disconnect(); ctx.clearRect(0,0,w,h);} });
   obs.observe(document.getElementById('finale'),{attributes:true,attributeFilter:['class']});
 }
@@ -440,7 +462,6 @@ function runSpotlight(){
 }
 
 /* BOOT */
-function finale(){ /* not used */ }
 render();
 </script>
 </body>
