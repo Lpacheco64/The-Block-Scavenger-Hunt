@@ -32,6 +32,9 @@
   /* Sound gate button */
   #audioGate{position:fixed;inset:auto 0 16px 0;display:flex;justify-content:center;pointer-events:none;z-index:3000}
   #audioGate button{pointer-events:auto;background:#ffd35c;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,200,90,.35);border:none}
+
+  /* Error toast */
+  #errToast{position:fixed;left:12px;bottom:12px;z-index:4000;background:#111827;color:#fef3c7;border:1px solid #374151;border-radius:10px;padding:10px 12px;font:12px/1.3 monospace;max-width:90vw;white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -52,6 +55,18 @@
   <audio id="closingMusic" src="halloween-spooky-music-411457.mp3"></audio>
 
 <script>
+/* ===== Error toast so “black screen” shows the cause ===== */
+window.addEventListener('error', (e)=>{
+  const t=document.createElement('div'); t.id='errToast';
+  t.textContent = 'Error: ' + (e?.message||e) + (e?.filename?'\n'+e.filename+' : '+e.lineno+':'+e.colno:'');
+  document.body.appendChild(t);
+});
+window.addEventListener('unhandledrejection', (e)=>{
+  const t=document.createElement('div'); t.id='errToast';
+  t.textContent = 'Promise error: ' + (e?.reason?.message || e.reason || e);
+  document.body.appendChild(t);
+});
+
 /* ============ CONFIG ============ */
 const EVENT_ID = "haunted-block-2025";
 
@@ -80,7 +95,6 @@ async function enableSFX(){
   masterGain.gain.value = 1.0; masterGain.connect(AC.destination);
   audioReady = true;
   document.getElementById('audioGate')?.remove();
-  // Preload
   [...FILES.hits, FILES.closing].forEach(url=>loadBuf(url));
 }
 window.addEventListener('pointerdown', ()=>{ if(!audioReady) enableSFX(); }, {once:true,capture:true});
@@ -239,7 +253,6 @@ function spawnBurst(count=160, big=false){
   for (let i=0;i<count;i++){
     const roll = Math.random();
     if (roll < 0.65){
-      // Pumpkin
       const p=document.createElement('div'); p.className='pump';
       const sizeBase = big ? 46 : 32;
       const size = sizeBase + Math.random()*(big?42:28);
@@ -261,7 +274,6 @@ function spawnBurst(count=160, big=false){
       );
       document.body.appendChild(p); setTimeout(()=>p.remove(), dur+280);
     } else if (roll < 0.85){
-      // Bat glide
       const b=document.createElement('div'); b.className='bat';
       b.style.backgroundImage=`url("${batImg}")`;
       const y = 0.1*innerHeight + Math.random()*0.8*innerHeight;
@@ -277,7 +289,6 @@ function spawnBurst(count=160, big=false){
       );
       document.body.appendChild(b); setTimeout(()=>b.remove(), dur+600);
     } else {
-      // Ghost float
       const g=document.createElement('div'); g.className='ghost';
       g.style.backgroundImage=`url("${ghostImg}")`;
       const x = cx + (Math.random()*2-1) * (big?280:180);
@@ -300,30 +311,20 @@ function spawnBurst(count=160, big=false){
 /* ============ FINALE (graphics + music, no text) ============ */
 let finaleTimer=null;
 function grandFinale(){
-  // Show layer
   const overlay = document.getElementById('finale');
   overlay.classList.add('show');
-
-  // Strobe + spotlight motion
   const st = document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
   runSpotlight(); runFireworks(true); runFog();
-
-  // Big mixed bursts over time
   spawnBurst(500,true);
   const interval = setInterval(()=>spawnBurst(220,false), 3000);
-
-  // Music
   const music = document.getElementById('closingMusic');
   if (audioReady) {
-    // Prefer WebAudio for consistent volume
     const buf = SFX.buffers[FILES.closing];
     if (buf){ SFX.closingNode = playBuf(FILES.closing, 0.7, false); }
     else { music.volume = 0.7; music.play().catch(()=>{}); }
   } else {
     music.volume = 0.7; music.play().catch(()=>{});
   }
-
-  // Auto close after 30s
   clearTimeout(finaleTimer);
   finaleTimer = setTimeout(()=>{
     clearInterval(interval);
@@ -403,13 +404,10 @@ function runSpotlight(){
   })();
 }
 
-/* ============ FLOW ============ */
-function grandFinale(){ // exposed above
-  // already defined here
-}
-
-/* ============ BOOT ============ */
+/* BOOT */
 render();
 </script>
 </body>
 </html>
+
+
