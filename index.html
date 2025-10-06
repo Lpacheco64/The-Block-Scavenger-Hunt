@@ -244,7 +244,7 @@ function startTeam(){
 }
 function restartHunt(){ index = 0; save(); render(); }
 
-/* ============ SCANNER (rear camera pref) ============ */
+/* ============ SCANNER (robust with warm-up & hints) ============ */
 let codeReader; let scanLock=false;
 function normalizeQRText(txt){return (''+txt).trim().toLowerCase();}
 
@@ -253,13 +253,24 @@ async function startScanner(expectedId){
   const expectedNorm=normalizeQRText(expectedId);
   codeReader=new ZXing.BrowserMultiFormatReader();
   try{
-    // Prefer back camera if available
-    const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
+    // 1) Warm-up (helps iOS expose labels & permissions reliably)
+    const warm = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal:'environment' } },
+      audio: false
+    });
+    const v = document.getElementById('preview');
+    v.srcObject = warm;
+    await v.play().catch(()=>{});
+
+    // 2) Prefer rear camera if available
+    const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices().catch(()=>[]);
     let deviceId = null;
     if (devices && devices.length){
       const back = devices.find(d => /back|rear|environment/i.test(d.label));
       deviceId = (back || devices[devices.length-1]).deviceId;
     }
+
+    // 3) Start ZXing bound to our <video id="preview">
     await codeReader.decodeFromVideoDevice(deviceId,'preview',(result,err)=>{
       if (!result || scanLock) return;
       const got=normalizeQRText(result.getText());
@@ -270,11 +281,27 @@ async function startScanner(expectedId){
       setTimeout(render, 800);
     });
   }catch(e){
-    document.getElementById('camera')?.insertAdjacentHTML(
-      'afterend', `<div class="text-xs text-red-300 mt-2">Camera error: ${e?.message||e}</div>`);
+    showCamError(e);
   }
 }
-function stopScanner(){ try{ codeReader && codeReader.reset(); }catch{} }
+function stopScanner(){
+  try{
+    codeReader && codeReader.reset();
+    const v = document.getElementById('preview');
+    const s = v?.srcObject;
+    if (s && s.getTracks) s.getTracks().forEach(t=>t.stop());
+    if (v) v.srcObject = null;
+  }catch{}
+}
+function showCamError(e){
+  const msg = (e && e.name) ? e.name : (e?.message || String(e));
+  let hint = '';
+  if (/NotAllowedError|Permission/i.test(msg)) hint = ' • Camera permission was blocked. Allow it in site settings and reload.';
+  else if (/NotFoundError|Overconstrained|NotReadable/i.test(msg)) hint = ' • No camera found or already in use. Close other apps/pages using the camera.';
+  else if (/SecurityError/i.test(msg)) hint = ' • Needs HTTPS. Use your GitHub Pages link.';
+  document.getElementById('camera')?.insertAdjacentHTML('afterend',
+    `<div class="text-xs text-red-300 mt-2">Camera error: ${msg}${hint}</div>`);
+}
 
 /* ============ SPRITES (SVG URIs) ============ */
 function pumpkinURI(variant='orange'){
