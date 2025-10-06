@@ -13,10 +13,14 @@
   .card{background:var(--card);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:16px}
   .btn{border-radius:14px;padding:14px 18px;font-weight:700;background:#ff6600;color:#000}
   video{border-radius:12px}
+
+  /* Particles */
   .pump,.bat,.ghost{position:fixed;pointer-events:none;z-index:1000;background-size:100% 100%;background-repeat:no-repeat;will-change:transform,opacity}
   .pump{filter:drop-shadow(0 0 10px rgba(255,240,190,.9))}
   .bat {width:70px;height:36px;filter:drop-shadow(0 0 6px rgba(255,240,200,.7))}
   .ghost{width:52px;height:64px;filter:drop-shadow(0 0 10px rgba(255,255,255,.6))}
+
+  /* Finale */
   #finale{position:fixed;inset:0;display:none;z-index:2000;background:radial-gradient(1400px 700px at 50% 30%, rgba(255,128,0,.10), rgba(0,0,0,.95))}
   #finale.show{display:block}
   #fw,#fog{position:absolute;inset:0;width:100%;height:100%}
@@ -24,17 +28,27 @@
   .strobe{position:absolute;inset:0;background:radial-gradient(400px 200px at 50% 40%, rgba(255,255,255,.85), rgba(0,0,0,0) 60%);opacity:0;pointer-events:none}
   .strobe.show{animation:stb .12s ease-out 8}
   @keyframes stb{0%{opacity:.85}100%{opacity:0}}
+
+  /* Lightning flash overlay */
   #lightning{position:fixed;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.0),rgba(255,255,255,.0));opacity:0;z-index:2500}
   .zap{animation:zap .6s ease-out}
   @keyframes zap{0%{opacity:0}10%{opacity:.95;background:radial-gradient(800px 400px at 40% 30%, rgba(255,255,255,.95), rgba(255,255,255,0) 60%)}25%{opacity:0}40%{opacity:.9;background:radial-gradient(600px 300px at 70% 20%, rgba(255,255,255,.9), rgba(255,255,255,0) 60%)}100%{opacity:0}}
+
+  /* Finale fade to black */
   #fadeBlack{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:3000;transition:opacity 2s ease}
+
+  /* Sound gate button */
   #audioGate{position:fixed;inset:auto 0 16px 0;display:flex;justify-content:center;pointer-events:none;z-index:3000}
   #audioGate button{pointer-events:auto;background:#ffd35c;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,200,90,.35);border:none}
+
+  /* Error toast */
+  #errToast{position:fixed;left:12px;bottom:12px;z-index:4000;background:#111827;color:#fef3c7;border:1px solid #374151;border-radius:10px;padding:10px 12px;font:12px/1.3 monospace;max-width:90vw;white-space:pre-wrap}
 </style>
 </head>
 <body>
   <div id="game" class="max-w-md mx-auto space-y-4"></div>
 
+  <!-- Finale layer (no text) -->
   <div id="finale" aria-hidden="true">
     <canvas id="fw"></canvas>
     <canvas id="fog"></canvas>
@@ -44,12 +58,28 @@
   <div id="lightning"></div>
   <div id="fadeBlack"></div>
 
+  <!-- Sound enable -->
   <div id="audioGate"><button onclick="enableSFX()">🔊 Enable Sound</button></div>
 
+  <!-- Finale music fallback -->
   <audio id="closingMusic" src="halloween-spooky-music-411457.mp3"></audio>
+  <!-- BG fallback element (loops if WebAudio buffer isn’t ready) -->
   <audio id="bgFallback" src="halloween-349615.mp3" loop style="display:none"></audio>
 
 <script>
+/* ===== Toast helper ===== */
+function toast(msg){
+  const t=document.createElement('div'); t.id='errToast';
+  t.textContent = msg; document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 6000);
+}
+window.addEventListener('error', (e)=> toast('Error: ' + (e?.message||e)));
+window.addEventListener('unhandledrejection', (e)=> toast('Promise error: ' + (e?.reason?.message || e.reason || e)));
+
+/* ============ CONFIG ============ */
+const EVENT_ID = "haunted-block-2025";
+
+/* ============ AUDIO ============ */
 let AC, masterGain, audioReady=false;
 const FILES = {
   hits: [
@@ -61,70 +91,441 @@ const FILES = {
     'halloween-wolf-howling-410542.mp3'
   ],
   closing: 'halloween-spooky-music-411457.mp3',
-  bg: 'halloween-349615.mp3'
+  bg: 'halloween-349615.mp3'    // ← your background loop
 };
-const SFX = {buffers:{},closingNode:null,bgNode:null};
-const pick = arr=>arr[Math.floor(Math.random()*arr.length)];
+const SFX = { buffers:{}, closingNode:null, bgNode:null };
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
 
 async function enableSFX(){
-  if(audioReady) return;
-  const Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx) return;
-  AC=AC||new Ctx(); if(AC.state==='suspended'){try{await AC.resume();}catch{}}
-  masterGain=masterGain||AC.createGain(); masterGain.gain.value=1; masterGain.connect(AC.destination);
-  audioReady=true; document.getElementById('audioGate')?.remove();
-  [...FILES.hits, FILES.closing, FILES.bg].forEach(loadBuf);
-  setTimeout(()=>{startBG(); document.getElementById('bgFallback').play().catch(()=>{});},250);
+  if (audioReady) return;
+  const Ctx = window.AudioContext||window.webkitAudioContext; if(!Ctx) return;
+  AC = AC || new Ctx();
+  if(AC.state==='suspended'){ try{ await AC.resume(); }catch{} }
+  masterGain = masterGain || AC.createGain();
+  masterGain.gain.value = 1.0; masterGain.connect(AC.destination);
+  audioReady = true;
+  document.getElementById('audioGate')?.remove();
+
+  // Preload all audio (including BG)
+  [...FILES.hits, FILES.closing, FILES.bg].forEach(url=>loadBuf(url));
+
+  // Try to start BG shortly after gesture + ensure HTML fallback attempts to play
+  setTimeout(()=>{
+    startBG();
+    document.getElementById('bgFallback').play().catch(()=>{});
+  }, 250);
 }
-window.addEventListener('pointerdown',()=>{if(!audioReady)enableSFX();},{once:true,capture:true});
+window.addEventListener('pointerdown', ()=>{ if(!audioReady) enableSFX(); }, {once:true,capture:true});
 
 async function loadBuf(url){
-  try{const r=await fetch(url);if(!r.ok)return;const b=await r.arrayBuffer();
-  const buf=await AC.decodeAudioData(b);SFX.buffers[url]=buf;}catch(e){}
+  try{
+    const res = await fetch(url, {cache:'force-cache'});
+    if(!res.ok){
+      if(url===FILES.bg) toast('BG music not found: ' + url);
+      return;
+    }
+    const arr = await res.arrayBuffer();
+    const buf = await new Promise((ok,no)=>AC.decodeAudioData(arr, ok, no));
+    SFX.buffers[url] = buf;
+  }catch(e){ if(url===FILES.bg) toast('BG music decode failed'); }
 }
-function playBuf(url,vol=1,loop=false){
-  const buf=SFX.buffers[url];if(!AC||!buf)return null;
-  const src=AC.createBufferSource();const g=AC.createGain();
-  g.gain.value=vol;src.buffer=buf;src.loop=loop;src.connect(g);g.connect(masterGain);src.start();
-  return{src,g};
+function playBuf(url, vol=1, loop=false){
+  const buf=SFX.buffers[url]; if(!AC||!buf) return null;
+  const src=AC.createBufferSource(); const g=AC.createGain();
+  g.gain.value = vol; src.buffer=buf; src.loop=loop;
+  src.connect(g); g.connect(masterGain); src.start();
+  return {src,g};
 }
-function stopNode(n){try{n?.src?.stop();n?.g?.disconnect();}catch{}}
-function playHit(){const url=pick(FILES.hits);if(audioReady&&SFX.buffers[url]){playBuf(url,1,false);duckBG(1500,0.08);}}
+function stopNode(n){ try{n?.src?.stop(); n?.g?.disconnect();}catch(e){} }
+function playHit(){ const url = pick(FILES.hits); if (audioReady && SFX.buffers[url]) { playBuf(url,1,false); duckBG(1500,0.08); } }
+
+/* Background loop control + fallback */
 function startBG(){
-  const el=document.getElementById('bgFallback');
-  if(audioReady&&!SFX.bgNode&&SFX.buffers[FILES.bg]){
-    const n=playBuf(FILES.bg,0.25,true);
-    if(n?.src?.buffer?.duration){n.src.loopStart=0;n.src.loopEnd=n.src.buffer.duration-0.05;}
-    SFX.bgNode=n; try{el.pause();el.currentTime=0;}catch{}; return;
+  const el = document.getElementById('bgFallback');
+  // If WebAudio buffer is ready: use it
+  if (audioReady && !SFX.bgNode && SFX.buffers[FILES.bg]){
+    const node = playBuf(FILES.bg, 0.25, true);
+    if (node?.src?.buffer?.duration){
+      node.src.loopStart = 0.0;
+      node.src.loopEnd   = node.src.buffer.duration - 0.05; // avoid clicks
+    }
+    SFX.bgNode = node;
+    try{ el.pause(); el.currentTime=0; }catch{}
+    return;
   }
-  try{el.volume=0.22;el.play().catch(()=>{});}catch(e){}
+  // Otherwise, try the HTML fallback element
+  try{
+    el.volume = 0.22;
+    el.play().catch(()=>{ /* user gesture missing — button handles it */ });
+  }catch(e){ /* ignore */ }
 }
-function stopBG(){if(SFX.bgNode){stopNode(SFX.bgNode);SFX.bgNode=null;}
-  const el=document.getElementById('bgFallback');try{el.pause();el.currentTime=0;}catch{};}
-function duckBG(ms=1200,to=0.1){
-  const el=document.getElementById('bgFallback');
-  if(SFX.bgNode&&AC){const g=SFX.bgNode.g,now=AC.currentTime;g.gain.cancelScheduledValues(now);
-    g.gain.linearRampToValueAtTime(to,now+0.05);g.gain.linearRampToValueAtTime(0.25,now+ms/1000);}
-  else{try{el.volume=to;setTimeout(()=>el.volume=0.22,ms);}catch{};}
+function stopBG(){
+  if (SFX.bgNode){ stopNode(SFX.bgNode); SFX.bgNode = null; }
+  const el = document.getElementById('bgFallback');
+  try{ el.pause(); el.currentTime = 0; }catch{}
+}
+/* briefly lower BG volume under hits (both paths) */
+function duckBG(ms=1200, to=0.10){
+  const el = document.getElementById('bgFallback');
+  // WebAudio path
+  if (SFX.bgNode && AC){
+    const g = SFX.bgNode.g, now = AC.currentTime;
+    try{
+      g.gain.cancelScheduledValues(now);
+      g.gain.linearRampToValueAtTime(to, now + 0.05);
+      g.gain.linearRampToValueAtTime(0.25, now + ms/1000);
+    }catch(e){}
+  } else {
+    // HTML audio path
+    try{
+      el.volume = to;
+      setTimeout(()=>{ el.volume = 0.22; }, ms);
+    }catch(e){}
+  }
 }
 
-/* --- Game skeleton (simplified for brevity, all logic remains same) --- */
-const EVENT_ID="haunted-block-2025";
-const STOPS=[{id:"stop-el-chamo",business:"El Chamo",title:"Venezuelan Vampire Bites",riddle:"A hungry vampire craves arepas—follow the smell of sizzling corn cakes!"} /* … rest unchanged … */];
-const KEY=k=>`${EVENT_ID}:${k}`;let team=localStorage.getItem(KEY('team'))||'';let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
-function save(){localStorage.setItem(KEY('team'),team);localStorage.setItem(KEY('index'),String(index));}
-function render(){const r=document.getElementById('game');
-  if(!team){r.innerHTML=`<div class='card'><h1>Haunted Block Hunt</h1><input id='teamInput'><button class='btn' onclick='startTeam()'>Start</button></div>`;return;}
-  if(index<STOPS.length){const c=STOPS[index];r.innerHTML=`<div class='card'><h2>${c.title}</h2><p>${c.riddle}</p></div>`;startScanner(c.id);startBG();}
-  else grandFinale();}
-function startTeam(){const i=document.getElementById('teamInput');team=(i.value||'').trim();index=0;save();render();startBG();}
-function restartHunt(){index=0;save();render();}
-let codeReader;
-async function startScanner(id){stopScanner();codeReader=new ZXing.BrowserMultiFormatReader();try{
-  await codeReader.decodeFromVideoDevice(null,'preview',(res,err)=>{if(!res)return;if(res.getText().trim().toLowerCase()===id.toLowerCase()){spawnBurst();playHit();index++;save();stopScanner();setTimeout(render,800);}});
-}catch(e){}}
-function stopScanner(){try{codeReader&&codeReader.reset();}catch{}}
-function spawnBurst(){const d=document.createElement('div');d.textContent='🎃';d.style.position='fixed';d.style.left='50%';d.style.top='50%';d.style.fontSize='80px';document.body.appendChild(d);setTimeout(()=>d.remove(),1000);}
-function grandFinale(){stopBG();const m=document.getElementById('closingMusic');m.volume=0.8;m.play();setTimeout(()=>{m.pause();restartHunt();startBG();},30000);}
+/* ============ GAME DATA ============ */
+const STOPS = [
+  { id:"stop-el-chamo",              business:"El Chamo",                 title:"Venezuelan Vampire Bites",     riddle:"A hungry vampire craves arepas—follow the smell of sizzling corn cakes!" },
+  { id:"stop-kukri",                 business:"Kukri",                    title:"Crispy Chicken Crown",          riddle:"A raven guards a crispy crown—find the throne of the mighty chicken!" },
+  { id:"stop-stackers",              business:"Stackers",                 title:"Tower of Treats",               riddle:"Towering patties rise like midnight moons—seek the tallest stack!" },
+  { id:"stop-bubble-bliss",          business:"Bubble Bliss",             title:"Potions & Candle Charms",        riddle:"Witches’ sweets that you don’t eat—find the place where potions fizz and candles glow." },
+  { id:"stop-thicc-pizza",           business:"Thicc Pizza",              title:"Haunted Pizza Oven",             riddle:"The oven roars like dragon fire—where slices are thick and spirits gather." },
+  { id:"stop-top-of-the-block-bar",  business:"Top of The Block",         title:"Phantom’s Toast Above",          riddle:"Clink! A phantom’s toast echoes from above—follow the lantern light." },
+  { id:"stop-tavern-on-the-green",   business:"Tavern on the Green",      title:"Greenlit Goblin Tavern",         riddle:"In the garden of night, goblins cheer—find the green-lit haunt." },
+  { id:"stop-link-link",             business:"Link Link",                title:"Enchanted Chain Forge",          riddle:"A spark seals a spell—seek the forge where golden links are bound." },
+  { id:"stop-los-tacos",             business:"Los Tacos",                title:"Whispers of Smoky Spice",        riddle:"Skeletons whisper of smoky spice—seek the stand where tacos rise." },
+  { id:"stop-wow-wow-lemonade",      business:"Wow Wow Lemonade",         title:"Witch’s Lemon Brew",             riddle:"Sour turns sweet in this brew—find the brightest yellow stand." },
+  { id:"stop-teriyaki-queen",        business:"Teriyaki Queen",           title:"The Queen’s Sizzling Cauldron",  riddle:"The Queen’s cauldron sizzles sweet and dark—follow the charred trail of soy and fire." },
+  { id:"stop-boba-lounge",           business:"The Boba Lounge",          title:"Ghost Bubble Parlor",            riddle:"Ghosts sip floating pearls—seek the lounge of bubbling orbs." },
+  { id:"stop-busy-bee-custard",      business:"Busy Bee Frozen Custard",  title:"Bee-Witched Custard",            riddle:"Buzz to the coldest hive—your clue chills by creamy swirls." },
+  { id:"stop-enchanted-books",       business:"Enchanted Books",          title:"Ghostly Library",                riddle:"A friendly phantom turns pages—find the whispering shelves." },
+  { id:"stop-rez-sandwich",          business:"That’s My Rez Sandwich",   title:"Spirit Sandwich Shop",           riddle:"Spells stacked between bread—seek the spirit of the sandwich." },
+  { id:"stop-candy-bar",             business:"The Candy Bar",            title:"Trick-or-Treat Counter",         riddle:"Count the sweets if you dare—trick-or-treats await your stare." }
+];
+
+/* ============ STATE / UI ============ */
+const KEY = (k)=>`${EVENT_ID}:${k}`;
+let team = localStorage.getItem(KEY('team')) || '';
+let index = parseInt(localStorage.getItem(KEY('index'))||'0',10);
+function save(){ localStorage.setItem(KEY('team'), team); localStorage.setItem(KEY('index'), String(index)); }
+const wrapCard = (inner)=>`<div class="card">${inner}</div>`;
+
+function render(){
+  const root=document.getElementById('game');
+  if(!team){
+    root.innerHTML=wrapCard(`
+      <h1 class="text-xl font-bold mb-1">Haunted Block Hunt</h1>
+      <p class="text-sm text-gray-400 mb-3">Enter your team name to begin. Visit each business, scan the QR, and unlock the next clue.</p>
+      <input id="teamInput" class="w-full px-3 py-3 rounded-lg border border-zinc-700 bg-zinc-900" placeholder="Team name">
+      <button class="btn w-full mt-3" onclick="startTeam()">Start Hunt</button>`);
+    return;
+  }
+  if(index<STOPS.length){
+    const c=STOPS[index];
+    root.innerHTML =
+      wrapCard(`<h2 class="text-lg font-bold">${c.title}</h2><p>${c.riddle}</p>`) +
+      wrapCard(`
+        <div class="text-sm text-gray-400 mb-2">Scan the checkpoint QR at <strong>${c.business}</strong></div>
+        <div id="camera" class="overflow-hidden rounded-lg border border-zinc-700">
+          <video id="preview" style="width:100%;height:auto" autoplay muted playsinline></video>
+        </div>
+        <div class="text-xs text-gray-500 mt-2">If the camera doesn’t start, allow camera permissions and ensure you’re using HTTPS.</div>`);
+    startScanner(c.id);
+    startBG(); // keep BG running during gameplay
+  } else {
+    grandFinale();
+  }
+}
+function startTeam(){
+  const inp=document.getElementById('teamInput'); 
+  team=(inp.value||'').trim(); index=0; save(); render();
+  startBG(); // start immediately after team begins
+}
+function restartHunt(){ index = 0; save(); render(); }
+
+/* ============ SCANNER (rear camera pref) ============ */
+let codeReader; let scanLock=false;
+function normalizeQRText(txt){return (''+txt).trim().toLowerCase();}
+
+async function startScanner(expectedId){
+  stopScanner(); scanLock=false;
+  const expectedNorm=normalizeQRText(expectedId);
+  codeReader=new ZXing.BrowserMultiFormatReader();
+  try{
+    // Prefer back camera if available
+    const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
+    let deviceId = null;
+    if (devices && devices.length){
+      const back = devices.find(d => /back|rear|environment/i.test(d.label));
+      deviceId = (back || devices[devices.length-1]).deviceId;
+    }
+    await codeReader.decodeFromVideoDevice(deviceId,'preview',(result,err)=>{
+      if (!result || scanLock) return;
+      const got=normalizeQRText(result.getText());
+      if (got!==expectedNorm) return;
+      scanLock=true;
+      spawnBurst(180,false); playHit();
+      index++; save(); stopScanner();
+      setTimeout(render, 800);
+    });
+  }catch(e){
+    document.getElementById('camera')?.insertAdjacentHTML(
+      'afterend', `<div class="text-xs text-red-300 mt-2">Camera error: ${e?.message||e}</div>`);
+  }
+}
+function stopScanner(){ try{ codeReader && codeReader.reset(); }catch{} }
+
+/* ============ SPRITES (SVG URIs) ============ */
+function pumpkinURI(variant='orange'){
+  const faces = [
+    `<path d="M24 34 q4 -3 8 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.2" fill="#1a1206"/> <circle cx="38" cy="30" r="2.2" fill="#1a1206"/>`,
+    `<path d="M22 38 q10 6 20 0" fill="none" stroke="#1a1206" stroke-width="3.2" stroke-linecap="round"/><path d="M24 30 l4 3 l-4 3 z" fill="#1a1206"/><path d="M40 30 l4 3 l-4 3 z" fill="#1a1206"/>`,
+    `<path d="M24 38 q8 -6 16 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.8" fill="#1a1206"/><rect x="36" y="28" width="5" height="5" fill="#1a1206" rx="1"/>`
+  ];
+  const showFace = Math.random() < 0.18;
+  const faceSVG = showFace ? faces[Math.floor(Math.random()*faces.length)] : '';
+  let gradTop='#ffe8b3', gradMid='#ffb347', gradBot='#b25a00', stroke='#6e3a00';
+  if(variant==='white'){ gradTop='#ffffff'; gradMid='#f0f0f0'; gradBot='#bdbdbd'; stroke='#6f6f6f'; }
+  if(variant==='green'){ gradTop='#e8ffd9'; gradMid='#b7ff89'; gradBot='#337000'; stroke='#2a5700'; }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+    <defs><radialGradient id="g" cx="50%" cy="40%" r="62%">
+      <stop offset="0%" stop-color="${gradTop}"/><stop offset="68%" stop-color="${gradMid}"/><stop offset="100%" stop-color="${gradBot}"/>
+    </radialGradient></defs>
+    <ellipse cx="32" cy="36" rx="23" ry="16.5" fill="url(#g)" stroke="${stroke}" stroke-width="2.2"/>
+    <path d="M32 12 c-2 4 2 5 0 8" fill="none" stroke="${stroke}" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M22 22 q-6 14 0 28" fill="none" stroke="${stroke}" stroke-opacity=".35" stroke-width="1.6"/>
+    <path d="M28 20 q-6 16 0 32" fill="none" stroke="${stroke}" stroke-opacity=".35" stroke-width="1.6"/>
+    <path d="M36 20 q6 16 0 32"  fill="none" stroke="${stroke}" stroke-opacity=".35" stroke-width="1.6"/>
+    <path d="M42 22 q6 14 0 28"  fill="none" stroke="${stroke}" stroke-opacity=".35" stroke-width="1.6"/>
+    ${faceSVG}
+  </svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+function batURI(){
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32">
+    <path d="M2,16 C10,10 14,10 22,14 C24,8 32,8 34,14 C42,10 46,10 62,16 C50,18 46,20 34,18 C32,24 24,24 22,18 C14,20 10,18 2,16 Z"
+          fill="#fff6d6" stroke="#e6c77a" stroke-width="1"/>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+function ghostURI(){
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 80">
+    <defs><linearGradient id="gg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#dfe8ff" stop-opacity="0.82"/>
+    </linearGradient></defs>
+    <path d="M12 28 Q12 6 32 6 Q52 6 52 28 V66 Q48 62 44 66 Q40 62 36 66 Q32 62 28 66 Q24 62 20 66 Q16 62 12 66 Z"
+          fill="url(#gg)" stroke="#9fb3ff" stroke-opacity=".35" stroke-width="1.4"/>
+    <circle cx="26" cy="30" r="3" fill="#2f3350"/>
+    <circle cx="38" cy="30" r="3" fill="#2f3350"/>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+
+/* ============ BURSTS ============ */
+function spawnBurst(count=180, big=false){
+  const cx = innerWidth * (0.35 + Math.random()*0.3);
+  const cy = innerHeight * (0.35 + Math.random()*0.3);
+  const batImg = batURI(), ghostImg = ghostURI();
+  const pumpkinVariants=['orange','white','green'];
+
+  for (let i=0;i<count;i++){
+    const roll = Math.random();
+    if (roll < 0.65){
+      // Pumpkin (slower/larger)
+      const p=document.createElement('div'); p.className='pump';
+      const sizeBase = big ? 54 : 36;
+      const size = sizeBase + Math.random()*(big?52:28);
+      p.style.width=size+'px'; p.style.height=size+'px';
+      p.style.left=cx+'px'; p.style.top=cy+'px';
+      p.style.backgroundImage=`url("${pumpkinURI(pumpkinVariants[i%3])}")`;
+      const angle = (i/count)*2*Math.PI + Math.random()*0.7;
+      const dist  = (big?360:220) + Math.random()*(big?720:520);
+      const dx=Math.cos(angle)*dist, dy=Math.sin(angle)*dist;
+      const rot=(Math.random()*360-180)+'deg';
+      const dur=2600 + Math.random()*1900;
+      p.animate(
+        [
+          { transform:'translate(-50%,-50%) scale(0.8) rotate(0)', opacity:0.0 },
+          { transform:'translate(-50%,-50%) scale(1.05) rotate(0)', opacity:1.0, offset:0.22 },
+          { transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.12) rotate(${rot})`, opacity:0 }
+        ],
+        { duration:dur, easing:'cubic-bezier(.15,.7,.2,1)', fill:'forwards' }
+      );
+      document.body.appendChild(p); setTimeout(()=>p.remove(), dur+320);
+    } else if (roll < 0.85){
+      // Bat glide
+      const b=document.createElement('div'); b.className='bat';
+      b.style.backgroundImage=`url("${batImg}")`;
+      const y = 0.1*innerHeight + Math.random()*0.8*innerHeight;
+      b.style.left='-140px'; b.style.top=y+'px';
+      const dur = 5600 + Math.random()*2400;
+      const up = (Math.random() * 14) - 7;
+      b.animate(
+        [{ transform: 'translate(-140px,0) rotate(-8deg)', opacity: 0.98 },
+         { transform: `translate(${innerWidth+160}px, ${up}vh) rotate(12deg)`, opacity: 0.96 }],
+        { duration: dur, easing: 'ease-in-out', fill: 'forwards' }
+      );
+      document.body.appendChild(b); setTimeout(()=>b.remove(), dur+700);
+    } else {
+      // Ghost float
+      const g=document.createElement('div'); g.className='ghost';
+      g.style.backgroundImage=`url("${ghostImg}")`;
+      const x = cx + (Math.random()*2-1) * (big?300:200);
+      const y0 = cy + (Math.random()*80 - 40);
+      g.style.left = x+'px'; g.style.top = (y0+60)+'px';
+      const dur = 3000 + Math.random()*2000;
+      g.animate(
+        [{ transform:'translate(-50%,-50%) scale(0.85)', opacity:0.0 },
+         { transform:'translate(-50%,-60%) scale(1.0)', opacity:0.95, offset:0.22 },
+         { transform:'translate(-50%,-125%) scale(1.06)', opacity:0.0 }],
+        { duration: dur, easing:'ease-out', fill:'forwards' }
+      );
+      document.body.appendChild(g); setTimeout(()=>g.remove(), dur+260);
+    }
+  }
+}
+
+/* ============ FINALE (tap-to-exit, auto-restart) ============ */
+let finaleTimer=null, finaleInterval=null, fireworksTimer=null;
+function lightning(){
+  const l = document.getElementById('lightning');
+  l.classList.remove('zap'); void l.offsetWidth; l.classList.add('zap');
+}
+function grandFinale(){
+  const overlay = document.getElementById('finale');
+  overlay.classList.add('show');
+
+  // Tap anywhere on finale to exit & restart
+  const quickExit = () => {
+    overlay.classList.remove('show');
+    document.getElementById('fadeBlack').style.opacity = 0;
+    stopNode(SFX.closingNode); SFX.closingNode=null;
+    const music = document.getElementById('closingMusic');
+    music.pause?.(); music.currentTime = 0;
+    clearInterval(finaleInterval); clearInterval(fireworksTimer); clearTimeout(finaleTimer);
+    overlay.removeEventListener('click', quickExit);
+    restartHunt();
+    startBG();
+  };
+  overlay.addEventListener('click', quickExit);
+
+  stopBG(); // stop background loop for big finale
+
+  // Visual systems
+  const st = document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
+  runSpotlight(); runFireworks(true); runFog();
+
+  // Mixed bursts loop during finale
+  spawnBurst(520,true);
+  finaleInterval = setInterval(()=>spawnBurst(240,false), 3000);
+
+  // Music + layered stingers (timed)
+  const music = document.getElementById('closingMusic');
+  if (audioReady) {
+    const buf = SFX.buffers[FILES.closing];
+    if (buf){ SFX.closingNode = playBuf(FILES.closing, 0.7, false); }
+    else { music.volume = 0.7; music.play().catch(()=>{}); }
+  } else {
+    music.volume = 0.7; music.play().catch(()=>{});
+  }
+  const cue = (t, fn)=>setTimeout(fn, t);
+  cue(8000, ()=>{ playHit(); lightning(); });
+  cue(12000, ()=>{ playHit(); });
+  cue(18000, ()=>{ playHit(); lightning(); });
+  cue(24000, ()=>{ playHit(); });
+
+  // Fireworks pacing: small -> big waves
+  fireworksTimer = setInterval(()=>runFireworks(false), 6000);
+
+  // Fade to black at end + auto-restart
+  clearTimeout(finaleTimer);
+  finaleTimer = setTimeout(()=>{
+    clearInterval(finaleInterval); clearInterval(fireworksTimer);
+    stopNode(SFX.closingNode); SFX.closingNode=null;
+    music.pause?.(); music.currentTime = 0;
+    const fb = document.getElementById('fadeBlack'); fb.style.opacity = 1;
+    setTimeout(()=>{
+      overlay.classList.remove('show');
+      fb.style.opacity = 0;
+      overlay.removeEventListener('click', quickExit);
+      restartHunt();            // auto restart after finale ends
+      startBG();                // resume background after restart
+    }, 2200);
+  }, 30000);
+}
+
+/* Fireworks */
+function runFireworks(big=false){
+  const canvas = document.getElementById('fw'), ctx = canvas.getContext('2d');
+  let w=canvas.width=innerWidth*devicePixelRatio, h=canvas.height=innerHeight*devicePixelRatio;
+  const parts=[];
+  function addBurst(x,y,color,scale=1){
+    const n=((big?180:120)*scale)|0;
+    for(let i=0;i<n;i++){
+      const ang=Math.random()*Math.PI*2, sp=(1.2+Math.random()*3.6)*(w/1600)*scale;
+      parts.push({x,y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:70+Math.random()*40,color,alpha:1});
+    }
+  }
+  function tick(){
+    ctx.clearRect(0,0,w,h);
+    for(let i=parts.length-1;i>=0;i--){
+      const p=parts[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.018*devicePixelRatio; p.life--; p.alpha=Math.max(0,p.life/100);
+      ctx.globalAlpha=p.alpha; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,(big?3.6:2.6)*devicePixelRatio,0,Math.PI*2); ctx.fill();
+      if(p.life<=0) parts.splice(i,1);
+    }
+    if(document.getElementById('finale').classList.contains('show')) requestAnimationFrame(tick);
+  }
+  function wave(scale){
+    const x=(0.1+Math.random()*0.8)*w, y=(0.18+Math.random()*0.5)*h;
+    const palette=['#ffd35c','#fff1b8','#ff8a00','#ffe6b3','#ffe07a','#ffffff'];
+    addBurst(x,y, palette[Math.floor(Math.random()*palette.length)], scale);
+  }
+  wave(1.0); setTimeout(()=>wave(1.2),220); setTimeout(()=>wave(1.0),440); setTimeout(()=>wave(1.6),900);
+  window.addEventListener('resize',()=>{ w=canvas.width=innerWidth*devicePixelRatio; h=canvas.height=innerHeight*devicePixelRatio; });
+  tick();
+  const obs=new MutationObserver(()=>{ if(!document.getElementById('finale').classList.contains('show')){ obs.disconnect(); ctx.clearRect(0,0,w,h);} });
+  obs.observe(document.getElementById('finale'),{attributes:true,attributeFilter:['class']});
+}
+
+/* Fog */
+function runFog(){
+  const c = document.getElementById('fog'), x = c.getContext('2d');
+  let W = c.width = innerWidth, H = c.height = innerHeight;
+  const img = x.createImageData(W, H); const data = img.data; let t = 0;
+  function noise(nx, ny){
+    function rnd(ix,iy){ const s=Math.sin(ix*127.1+iy*311.7)*43758.5453; return s - Math.floor(s); }
+    const x0=Math.floor(nx), y0=Math.floor(ny), xf=nx-x0, yf=ny-y0;
+    const v00=rnd(x0,y0), v10=rnd(x0+1,y0), v01=rnd(x0,y0+1), v11=rnd(x0+1,y0+1);
+    const u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
+    return (1-u)*(1-v)*v00 + u*(1-v)*v10 + (1-u)*v*v01 + u*v*v11;
+  }
+  function draw(){
+    const s = 0.009; t += 0.003;
+    for(let y=0, i=0; y<H; y++){
+      for(let x0=0; x0<W; x0++, i+=4){
+        const n = noise((x0+t*120)*s, (y+t*60)*s);
+        const v = 220 + n*25;
+        data[i]=v; data[i+1]=v; data[i+2]=v; data[i+3]=38;
+      }
+    }
+    x.putImageData(img,0,0);
+    if(document.getElementById('finale').classList.contains('show')) requestAnimationFrame(draw);
+  }
+  draw();
+  addEventListener('resize',()=>{ W=c.width=innerWidth; H=c.height=innerHeight; });
+}
+
+/* Spotlight */
+function runSpotlight(){
+  const spot=document.getElementById('spot'); let t=0;
+  (function step(){ t+=0.015; spot.style.setProperty('--x', (50+Math.sin(t)*30)+'%'); spot.style.setProperty('--y',(30+Math.cos(t*0.7)*8)+'%');
+    if(document.getElementById('finale').classList.contains('show')) requestAnimationFrame(step);
+  })();
+}
+
+/* BOOT */
 render();
 </script>
 </body>
