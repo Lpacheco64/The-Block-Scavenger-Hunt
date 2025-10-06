@@ -61,21 +61,20 @@
   <!-- Sound enable -->
   <div id="audioGate"><button onclick="enableSFX()">🔊 Enable Sound</button></div>
 
-  <!-- Finale music (fallback if WebAudio buffer not ready) -->
+  <!-- Finale music fallback -->
   <audio id="closingMusic" src="halloween-spooky-music-411457.mp3"></audio>
+  <!-- BG fallback element (loops if WebAudio buffer isn’t ready) -->
+  <audio id="bgFallback" src="bg-halloween.mp3" loop style="display:none"></audio>
 
 <script>
-/* ===== Error toast ===== */
-window.addEventListener('error', (e)=>{
+/* ===== Toast helper ===== */
+function toast(msg){
   const t=document.createElement('div'); t.id='errToast';
-  t.textContent = 'Error: ' + (e?.message||e) + (e?.filename?'\n'+e.filename+' : '+e.lineno+':'+e.colno:'');
-  document.body.appendChild(t);
-});
-window.addEventListener('unhandledrejection', (e)=>{
-  const t=document.createElement('div'); t.id='errToast';
-  t.textContent = 'Promise error: ' + (e?.reason?.message || e.reason || e);
-  document.body.appendChild(t);
-});
+  t.textContent = msg; document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 6000);
+}
+window.addEventListener('error', (e)=> toast('Error: ' + (e?.message||e)));
+window.addEventListener('unhandledrejection', (e)=> toast('Promise error: ' + (e?.reason?.message || e.reason || e)));
 
 /* ============ CONFIG ============ */
 const EVENT_ID = "haunted-block-2025";
@@ -92,7 +91,7 @@ const FILES = {
     'halloween-wolf-howling-410542.mp3'
   ],
   closing: 'halloween-spooky-music-411457.mp3',
-  bg: 'bg-halloween.mp3'     // ← your new looping background track
+  bg: 'bg-halloween.mp3'    // ← your background music file (place next to index.html)
 };
 const SFX = { buffers:{}, closingNode:null, bgNode:null };
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
@@ -106,20 +105,26 @@ async function enableSFX(){
   masterGain.gain.value = 1.0; masterGain.connect(AC.destination);
   audioReady = true;
   document.getElementById('audioGate')?.remove();
-  // preload all
+
+  // Preload all audio (including BG)
   [...FILES.hits, FILES.closing, FILES.bg].forEach(url=>loadBuf(url));
-  // start BG once buffers begin to decode (first user gesture already happened)
-  setTimeout(()=>startBG(), 200);
+
+  // Try to start BG shortly after gesture
+  setTimeout(()=>startBG(), 250);
 }
 window.addEventListener('pointerdown', ()=>{ if(!audioReady) enableSFX(); }, {once:true,capture:true});
 
 async function loadBuf(url){
   try{
-    const res = await fetch(url, {cache:'force-cache'}); if(!res.ok) return;
+    const res = await fetch(url, {cache:'force-cache'});
+    if(!res.ok){
+      if(url===FILES.bg) toast('BG music not found: ' + url);
+      return;
+    }
     const arr = await res.arrayBuffer();
     const buf = await new Promise((ok,no)=>AC.decodeAudioData(arr, ok, no));
     SFX.buffers[url] = buf;
-  }catch(e){}
+  }catch(e){ if(url===FILES.bg) toast('BG music decode failed'); }
 }
 function playBuf(url, vol=1, loop=false){
   const buf=SFX.buffers[url]; if(!AC||!buf) return null;
@@ -131,28 +136,49 @@ function playBuf(url, vol=1, loop=false){
 function stopNode(n){ try{n?.src?.stop(); n?.g?.disconnect();}catch(e){} }
 function playHit(){ const url = pick(FILES.hits); if (audioReady && SFX.buffers[url]) { playBuf(url,1,false); duckBG(1500,0.08); } }
 
-/* Background loop control */
+/* Background loop control + fallback */
 function startBG(){
-  if (!audioReady || SFX.bgNode || !SFX.buffers[FILES.bg]) return;
-  const node = playBuf(FILES.bg, 0.25, true);  // soft loop
-  if (node?.src?.buffer?.duration){
-    node.src.loopStart = 0.0;
-    node.src.loopEnd   = node.src.buffer.duration - 0.05; // avoid edge clicks
+  const el = document.getElementById('bgFallback');
+  // If WebAudio buffer is ready: use it
+  if (audioReady && !SFX.bgNode && SFX.buffers[FILES.bg]){
+    const node = playBuf(FILES.bg, 0.25, true);
+    if (node?.src?.buffer?.duration){
+      node.src.loopStart = 0.0;
+      node.src.loopEnd   = node.src.buffer.duration - 0.05; // avoid edge clicks
+    }
+    SFX.bgNode = node;
+    try{ el.pause(); el.currentTime=0; }catch{}
+    return;
   }
-  SFX.bgNode = node;
+  // Otherwise, try the HTML fallback element
+  try{
+    el.volume = 0.22;
+    el.play().catch(()=>{ /* user gesture missing — button handles it */ });
+  }catch(e){ /* ignore */ }
 }
 function stopBG(){
   if (SFX.bgNode){ stopNode(SFX.bgNode); SFX.bgNode = null; }
+  const el = document.getElementById('bgFallback');
+  try{ el.pause(); el.currentTime = 0; }catch{}
 }
-/* briefly lower BG volume under hits */
+/* briefly lower BG volume under hits (both paths) */
 function duckBG(ms=1200, to=0.10){
-  if (!SFX.bgNode || !AC) return;
-  const g = SFX.bgNode.g, now = AC.currentTime;
-  try{
-    g.gain.cancelScheduledValues(now);
-    g.gain.linearRampToValueAtTime(to, now + 0.05);
-    g.gain.linearRampToValueAtTime(0.25, now + ms/1000);
-  }catch(e){}
+  const el = document.getElementById('bgFallback');
+  // WebAudio path
+  if (SFX.bgNode && AC){
+    const g = SFX.bgNode.g, now = AC.currentTime;
+    try{
+      g.gain.cancelScheduledValues(now);
+      g.gain.linearRampToValueAtTime(to, now + 0.05);
+      g.gain.linearRampToValueAtTime(0.25, now + ms/1000);
+    }catch(e){}
+  } else {
+    // HTML audio path
+    try{
+      el.volume = to;
+      setTimeout(()=>{ el.volume = 0.22; }, ms);
+    }catch(e){}
+  }
 }
 
 /* ============ GAME DATA ============ */
@@ -212,8 +238,6 @@ function startTeam(){
   team=(inp.value||'').trim(); index=0; save(); render();
   startBG(); // start immediately after team begins
 }
-
-/* Restart helper (tap to exit or after finale) */
 function restartHunt(){ index = 0; save(); render(); }
 
 /* ============ SCANNER ============ */
@@ -244,7 +268,7 @@ function stopScanner(){try{codeReader&&codeReader.reset();}catch{}}
 /* ============ SPRITES (SVG URIs) ============ */
 function pumpkinURI(variant='orange'){
   const faces = [
-    `<path d="M24 34 q4 -3 8 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.2" fill="#1a1206"/><circle cx="38" cy="30" r="2.2" fill="#1a1206"/>`,
+    `<path d="M24 34 q4 -3 8 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.2" fill="#1a1206"/> <circle cx="38" cy="30" r="2.2" fill="#1a1206"/>`,
     `<path d="M22 38 q10 6 20 0" fill="none" stroke="#1a1206" stroke-width="3.2" stroke-linecap="round"/><path d="M24 30 l4 3 l-4 3 z" fill="#1a1206"/><path d="M40 30 l4 3 l-4 3 z" fill="#1a1206"/>`,
     `<path d="M24 38 q8 -6 16 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.8" fill="#1a1206"/><rect x="36" y="28" width="5" height="5" fill="#1a1206" rx="1"/>`
   ];
@@ -372,6 +396,7 @@ function grandFinale(){
     clearInterval(finaleInterval); clearInterval(fireworksTimer); clearTimeout(finaleTimer);
     overlay.removeEventListener('click', quickExit);
     restartHunt();
+    startBG();
   };
   overlay.addEventListener('click', quickExit);
 
