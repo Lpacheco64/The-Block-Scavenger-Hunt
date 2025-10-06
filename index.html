@@ -91,7 +91,7 @@ const FILES = {
     'halloween-wolf-howling-410542.mp3'
   ],
   closing: 'halloween-spooky-music-411457.mp3',
-  bg: 'halloween-349615.mp3'    // ← your background loop
+  bg: 'halloween-349615.mp3'    // ← background loop
 };
 const SFX = { buffers:{}, closingNode:null, bgNode:null };
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
@@ -120,10 +120,7 @@ window.addEventListener('pointerdown', ()=>{ if(!audioReady) enableSFX(); }, {on
 async function loadBuf(url){
   try{
     const res = await fetch(url, {cache:'force-cache'});
-    if(!res.ok){
-      if(url===FILES.bg) toast('BG music not found: ' + url);
-      return;
-    }
+    if(!res.ok){ if(url===FILES.bg) toast('BG music not found: ' + url); return; }
     const arr = await res.arrayBuffer();
     const buf = await new Promise((ok,no)=>AC.decodeAudioData(arr, ok, no));
     SFX.buffers[url] = buf;
@@ -142,32 +139,25 @@ function playHit(){ const url = pick(FILES.hits); if (audioReady && SFX.buffers[
 /* Background loop control + fallback */
 function startBG(){
   const el = document.getElementById('bgFallback');
-  // If WebAudio buffer is ready: use it
   if (audioReady && !SFX.bgNode && SFX.buffers[FILES.bg]){
     const node = playBuf(FILES.bg, 0.25, true);
     if (node?.src?.buffer?.duration){
       node.src.loopStart = 0.0;
-      node.src.loopEnd   = node.src.buffer.duration - 0.05; // avoid clicks
+      node.src.loopEnd   = node.src.buffer.duration - 0.05;
     }
     SFX.bgNode = node;
     try{ el.pause(); el.currentTime=0; }catch{}
     return;
   }
-  // Otherwise, try the HTML fallback element
-  try{
-    el.volume = 0.22;
-    el.play().catch(()=>{ /* user gesture missing — button handles it */ });
-  }catch(e){ /* ignore */ }
+  try{ el.volume = 0.22; el.play().catch(()=>{}); }catch(e){}
 }
 function stopBG(){
   if (SFX.bgNode){ stopNode(SFX.bgNode); SFX.bgNode = null; }
   const el = document.getElementById('bgFallback');
   try{ el.pause(); el.currentTime = 0; }catch{}
 }
-/* briefly lower BG volume under hits (both paths) */
 function duckBG(ms=1200, to=0.10){
   const el = document.getElementById('bgFallback');
-  // WebAudio path
   if (SFX.bgNode && AC){
     const g = SFX.bgNode.g, now = AC.currentTime;
     try{
@@ -176,11 +166,7 @@ function duckBG(ms=1200, to=0.10){
       g.gain.linearRampToValueAtTime(0.25, now + ms/1000);
     }catch(e){}
   } else {
-    // HTML audio path
-    try{
-      el.volume = to;
-      setTimeout(()=>{ el.volume = 0.22; }, ms);
-    }catch(e){}
+    try{ el.volume = to; setTimeout(()=>{ el.volume = 0.22; }, ms); }catch(e){}
   }
 }
 
@@ -232,7 +218,7 @@ function render(){
         </div>
         <div class="text-xs text-gray-500 mt-2">If the camera doesn’t start, allow camera permissions and ensure you’re using HTTPS.</div>`);
     startScanner(c.id);
-    startBG(); // keep BG running during gameplay
+    startBG();
   } else {
     grandFinale();
   }
@@ -240,67 +226,87 @@ function render(){
 function startTeam(){
   const inp=document.getElementById('teamInput'); 
   team=(inp.value||'').trim(); index=0; save(); render();
-  startBG(); // start immediately after team begins
+  startBG();
 }
 function restartHunt(){ index = 0; save(); render(); }
 
 /* ============ SCANNER (robust with warm-up & hints) ============ */
-let codeReader; let scanLock=false;
-function normalizeQRText(txt){return (''+txt).trim().toLowerCase();}
+let codeReader; let scanLock = false;
+function normalizeQRText(t){ return (''+t).trim().toLowerCase(); }
 
 async function startScanner(expectedId){
-  stopScanner(); scanLock=false;
-  const expectedNorm=normalizeQRText(expectedId);
-  codeReader=new ZXing.BrowserMultiFormatReader();
-  try{
-    // 1) Warm-up (helps iOS expose labels & permissions reliably)
+  stopScanner(); scanLock = false;
+  const expectedNorm = normalizeQRText(expectedId);
+
+  // Ensure the video element exists
+  const v = document.getElementById('preview');
+  if (!v) { showCamError(new TypeError('preview <video> not found')); return; }
+
+  // Ensure mediaDevices exists (HTTPS required)
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showCamError(new TypeError('mediaDevices.getUserMedia not available (HTTPS/permission?)'));
+    return;
+  }
+
+  try {
+    // Warm-up stream (helps on iOS)
     const warm = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal:'environment' } },
+      video: { facingMode: { ideal: 'environment' } },
       audio: false
     });
-    const v = document.getElementById('preview');
     v.srcObject = warm;
     await v.play().catch(()=>{});
 
-    // 2) Prefer rear camera if available
-    const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices().catch(()=>[]);
+    // Prefer rear camera if available
     let deviceId = null;
-    if (devices && devices.length){
-      const back = devices.find(d => /back|rear|environment/i.test(d.label));
-      deviceId = (back || devices[devices.length-1]).deviceId;
+    try {
+      const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
+      if (devices && devices.length){
+        const back = devices.find(d => /back|rear|environment/i.test(d.label));
+        deviceId = (back || devices[devices.length - 1]).deviceId;
+      }
+    } catch (e) {
+      console.warn('Device list error:', e);
     }
 
-    // 3) Start ZXing bound to our <video id="preview">
-    await codeReader.decodeFromVideoDevice(deviceId,'preview',(result,err)=>{
+    // Start ZXing using our <video id="preview">
+    codeReader = new ZXing.BrowserMultiFormatReader();
+    await codeReader.decodeFromVideoDevice(deviceId, 'preview', (result, err)=>{
       if (!result || scanLock) return;
-      const got=normalizeQRText(result.getText());
-      if (got!==expectedNorm) return;
-      scanLock=true;
+      const got = normalizeQRText(result.getText());
+      if (got !== expectedNorm) return;
+      scanLock = true;
       spawnBurst(180,false); playHit();
       index++; save(); stopScanner();
       setTimeout(render, 800);
     });
-  }catch(e){
+  } catch (e) {
     showCamError(e);
   }
 }
+
 function stopScanner(){
-  try{
-    codeReader && codeReader.reset();
+  try { codeReader && codeReader.reset(); } catch {}
+  try {
     const v = document.getElementById('preview');
-    const s = v?.srcObject;
+    const s = v && v.srcObject;
     if (s && s.getTracks) s.getTracks().forEach(t=>t.stop());
     if (v) v.srcObject = null;
-  }catch{}
+  } catch {}
 }
+
 function showCamError(e){
-  const msg = (e && e.name) ? e.name : (e?.message || String(e));
+  console.error('Camera error detail:', e);
+  const msg = (e && (e.name || e.message)) ? (e.name + (e.message ? (': ' + e.message) : '')) : String(e);
   let hint = '';
-  if (/NotAllowedError|Permission/i.test(msg)) hint = ' • Camera permission was blocked. Allow it in site settings and reload.';
-  else if (/NotFoundError|Overconstrained|NotReadable/i.test(msg)) hint = ' • No camera found or already in use. Close other apps/pages using the camera.';
-  else if (/SecurityError/i.test(msg)) hint = ' • Needs HTTPS. Use your GitHub Pages link.';
-  document.getElementById('camera')?.insertAdjacentHTML('afterend',
-    `<div class="text-xs text-red-300 mt-2">Camera error: ${msg}${hint}</div>`);
+  if (/NotAllowedError|Permission/i.test(msg)) hint = ' • Camera permission blocked. Allow in site settings, then reload.';
+  else if (/NotFoundError|Overconstrained|NotReadable/i.test(msg)) hint = ' • No camera found / already in use. Close other apps/pages using the camera.';
+  else if (/SecurityError/i.test(msg)) hint = ' • Needs HTTPS. Use your GitHub Pages URL.';
+  else if (/TypeError/i.test(msg)) hint = ' • Element/stream missing. Make sure the <video id="preview"> exists on this screen.';
+  document.getElementById('camera')?.insertAdjacentHTML(
+    'afterend',
+    `<div class="text-xs text-red-300 mt-2">Camera error: ${msg}${hint}</div>`
+  );
 }
 
 /* ============ SPRITES (SVG URIs) ============ */
@@ -360,7 +366,6 @@ function spawnBurst(count=180, big=false){
   for (let i=0;i<count;i++){
     const roll = Math.random();
     if (roll < 0.65){
-      // Pumpkin (slower/larger)
       const p=document.createElement('div'); p.className='pump';
       const sizeBase = big ? 54 : 36;
       const size = sizeBase + Math.random()*(big?52:28);
@@ -382,7 +387,6 @@ function spawnBurst(count=180, big=false){
       );
       document.body.appendChild(p); setTimeout(()=>p.remove(), dur+320);
     } else if (roll < 0.85){
-      // Bat glide
       const b=document.createElement('div'); b.className='bat';
       b.style.backgroundImage=`url("${batImg}")`;
       const y = 0.1*innerHeight + Math.random()*0.8*innerHeight;
@@ -396,7 +400,6 @@ function spawnBurst(count=180, big=false){
       );
       document.body.appendChild(b); setTimeout(()=>b.remove(), dur+700);
     } else {
-      // Ghost float
       const g=document.createElement('div'); g.className='ghost';
       g.style.backgroundImage=`url("${ghostImg}")`;
       const x = cx + (Math.random()*2-1) * (big?300:200);
@@ -414,7 +417,7 @@ function spawnBurst(count=180, big=false){
   }
 }
 
-/* ============ FINALE (tap-to-exit, auto-restart) ============ */
+/* ============ FINALE ============ */
 let finaleTimer=null, finaleInterval=null, fireworksTimer=null;
 function lightning(){
   const l = document.getElementById('lightning');
@@ -424,7 +427,6 @@ function grandFinale(){
   const overlay = document.getElementById('finale');
   overlay.classList.add('show');
 
-  // Tap anywhere on finale to exit & restart
   const quickExit = () => {
     overlay.classList.remove('show');
     document.getElementById('fadeBlack').style.opacity = 0;
@@ -438,17 +440,14 @@ function grandFinale(){
   };
   overlay.addEventListener('click', quickExit);
 
-  stopBG(); // stop background loop for big finale
+  stopBG();
 
-  // Visual systems
   const st = document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
   runSpotlight(); runFireworks(true); runFog();
 
-  // Mixed bursts loop during finale
   spawnBurst(520,true);
   finaleInterval = setInterval(()=>spawnBurst(240,false), 3000);
 
-  // Music + layered stingers (timed)
   const music = document.getElementById('closingMusic');
   if (audioReady) {
     const buf = SFX.buffers[FILES.closing];
@@ -463,10 +462,8 @@ function grandFinale(){
   cue(18000, ()=>{ playHit(); lightning(); });
   cue(24000, ()=>{ playHit(); });
 
-  // Fireworks pacing: small -> big waves
   fireworksTimer = setInterval(()=>runFireworks(false), 6000);
 
-  // Fade to black at end + auto-restart
   clearTimeout(finaleTimer);
   finaleTimer = setTimeout(()=>{
     clearInterval(finaleInterval); clearInterval(fireworksTimer);
@@ -477,8 +474,8 @@ function grandFinale(){
       overlay.classList.remove('show');
       fb.style.opacity = 0;
       overlay.removeEventListener('click', quickExit);
-      restartHunt();            // auto restart after finale ends
-      startBG();                // resume background after restart
+      restartHunt();
+      startBG();
     }, 2200);
   }, 30000);
 }
