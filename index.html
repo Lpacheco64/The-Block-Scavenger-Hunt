@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
+<!-- QR generator (for Print Pack) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   :root{--ink:#f6f3ff;--bg:#0b0b0e;--card:#14141a}
   body{background:#0b0b0e;color:var(--ink);font-family:Poppins,system-ui,sans-serif;min-height:100vh;padding:16px}
@@ -14,13 +16,11 @@
   .btn{border-radius:14px;padding:14px 18px;font-weight:700;background:#ff6600;color:#000}
   video{border-radius:12px}
 
-  /* Particles */
   .pump,.bat,.ghost{position:fixed;pointer-events:none;z-index:1000;background-size:100% 100%;background-repeat:no-repeat;will-change:transform,opacity}
   .pump{filter:drop-shadow(0 0 10px rgba(255,240,190,.9))}
   .bat {width:70px;height:36px;filter:drop-shadow(0 0 6px rgba(255,240,200,.7))}
   .ghost{width:52px;height:64px;filter:drop-shadow(0 0 10px rgba(255,255,255,.6))}
 
-  /* Finale */
   #finale{position:fixed;inset:0;display:none;z-index:2000;background:radial-gradient(1400px 700px at 50% 30%, rgba(255,128,0,.10), rgba(0,0,0,.95))}
   #finale.show{display:block}
   #fw,#fog{position:absolute;inset:0;width:100%;height:100%}
@@ -29,26 +29,27 @@
   .strobe.show{animation:stb .12s ease-out 8}
   @keyframes stb{0%{opacity:.85}100%{opacity:0}}
 
-  /* Lightning flash overlay */
   #lightning{position:fixed;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.0),rgba(255,255,255,.0));opacity:0;z-index:2500}
   .zap{animation:zap .6s ease-out}
   @keyframes zap{0%{opacity:0}10%{opacity:.95;background:radial-gradient(800px 400px at 40% 30%, rgba(255,255,255,.95), rgba(255,255,255,0) 60%)}25%{opacity:0}40%{opacity:.9;background:radial-gradient(600px 300px at 70% 20%, rgba(255,255,255,.9), rgba(255,255,255,0) 60%)}100%{opacity:0}}
 
-  /* Finale fade to black */
   #fadeBlack{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:3000;transition:opacity 2s ease}
 
-  /* Sound gate button */
   #audioGate{position:fixed;inset:auto 0 16px 0;display:flex;justify-content:center;pointer-events:none;z-index:3000}
   #audioGate button{pointer-events:auto;background:#ffd35c;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,200,90,.35);border:none}
 
-  /* Error toast */
   #errToast{position:fixed;left:12px;bottom:12px;z-index:4000;background:#111827;color:#fef3c7;border:1px solid #374151;border-radius:10px;padding:10px 12px;font:12px/1.3 monospace;max-width:90vw;white-space:pre-wrap}
+
+  @media print {
+    body { background: #fff; }
+    .card { box-shadow: none; border: 1px solid #ddd; }
+    #audioGate, #finale, #lightning, #fadeBlack { display: none !important; }
+  }
 </style>
 </head>
 <body>
   <div id="game" class="max-w-md mx-auto space-y-4"></div>
 
-  <!-- Finale layer (no text) -->
   <div id="finale" aria-hidden="true">
     <canvas id="fw"></canvas>
     <canvas id="fog"></canvas>
@@ -58,16 +59,12 @@
   <div id="lightning"></div>
   <div id="fadeBlack"></div>
 
-  <!-- Sound enable -->
   <div id="audioGate"><button onclick="enableSFX()">🔊 Enable Sound</button></div>
 
-  <!-- Finale music fallback -->
   <audio id="closingMusic" src="halloween-spooky-music-411457.mp3"></audio>
-  <!-- BG fallback element (loops if WebAudio buffer isn’t ready) -->
   <audio id="bgFallback" src="halloween-349615.mp3" loop style="display:none"></audio>
 
 <script>
-/* ===== Toast helper ===== */
 function toast(msg){
   const t=document.createElement('div'); t.id='errToast';
   t.textContent = msg; document.body.appendChild(t);
@@ -76,10 +73,9 @@ function toast(msg){
 window.addEventListener('error', (e)=> toast('Error: ' + (e?.message||e)));
 window.addEventListener('unhandledrejection', (e)=> toast('Promise error: ' + (e?.reason?.message || e.reason || e)));
 
-/* ============ CONFIG ============ */
 const EVENT_ID = "haunted-block-2025";
 
-/* ============ AUDIO ============ */
+/* ===== AUDIO ===== */
 let AC, masterGain, audioReady=false;
 const FILES = {
   hits: [
@@ -91,7 +87,7 @@ const FILES = {
     'halloween-wolf-howling-410542.mp3'
   ],
   closing: 'halloween-spooky-music-411457.mp3',
-  bg: 'halloween-349615.mp3'    // ← background loop
+  bg: 'halloween-349615.mp3'
 };
 const SFX = { buffers:{}, closingNode:null, bgNode:null };
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
@@ -105,11 +101,7 @@ async function enableSFX(){
   masterGain.gain.value = 1.0; masterGain.connect(AC.destination);
   audioReady = true;
   document.getElementById('audioGate')?.remove();
-
-  // Preload all audio (including BG)
   [...FILES.hits, FILES.closing, FILES.bg].forEach(url=>loadBuf(url));
-
-  // Try to start BG shortly after gesture + ensure HTML fallback attempts to play
   setTimeout(()=>{
     startBG();
     document.getElementById('bgFallback').play().catch(()=>{});
@@ -136,14 +128,12 @@ function playBuf(url, vol=1, loop=false){
 function stopNode(n){ try{n?.src?.stop(); n?.g?.disconnect();}catch(e){} }
 function playHit(){ const url = pick(FILES.hits); if (audioReady && SFX.buffers[url]) { playBuf(url,1,false); duckBG(1500,0.08); } }
 
-/* Background loop control + fallback */
 function startBG(){
   const el = document.getElementById('bgFallback');
   if (audioReady && !SFX.bgNode && SFX.buffers[FILES.bg]){
     const node = playBuf(FILES.bg, 0.25, true);
     if (node?.src?.buffer?.duration){
-      node.src.loopStart = 0.0;
-      node.src.loopEnd   = node.src.buffer.duration - 0.05;
+      node.src.loopStart = 0.0; node.src.loopEnd = node.src.buffer.duration - 0.05;
     }
     SFX.bgNode = node;
     try{ el.pause(); el.currentTime=0; }catch{}
@@ -160,37 +150,36 @@ function duckBG(ms=1200, to=0.10){
   const el = document.getElementById('bgFallback');
   if (SFX.bgNode && AC){
     const g = SFX.bgNode.g, now = AC.currentTime;
-    try{
-      g.gain.cancelScheduledValues(now);
-      g.gain.linearRampToValueAtTime(to, now + 0.05);
-      g.gain.linearRampToValueAtTime(0.25, now + ms/1000);
+    try{ g.gain.cancelScheduledValues(now);
+         g.gain.linearRampToValueAtTime(to, now + 0.05);
+         g.gain.linearRampToValueAtTime(0.25, now + ms/1000);
     }catch(e){}
   } else {
     try{ el.volume = to; setTimeout(()=>{ el.volume = 0.22; }, ms); }catch(e){}
   }
 }
 
-/* ============ GAME DATA ============ */
+/* ===== STOPS ===== */
 const STOPS = [
   { id:"stop-el-chamo",              business:"El Chamo",                 title:"Venezuelan Vampire Bites",     riddle:"A hungry vampire craves arepas—follow the smell of sizzling corn cakes!" },
   { id:"stop-kukri",                 business:"Kukri",                    title:"Crispy Chicken Crown",          riddle:"A raven guards a crispy crown—find the throne of the mighty chicken!" },
   { id:"stop-stackers",              business:"Stackers",                 title:"Tower of Treats",               riddle:"Towering patties rise like midnight moons—seek the tallest stack!" },
-  { id:"stop-bubble-bliss",          business:"Bubble Bliss",             title:"Potions & Candle Charms",        riddle:"Witches’ sweets that you don’t eat—find the place where potions fizz and candles glow." },
-  { id:"stop-thicc-pizza",           business:"Thicc Pizza",              title:"Haunted Pizza Oven",             riddle:"The oven roars like dragon fire—where slices are thick and spirits gather." },
-  { id:"stop-top-of-the-block-bar",  business:"Top of The Block",         title:"Phantom’s Toast Above",          riddle:"Clink! A phantom’s toast echoes from above—follow the lantern light." },
-  { id:"stop-tavern-on-the-green",   business:"Tavern on the Green",      title:"Greenlit Goblin Tavern",         riddle:"In the garden of night, goblins cheer—find the green-lit haunt." },
-  { id:"stop-link-link",             business:"Link Link",                title:"Enchanted Chain Forge",          riddle:"A spark seals a spell—seek the forge where golden links are bound." },
-  { id:"stop-los-tacos",             business:"Los Tacos",                title:"Whispers of Smoky Spice",        riddle:"Skeletons whisper of smoky spice—seek the stand where tacos rise." },
-  { id:"stop-wow-wow-lemonade",      business:"Wow Wow Lemonade",         title:"Witch’s Lemon Brew",             riddle:"Sour turns sweet in this brew—find the brightest yellow stand." },
-  { id:"stop-teriyaki-queen",        business:"Teriyaki Queen",           title:"The Queen’s Sizzling Cauldron",  riddle:"The Queen’s cauldron sizzles sweet and dark—follow the charred trail of soy and fire." },
-  { id:"stop-boba-lounge",           business:"The Boba Lounge",          title:"Ghost Bubble Parlor",            riddle:"Ghosts sip floating pearls—seek the lounge of bubbling orbs." },
-  { id:"stop-busy-bee-custard",      business:"Busy Bee Frozen Custard",  title:"Bee-Witched Custard",            riddle:"Buzz to the coldest hive—your clue chills by creamy swirls." },
-  { id:"stop-enchanted-books",       business:"Enchanted Books",          title:"Ghostly Library",                riddle:"A friendly phantom turns pages—find the whispering shelves." },
-  { id:"stop-rez-sandwich",          business:"That’s My Rez Sandwich",   title:"Spirit Sandwich Shop",           riddle:"Spells stacked between bread—seek the spirit of the sandwich." },
-  { id:"stop-candy-bar",             business:"The Candy Bar",            title:"Trick-or-Treat Counter",         riddle:"Count the sweets if you dare—trick-or-treats await your stare." }
+  { id:"stop-bubble-bliss",          business:"Bubble Bliss",             title:"Potions & Candle Charms",       riddle:"Witches’ sweets that you don’t eat—find the place where potions fizz and candles glow." },
+  { id:"stop-thicc-pizza",           business:"Thicc Pizza",              title:"Haunted Pizza Oven",            riddle:"The oven roars like dragon fire—where slices are thick and spirits gather." },
+  { id:"stop-top-of-the-block-bar",  business:"Top of The Block",         title:"Phantom’s Toast Above",         riddle:"Clink! A phantom’s toast echoes from above—follow the lantern light." },
+  { id:"stop-tavern-on-the-green",   business:"Tavern on the Green",      title:"Greenlit Goblin Tavern",        riddle:"In the garden of night, goblins cheer—find the green-lit haunt." },
+  { id:"stop-link-link",             business:"Link Link",                title:"Enchanted Chain Forge",         riddle:"A spark seals a spell—seek the forge where golden links are bound." },
+  { id:"stop-los-tacos",             business:"Los Tacos",                title:"Whispers of Smoky Spice",       riddle:"Skeletons whisper of smoky spice—seek the stand where tacos rise." },
+  { id:"stop-wow-wow-lemonade",      business:"Wow Wow Lemonade",         title:"Witch’s Lemon Brew",            riddle:"Sour turns sweet in this brew—find the brightest yellow stand." },
+  { id:"stop-teriyaki-queen",        business:"Teriyaki Queen",           title:"The Queen’s Sizzling Cauldron", riddle:"The Queen’s cauldron sizzles sweet and dark—follow the charred trail of soy and fire." },
+  { id:"stop-boba-lounge",           business:"The Boba Lounge",          title:"Ghost Bubble Parlor",           riddle:"Ghosts sip floating pearls—seek the lounge of bubbling orbs." },
+  { id:"stop-busy-bee-custard",      business:"Busy Bee Frozen Custard",  title:"Bee-Witched Custard",           riddle:"Buzz to the coldest hive—your clue chills by creamy swirls." },
+  { id:"stop-enchanted-books",       business:"Enchanted Books",          title:"Ghostly Library",               riddle:"A friendly phantom turns pages—find the whispering shelves." },
+  { id:"stop-rez-sandwich",          business:"That’s My Rez Sandwich",   title:"Spirit Sandwich Shop",          riddle:"Spells stacked between bread—seek the spirit of the sandwich." },
+  { id:"stop-candy-bar",             business:"The Candy Bar",            title:"Trick-or-Treat Counter",        riddle:"Count the sweets if you dare—trick-or-treats await your stare." }
 ];
 
-/* ============ STATE / UI ============ */
+/* ===== STATE/UI ===== */
 const KEY = (k)=>`${EVENT_ID}:${k}`;
 let team = localStorage.getItem(KEY('team')) || '';
 let index = parseInt(localStorage.getItem(KEY('index'))||'0',10);
@@ -199,6 +188,9 @@ const wrapCard = (inner)=>`<div class="card">${inner}</div>`;
 
 function render(){
   const root=document.getElementById('game');
+  const params = new URL(location.href).searchParams;
+  if (params.get('print') === '1') { renderPrintPack(); return; }
+
   if(!team){
     root.innerHTML=wrapCard(`
       <h1 class="text-xl font-bold mb-1">Haunted Block Hunt</h1>
@@ -230,34 +222,76 @@ function startTeam(){
 }
 function restartHunt(){ index = 0; save(); render(); }
 
-/* ============ SCANNER (robust with warm-up & hints) ============ */
+/* ===== PRINT PACK ===== */
+function renderPrintPack(){
+  document.title = 'Haunted Block Hunt — Print Pack';
+  const root = document.getElementById('game');
+  root.innerHTML = `
+    <div class="card">
+      <div class="flex items-center justify-between">
+        <h1 class="text-xl font-bold">Print Pack</h1>
+        <button class="btn" onclick="window.print()">Print</button>
+      </div>
+      <p class="text-sm text-gray-400 mt-2">
+        Includes a START QR (participant URL) and one for each stop. Place START at entry; place one QR at each business.
+      </p>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3" id="qrGrid"></div>
+  `;
+  const grid = document.getElementById('qrGrid');
+
+  // START card (participant URL)
+  const startURL = location.origin + location.pathname;
+  const startCard = document.createElement('div');
+  startCard.className = 'card';
+  startCard.innerHTML = `
+    <div class="text-xs text-gray-400">START</div>
+    <div class="font-bold mb-2">Scan to Begin</div>
+    <div id="qr-start" class="flex items-center justify-center my-3"></div>
+    <div class="text-[11px] text-gray-400 break-all">${startURL}</div>
+  `;
+  grid.appendChild(startCard);
+  new QRCode(document.getElementById('qr-start'), {
+    text: startURL, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M
+  });
+
+  // Stop QRs
+  STOPS.forEach(s=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="text-xs text-gray-400">${s.business}</div>
+      <div class="font-bold">${s.title}</div>
+      <div id="qr-${s.id}" class="flex items-center justify-center my-3"></div>
+      <div class="text-[11px] text-gray-400 break-all">${s.id}</div>
+    `;
+    grid.appendChild(card);
+    new QRCode(document.getElementById(`qr-${s.id}`), {
+      text: s.id, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M
+    });
+  });
+}
+
+/* ===== SCANNER (robust + haptics) ===== */
 let codeReader; let scanLock = false;
 function normalizeQRText(t){ return (''+t).trim().toLowerCase(); }
 
 async function startScanner(expectedId){
   stopScanner(); scanLock = false;
   const expectedNorm = normalizeQRText(expectedId);
-
-  // Ensure the video element exists
   const v = document.getElementById('preview');
   if (!v) { showCamError(new TypeError('preview <video> not found')); return; }
-
-  // Ensure mediaDevices exists (HTTPS required)
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     showCamError(new TypeError('mediaDevices.getUserMedia not available (HTTPS/permission?)'));
     return;
   }
-
   try {
-    // Warm-up stream (helps on iOS)
     const warm = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } },
-      audio: false
+      video: { facingMode: { ideal: 'environment' } }, audio: false
     });
     v.srcObject = warm;
     await v.play().catch(()=>{});
 
-    // Prefer rear camera if available
     let deviceId = null;
     try {
       const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
@@ -269,7 +303,6 @@ async function startScanner(expectedId){
       console.warn('Device list error:', e);
     }
 
-    // Start ZXing using our <video id="preview">
     codeReader = new ZXing.BrowserMultiFormatReader();
     await codeReader.decodeFromVideoDevice(deviceId, 'preview', (result, err)=>{
       if (!result || scanLock) return;
@@ -277,6 +310,7 @@ async function startScanner(expectedId){
       if (got !== expectedNorm) return;
       scanLock = true;
       spawnBurst(180,false); playHit();
+      if (navigator.vibrate) navigator.vibrate([40, 30, 60]);
       index++; save(); stopScanner();
       setTimeout(render, 800);
     });
@@ -284,7 +318,6 @@ async function startScanner(expectedId){
     showCamError(e);
   }
 }
-
 function stopScanner(){
   try { codeReader && codeReader.reset(); } catch {}
   try {
@@ -294,7 +327,6 @@ function stopScanner(){
     if (v) v.srcObject = null;
   } catch {}
 }
-
 function showCamError(e){
   console.error('Camera error detail:', e);
   const msg = (e && (e.name || e.message)) ? (e.name + (e.message ? (': ' + e.message) : '')) : String(e);
@@ -302,17 +334,17 @@ function showCamError(e){
   if (/NotAllowedError|Permission/i.test(msg)) hint = ' • Camera permission blocked. Allow in site settings, then reload.';
   else if (/NotFoundError|Overconstrained|NotReadable/i.test(msg)) hint = ' • No camera found / already in use. Close other apps/pages using the camera.';
   else if (/SecurityError/i.test(msg)) hint = ' • Needs HTTPS. Use your GitHub Pages URL.';
-  else if (/TypeError/i.test(msg)) hint = ' • Element/stream missing. Make sure the <video id="preview"> exists on this screen.';
+  else if (/TypeError/i.test(msg)) hint = ' • Element/stream missing. Ensure the scan screen shows the video.';
   document.getElementById('camera')?.insertAdjacentHTML(
     'afterend',
     `<div class="text-xs text-red-300 mt-2">Camera error: ${msg}${hint}</div>`
   );
 }
 
-/* ============ SPRITES (SVG URIs) ============ */
+/* ===== SPRITES ===== */
 function pumpkinURI(variant='orange'){
   const faces = [
-    `<path d="M24 34 q4 -3 8 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.2" fill="#1a1206"/> <circle cx="38" cy="30" r="2.2" fill="#1a1206"/>`,
+    `<path d="M24 34 q4 -3 8 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.2" fill="#1a1206"/><circle cx="38" cy="30" r="2.2" fill="#1a1206"/>`,
     `<path d="M22 38 q10 6 20 0" fill="none" stroke="#1a1206" stroke-width="3.2" stroke-linecap="round"/><path d="M24 30 l4 3 l-4 3 z" fill="#1a1206"/><path d="M40 30 l4 3 l-4 3 z" fill="#1a1206"/>`,
     `<path d="M24 38 q8 -6 16 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.8" fill="#1a1206"/><rect x="36" y="28" width="5" height="5" fill="#1a1206" rx="1"/>`
   ];
@@ -356,7 +388,7 @@ function ghostURI(){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 
-/* ============ BURSTS ============ */
+/* ===== BURSTS ===== */
 function spawnBurst(count=180, big=false){
   const cx = innerWidth * (0.35 + Math.random()*0.3);
   const cy = innerHeight * (0.35 + Math.random()*0.3);
@@ -417,7 +449,7 @@ function spawnBurst(count=180, big=false){
   }
 }
 
-/* ============ FINALE ============ */
+/* ===== FINALE ===== */
 let finaleTimer=null, finaleInterval=null, fireworksTimer=null;
 function lightning(){
   const l = document.getElementById('lightning');
@@ -426,6 +458,7 @@ function lightning(){
 function grandFinale(){
   const overlay = document.getElementById('finale');
   overlay.classList.add('show');
+  if (navigator.vibrate) navigator.vibrate([120, 60, 120, 60, 200]);
 
   const quickExit = () => {
     overlay.classList.remove('show');
@@ -441,7 +474,6 @@ function grandFinale(){
   overlay.addEventListener('click', quickExit);
 
   stopBG();
-
   const st = document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
   runSpotlight(); runFireworks(true); runFog();
 
@@ -554,3 +586,4 @@ render();
 </script>
 </body>
 </html>
+
