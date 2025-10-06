@@ -159,14 +159,13 @@ function duckBG(ms=1200, to=0.10){
   }
 }
 
-/* ===== STOPS ===== */
+/* ===== STOPS (Top of the Block REMOVED) ===== */
 const STOPS = [
   { id:"stop-el-chamo",              business:"El Chamo",                 title:"Venezuelan Vampire Bites",     riddle:"A hungry vampire craves arepas—follow the smell of sizzling corn cakes!" },
   { id:"stop-kukri",                 business:"Kukri",                    title:"Crispy Chicken Crown",          riddle:"A raven guards a crispy crown—find the throne of the mighty chicken!" },
   { id:"stop-stackers",              business:"Stackers",                 title:"Tower of Treats",               riddle:"Towering patties rise like midnight moons—seek the tallest stack!" },
   { id:"stop-bubble-bliss",          business:"Bubble Bliss",             title:"Potions & Candle Charms",       riddle:"Witches’ sweets that you don’t eat—find the place where potions fizz and candles glow." },
   { id:"stop-thicc-pizza",           business:"Thicc Pizza",              title:"Haunted Pizza Oven",            riddle:"The oven roars like dragon fire—where slices are thick and spirits gather." },
-  { id:"stop-top-of-the-block-bar",  business:"Top of The Block",         title:"Phantom’s Toast Above",         riddle:"Clink! A phantom’s toast echoes from above—follow the lantern light." },
   { id:"stop-tavern-on-the-green",   business:"Tavern on the Green",      title:"Greenlit Goblin Tavern",        riddle:"In the garden of night, goblins cheer—find the green-lit haunt." },
   { id:"stop-link-link",             business:"Link Link",                title:"Enchanted Chain Forge",         riddle:"A spark seals a spell—seek the forge where golden links are bound." },
   { id:"stop-los-tacos",             business:"Los Tacos",                title:"Whispers of Smoky Spice",       riddle:"Skeletons whisper of smoky spice—seek the stand where tacos rise." },
@@ -255,7 +254,7 @@ function renderPrintPack(){
     text: startURL, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M
   });
 
-  // Stop QRs
+  // Stop QRs (Top of the Block is NOT included)
   STOPS.forEach(s=>{
     const card = document.createElement('div');
     card.className = 'card';
@@ -272,7 +271,7 @@ function renderPrintPack(){
   });
 }
 
-/* ===== SCANNER (robust + haptics) ===== */
+/* ===== SCANNER (robust + stronger haptics) ===== */
 let codeReader; let scanLock = false;
 function normalizeQRText(t){ return (''+t).trim().toLowerCase(); }
 
@@ -309,8 +308,8 @@ async function startScanner(expectedId){
       const got = normalizeQRText(result.getText());
       if (got !== expectedNorm) return;
       scanLock = true;
-      spawnBurst(180,false); playHit();
-      if (navigator.vibrate) navigator.vibrate([40, 30, 60]);
+      spawnBurst(200,false); playHit();
+      if (navigator.vibrate) navigator.vibrate([100,60,140,60,180]); // STRONGER haptics on success
       index++; save(); stopScanner();
       setTimeout(render, 800);
     });
@@ -389,7 +388,7 @@ function ghostURI(){
 }
 
 /* ===== BURSTS ===== */
-function spawnBurst(count=180, big=false){
+function spawnBurst(count=200, big=false){
   const cx = innerWidth * (0.35 + Math.random()*0.3);
   const cy = innerHeight * (0.35 + Math.random()*0.3);
   const batImg = batURI(), ghostImg = ghostURI();
@@ -458,7 +457,7 @@ function lightning(){
 function grandFinale(){
   const overlay = document.getElementById('finale');
   overlay.classList.add('show');
-  if (navigator.vibrate) navigator.vibrate([120, 60, 120, 60, 200]);
+  if (navigator.vibrate) navigator.vibrate([160, 80, 200, 80, 240, 80, 320]); // MUCH STRONGER finale haptics
 
   const quickExit = () => {
     overlay.classList.remove('show');
@@ -478,7 +477,7 @@ function grandFinale(){
   runSpotlight(); runFireworks(true); runFog();
 
   spawnBurst(520,true);
-  finaleInterval = setInterval(()=>spawnBurst(240,false), 3000);
+  finaleInterval = setInterval(()=>spawnBurst(260,false), 3000);
 
   const music = document.getElementById('closingMusic');
   if (audioReady) {
@@ -586,4 +585,3 @@ render();
 </script>
 </body>
 </html>
-
