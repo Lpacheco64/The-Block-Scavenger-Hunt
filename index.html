@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
-<!-- QR generator (for Print Pack) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   :root{--ink:#f6f3ff;--bg:#0b0b0e;--card:#14141a}
@@ -16,11 +15,13 @@
   .btn{border-radius:14px;padding:14px 18px;font-weight:700;background:#ff6600;color:#000}
   video{border-radius:12px}
 
+  /* celebratory sprites */
   .pump,.bat,.ghost{position:fixed;pointer-events:none;z-index:1000;background-size:100% 100%;background-repeat:no-repeat;will-change:transform,opacity}
   .pump{filter:drop-shadow(0 0 10px rgba(255,240,190,.9))}
   .bat {width:70px;height:36px;filter:drop-shadow(0 0 6px rgba(255,240,200,.7))}
   .ghost{width:52px;height:64px;filter:drop-shadow(0 0 10px rgba(255,255,255,.6))}
 
+  /* finale */
   #finale{position:fixed;inset:0;display:none;z-index:2000;background:radial-gradient(1400px 700px at 50% 30%, rgba(255,128,0,.10), rgba(0,0,0,.95))}
   #finale.show{display:block}
   #fw,#fog{position:absolute;inset:0;width:100%;height:100%}
@@ -28,11 +29,9 @@
   .strobe{position:absolute;inset:0;background:radial-gradient(400px 200px at 50% 40%, rgba(255,255,255,.85), rgba(0,0,0,0) 60%);opacity:0;pointer-events:none}
   .strobe.show{animation:stb .12s ease-out 8}
   @keyframes stb{0%{opacity:.85}100%{opacity:0}}
-
   #lightning{position:fixed;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.0),rgba(255,255,255,.0));opacity:0;z-index:2500}
   .zap{animation:zap .6s ease-out}
   @keyframes zap{0%{opacity:0}10%{opacity:.95;background:radial-gradient(800px 400px at 40% 30%, rgba(255,255,255,.95), rgba(255,255,255,0) 60%)}25%{opacity:0}40%{opacity:.9;background:radial-gradient(600px 300px at 70% 20%, rgba(255,255,255,.9), rgba(255,255,255,0) 60%)}100%{opacity:0}}
-
   #fadeBlack{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:3000;transition:opacity 2s ease}
 
   #audioGate{position:fixed;inset:auto 0 16px 0;display:flex;justify-content:center;pointer-events:none;z-index:3000}
@@ -50,6 +49,7 @@
 <body>
   <div id="game" class="max-w-md mx-auto space-y-4"></div>
 
+  <!-- Finale overlay -->
   <div id="finale" aria-hidden="true">
     <canvas id="fw"></canvas>
     <canvas id="fog"></canvas>
@@ -59,107 +59,21 @@
   <div id="lightning"></div>
   <div id="fadeBlack"></div>
 
-  <div id="audioGate"><button onclick="enableSFX()">🔊 Enable Sound</button></div>
+  <!-- iOS audio unlock -->
+  <div id="audioGate"><button onclick="enableSFX()">Enable Sound</button></div>
 
+  <!-- Audio tags (fallback for bg/finale if WebAudio not ready) -->
   <audio id="closingMusic" src="halloween-spooky-music-411457.mp3"></audio>
   <audio id="bgFallback" src="halloween-349615.mp3" loop style="display:none"></audio>
 
 <script>
-function toast(msg){
-  const t=document.createElement('div'); t.id='errToast';
-  t.textContent = msg; document.body.appendChild(t);
-  setTimeout(()=>t.remove(), 6000);
-}
-window.addEventListener('error', (e)=> toast('Error: ' + (e?.message||e)));
-window.addEventListener('unhandledrejection', (e)=> toast('Promise error: ' + (e?.reason?.message || e.reason || e)));
+/* ===== Tiny toast for runtime issues (helps testing on phones) ===== */
+function toast(msg){ const t=document.createElement('div'); t.id='errToast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),6000); }
+window.addEventListener('error', e=> toast('Error: ' + (e?.message||e)));
+window.addEventListener('unhandledrejection', e=> toast('Promise: ' + (e?.reason?.message||e.reason||e)));
 
+/* ===== Event & Stops (Top of the Block removed) ===== */
 const EVENT_ID = "haunted-block-2025";
-
-/* ===== AUDIO ===== */
-let AC, masterGain, audioReady=false;
-const FILES = {
-  hits: [
-    'witch-laugh-95203.mp3',
-    'ghoul-ghost-scares-169233.mp3',
-    'creepy-wind-410541.mp3',
-    'spooky-scary-sound-410563.mp3',
-    'scary-transition-401717.mp3',
-    'halloween-wolf-howling-410542.mp3'
-  ],
-  closing: 'halloween-spooky-music-411457.mp3',
-  bg: 'halloween-349615.mp3'
-};
-const SFX = { buffers:{}, closingNode:null, bgNode:null };
-const pick = arr => arr[Math.floor(Math.random()*arr.length)];
-
-async function enableSFX(){
-  if (audioReady) return;
-  const Ctx = window.AudioContext||window.webkitAudioContext; if(!Ctx) return;
-  AC = AC || new Ctx();
-  if(AC.state==='suspended'){ try{ await AC.resume(); }catch{} }
-  masterGain = masterGain || AC.createGain();
-  masterGain.gain.value = 1.0; masterGain.connect(AC.destination);
-  audioReady = true;
-  document.getElementById('audioGate')?.remove();
-  [...FILES.hits, FILES.closing, FILES.bg].forEach(url=>loadBuf(url));
-  setTimeout(()=>{
-    startBG();
-    document.getElementById('bgFallback').play().catch(()=>{});
-  }, 250);
-}
-window.addEventListener('pointerdown', ()=>{ if(!audioReady) enableSFX(); }, {once:true,capture:true});
-
-async function loadBuf(url){
-  try{
-    const res = await fetch(url, {cache:'force-cache'});
-    if(!res.ok){ if(url===FILES.bg) toast('BG music not found: ' + url); return; }
-    const arr = await res.arrayBuffer();
-    const buf = await new Promise((ok,no)=>AC.decodeAudioData(arr, ok, no));
-    SFX.buffers[url] = buf;
-  }catch(e){ if(url===FILES.bg) toast('BG music decode failed'); }
-}
-function playBuf(url, vol=1, loop=false){
-  const buf=SFX.buffers[url]; if(!AC||!buf) return null;
-  const src=AC.createBufferSource(); const g=AC.createGain();
-  g.gain.value = vol; src.buffer=buf; src.loop=loop;
-  src.connect(g); g.connect(masterGain); src.start();
-  return {src,g};
-}
-function stopNode(n){ try{n?.src?.stop(); n?.g?.disconnect();}catch(e){} }
-function playHit(){ const url = pick(FILES.hits); if (audioReady && SFX.buffers[url]) { playBuf(url,1,false); duckBG(1500,0.08); } }
-
-function startBG(){
-  const el = document.getElementById('bgFallback');
-  if (audioReady && !SFX.bgNode && SFX.buffers[FILES.bg]){
-    const node = playBuf(FILES.bg, 0.25, true);
-    if (node?.src?.buffer?.duration){
-      node.src.loopStart = 0.0; node.src.loopEnd = node.src.buffer.duration - 0.05;
-    }
-    SFX.bgNode = node;
-    try{ el.pause(); el.currentTime=0; }catch{}
-    return;
-  }
-  try{ el.volume = 0.22; el.play().catch(()=>{}); }catch(e){}
-}
-function stopBG(){
-  if (SFX.bgNode){ stopNode(SFX.bgNode); SFX.bgNode = null; }
-  const el = document.getElementById('bgFallback');
-  try{ el.pause(); el.currentTime = 0; }catch{}
-}
-function duckBG(ms=1200, to=0.10){
-  const el = document.getElementById('bgFallback');
-  if (SFX.bgNode && AC){
-    const g = SFX.bgNode.g, now = AC.currentTime;
-    try{ g.gain.cancelScheduledValues(now);
-         g.gain.linearRampToValueAtTime(to, now + 0.05);
-         g.gain.linearRampToValueAtTime(0.25, now + ms/1000);
-    }catch(e){}
-  } else {
-    try{ el.volume = to; setTimeout(()=>{ el.volume = 0.22; }, ms); }catch(e){}
-  }
-}
-
-/* ===== STOPS (Top of the Block REMOVED) ===== */
 const STOPS = [
   { id:"stop-el-chamo",              business:"El Chamo",                 title:"Venezuelan Vampire Bites",     riddle:"A hungry vampire craves arepas—follow the smell of sizzling corn cakes!" },
   { id:"stop-kukri",                 business:"Kukri",                    title:"Crispy Chicken Crown",          riddle:"A raven guards a crispy crown—find the throne of the mighty chicken!" },
@@ -178,28 +92,30 @@ const STOPS = [
   { id:"stop-candy-bar",             business:"The Candy Bar",            title:"Trick-or-Treat Counter",        riddle:"Count the sweets if you dare—trick-or-treats await your stare." }
 ];
 
-/* ===== STATE/UI ===== */
-const KEY = (k)=>`${EVENT_ID}:${k}`;
+/* ===== State & UI ===== */
+const KEY = k => `${EVENT_ID}:${k}`;
 let team = localStorage.getItem(KEY('team')) || '';
 let index = parseInt(localStorage.getItem(KEY('index'))||'0',10);
 function save(){ localStorage.setItem(KEY('team'), team); localStorage.setItem(KEY('index'), String(index)); }
-const wrapCard = (inner)=>`<div class="card">${inner}</div>`;
+const wrapCard = inner => `<div class="card">${inner}</div>`;
 
 function render(){
-  const root=document.getElementById('game');
+  const root = document.getElementById('game');
   const params = new URL(location.href).searchParams;
   if (params.get('print') === '1') { renderPrintPack(); return; }
 
   if(!team){
-    root.innerHTML=wrapCard(`
+    root.innerHTML = wrapCard(`
       <h1 class="text-xl font-bold mb-1">Haunted Block Hunt</h1>
       <p class="text-sm text-gray-400 mb-3">Enter your team name to begin. Visit each business, scan the QR, and unlock the next clue.</p>
       <input id="teamInput" class="w-full px-3 py-3 rounded-lg border border-zinc-700 bg-zinc-900" placeholder="Team name">
-      <button class="btn w-full mt-3" onclick="startTeam()">Start Hunt</button>`);
+      <button class="btn w-full mt-3" onclick="startTeam()">Start Hunt</button>
+    `);
     return;
   }
+
   if(index<STOPS.length){
-    const c=STOPS[index];
+    const c = STOPS[index];
     root.innerHTML =
       wrapCard(`<h2 class="text-lg font-bold">${c.title}</h2><p>${c.riddle}</p>`) +
       wrapCard(`
@@ -207,21 +123,21 @@ function render(){
         <div id="camera" class="overflow-hidden rounded-lg border border-zinc-700">
           <video id="preview" style="width:100%;height:auto" autoplay muted playsinline></video>
         </div>
-        <div class="text-xs text-gray-500 mt-2">If the camera doesn’t start, allow camera permissions and ensure you’re using HTTPS.</div>`);
+        <div class="text-xs text-gray-500 mt-2">If the camera doesn’t start, allow camera permissions and ensure you’re using HTTPS.</div>
+      `);
     startScanner(c.id);
-    startBG();
   } else {
     grandFinale();
   }
 }
 function startTeam(){
-  const inp=document.getElementById('teamInput'); 
-  team=(inp.value||'').trim(); index=0; save(); render();
-  startBG();
+  const inp = document.getElementById('teamInput');
+  team = (inp.value||'').trim(); index=0; save(); render();
+  startBG(); // start bg music right after Enable Sound (per your preference) — also called here in case sound was enabled earlier
 }
-function restartHunt(){ index = 0; save(); render(); }
+function restartHunt(){ index=0; save(); render(); }
 
-/* ===== PRINT PACK ===== */
+/* ===== Print Pack (participant START + each stop) ===== */
 function renderPrintPack(){
   document.title = 'Haunted Block Hunt — Print Pack';
   const root = document.getElementById('game');
@@ -231,15 +147,12 @@ function renderPrintPack(){
         <h1 class="text-xl font-bold">Print Pack</h1>
         <button class="btn" onclick="window.print()">Print</button>
       </div>
-      <p class="text-sm text-gray-400 mt-2">
-        Includes a START QR (participant URL) and one for each stop. Place START at entry; place one QR at each business.
-      </p>
+      <p class="text-sm text-gray-400 mt-2">Includes a START QR (participant URL) and one for each stop.</p>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3" id="qrGrid"></div>
   `;
   const grid = document.getElementById('qrGrid');
 
-  // START card (participant URL)
   const startURL = location.origin + location.pathname;
   const startCard = document.createElement('div');
   startCard.className = 'card';
@@ -247,115 +160,170 @@ function renderPrintPack(){
     <div class="text-xs text-gray-400">START</div>
     <div class="font-bold mb-2">Scan to Begin</div>
     <div id="qr-start" class="flex items-center justify-center my-3"></div>
-    <div class="text-[11px] text-gray-400 break-all">${startURL}</div>
-  `;
+    <div class="text-[11px] text-gray-400 break-all">${startURL}</div>`;
   grid.appendChild(startCard);
-  new QRCode(document.getElementById('qr-start'), {
-    text: startURL, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M
-  });
+  new QRCode(document.getElementById('qr-start'), { text:startURL, width:220, height:220, correctLevel:QRCode.CorrectLevel.M });
 
-  // Stop QRs (Top of the Block is NOT included)
   STOPS.forEach(s=>{
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
+    const card=document.createElement('div');
+    card.className='card';
+    card.innerHTML=`
       <div class="text-xs text-gray-400">${s.business}</div>
       <div class="font-bold">${s.title}</div>
       <div id="qr-${s.id}" class="flex items-center justify-center my-3"></div>
-      <div class="text-[11px] text-gray-400 break-all">${s.id}</div>
-    `;
+      <div class="text-[11px] text-gray-400 break-all">${s.id}</div>`;
     grid.appendChild(card);
-    new QRCode(document.getElementById(`qr-${s.id}`), {
-      text: s.id, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M
-    });
+    new QRCode(document.getElementById(`qr-${s.id}`), { text:s.id, width:220, height:220, correctLevel:QRCode.CorrectLevel.M });
   });
 }
 
-/* ===== SCANNER (robust + stronger haptics) ===== */
-let codeReader; let scanLock = false;
+/* ===== Scanner (robust + iOS-friendly) ===== */
+let codeReader; let scanLock=false;
 function normalizeQRText(t){ return (''+t).trim().toLowerCase(); }
 
 async function startScanner(expectedId){
-  stopScanner(); scanLock = false;
+  stopScanner(); scanLock=false;
   const expectedNorm = normalizeQRText(expectedId);
   const v = document.getElementById('preview');
   if (!v) { showCamError(new TypeError('preview <video> not found')); return; }
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    showCamError(new TypeError('mediaDevices.getUserMedia not available (HTTPS/permission?)'));
-    return;
-  }
-  try {
-    const warm = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } }, audio: false
-    });
-    v.srcObject = warm;
-    await v.play().catch(()=>{});
+  if (!navigator.mediaDevices?.getUserMedia) { showCamError(new TypeError('getUserMedia not available (HTTPS/permission?)')); return; }
+
+  try{
+    const warm = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'} }, audio:false });
+    v.srcObject = warm; await v.play().catch(()=>{});
 
     let deviceId = null;
-    try {
+    try{
       const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-      if (devices && devices.length){
-        const back = devices.find(d => /back|rear|environment/i.test(d.label));
-        deviceId = (back || devices[devices.length - 1]).deviceId;
-      }
-    } catch (e) {
-      console.warn('Device list error:', e);
-    }
+      if (devices?.length){ const back = devices.find(d=>/back|rear|environment/i.test(d.label)); deviceId=(back||devices.at(-1)).deviceId; }
+    }catch(e){ console.warn('Device list error:', e); }
 
     codeReader = new ZXing.BrowserMultiFormatReader();
     await codeReader.decodeFromVideoDevice(deviceId, 'preview', (result, err)=>{
       if (!result || scanLock) return;
       const got = normalizeQRText(result.getText());
       if (got !== expectedNorm) return;
+
       scanLock = true;
-      spawnBurst(200,false); playHit();
-      if (navigator.vibrate) navigator.vibrate([100,60,140,60,180]); // STRONGER haptics on success
+      spawnBurst(220,false);
+      playHit();
+      if (navigator.vibrate) navigator.vibrate([120,70,160,70,240]); // stronger haptics
       index++; save(); stopScanner();
-      setTimeout(render, 800);
+      setTimeout(render, 850);
     });
-  } catch (e) {
-    showCamError(e);
-  }
+  }catch(e){ showCamError(e); }
 }
 function stopScanner(){
-  try { codeReader && codeReader.reset(); } catch {}
-  try {
-    const v = document.getElementById('preview');
-    const s = v && v.srcObject;
-    if (s && s.getTracks) s.getTracks().forEach(t=>t.stop());
-    if (v) v.srcObject = null;
-  } catch {}
+  try{ codeReader?.reset(); }catch{}
+  try{
+    const v=document.getElementById('preview'); const s=v?.srcObject;
+    if (s?.getTracks) s.getTracks().forEach(t=>t.stop());
+    if (v) v.srcObject=null;
+  }catch{}
 }
 function showCamError(e){
-  console.error('Camera error detail:', e);
-  const msg = (e && (e.name || e.message)) ? (e.name + (e.message ? (': ' + e.message) : '')) : String(e);
-  let hint = '';
-  if (/NotAllowedError|Permission/i.test(msg)) hint = ' • Camera permission blocked. Allow in site settings, then reload.';
-  else if (/NotFoundError|Overconstrained|NotReadable/i.test(msg)) hint = ' • No camera found / already in use. Close other apps/pages using the camera.';
-  else if (/SecurityError/i.test(msg)) hint = ' • Needs HTTPS. Use your GitHub Pages URL.';
-  else if (/TypeError/i.test(msg)) hint = ' • Element/stream missing. Ensure the scan screen shows the video.';
-  document.getElementById('camera')?.insertAdjacentHTML(
-    'afterend',
-    `<div class="text-xs text-red-300 mt-2">Camera error: ${msg}${hint}</div>`
-  );
+  console.error('Camera error:', e);
+  const msg = (e && (e.name||e.message)) ? (e.name + (e.message?(': '+e.message):'')) : String(e);
+  let hint='';
+  if (/NotAllowedError|Permission/i.test(msg)) hint=' • Camera permission blocked. Allow in site settings, then reload.';
+  else if (/NotFoundError|Overconstrained|NotReadable/i.test(msg)) hint=' • No camera found or already in use.';
+  else if (/SecurityError/i.test(msg)) hint=' • Needs HTTPS (use your GitHub Pages URL).';
+  else if (/TypeError/i.test(msg)) hint=' • Element/stream missing.';
+  document.getElementById('camera')?.insertAdjacentHTML('afterend', `<div class="text-xs text-red-300 mt-2">Camera error: ${msg}${hint}</div>`);
 }
 
-/* ===== SPRITES ===== */
+/* ===== Audio (iOS unlock + SFX + BG loop) ===== */
+let AC, masterGain, audioReady=false;
+const FILES = {
+  hits: [
+    'witch-laugh-95203.mp3',
+    'ghoul-ghost-scares-169233.mp3',
+    'creepy-wind-410541.mp3',
+    'spooky-scary-sound-410563.mp3',
+    'scary-transition-401717.mp3',
+    'halloween-wolf-howling-410542.mp3'
+  ],
+  closing: 'halloween-spooky-music-411457.mp3',
+  bg: 'halloween-349615.mp3'
+};
+const SFX = { buffers:{}, closingNode:null, bgNode:null };
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+
+async function enableSFX(){
+  if (audioReady) return;
+  const Ctx = window.AudioContext||window.webkitAudioContext; if(!Ctx){ document.getElementById('audioGate')?.remove(); return; }
+  AC = AC || new Ctx();
+  if (AC.state==='suspended'){ try{ await AC.resume(); }catch{} }
+  masterGain = masterGain || AC.createGain();
+  masterGain.gain.value = 1.0; masterGain.connect(AC.destination);
+  audioReady = true;
+  // Preload into WebAudio
+  [...FILES.hits, FILES.closing, FILES.bg].forEach(url=>loadBuf(url));
+  // Tap-confirmed tiny click to fully unlock on iOS
+  const osc = AC.createOscillator(); const g = AC.createGain(); g.gain.value=0.0001; osc.connect(g); g.connect(masterGain); osc.start(); osc.stop(AC.currentTime+0.02);
+  // Start BG immediately after Enable Sound (your preference)
+  setTimeout(()=>{ startBG(); document.getElementById('bgFallback').play().catch(()=>{}); }, 100);
+  document.getElementById('audioGate')?.remove();
+}
+window.addEventListener('pointerdown', ()=>{ if(!audioReady) enableSFX(); }, {once:true,capture:true});
+
+async function loadBuf(url){
+  try{
+    const res = await fetch(url, {cache:'force-cache'}); if(!res.ok) return;
+    const arr = await res.arrayBuffer();
+    const buf = await new Promise((ok,no)=>AC.decodeAudioData(arr, ok, no));
+    SFX.buffers[url] = buf;
+  }catch{}
+}
+function playBuf(url, vol=1, loop=false){
+  const buf=SFX.buffers[url]; if(!AC||!buf) return null;
+  const src=AC.createBufferSource(); const g=AC.createGain();
+  g.gain.value = vol; src.buffer=buf; src.loop=loop;
+  src.connect(g); g.connect(masterGain); src.start();
+  return {src,g};
+}
+function stopNode(n){ try{n?.src?.stop(); n?.g?.disconnect();}catch{} }
+function playHit(){ const url = pick(FILES.hits); if (audioReady && SFX.buffers[url]) { playBuf(url,1,false); duckBG(1500,0.08); } }
+
+function startBG(){
+  const el = document.getElementById('bgFallback');
+  if (audioReady && !SFX.bgNode && SFX.buffers[FILES.bg]){
+    const node = playBuf(FILES.bg, 0.25, true);
+    if (node?.src?.buffer?.duration){ node.src.loopStart=0.0; node.src.loopEnd=node.src.buffer.duration-0.05; }
+    SFX.bgNode=node; try{ el.pause(); el.currentTime=0; }catch{}
+    return;
+  }
+  try{ el.volume=0.22; el.play().catch(()=>{}); }catch{}
+}
+function stopBG(){
+  if (SFX.bgNode){ stopNode(SFX.bgNode); SFX.bgNode=null; }
+  const el=document.getElementById('bgFallback'); try{ el.pause(); el.currentTime=0; }catch{}
+}
+function duckBG(ms=1200,to=0.10){
+  const el=document.getElementById('bgFallback');
+  if (SFX.bgNode && AC){
+    const g=SFX.bgNode.g, now=AC.currentTime;
+    try{ g.gain.cancelScheduledValues(now); g.gain.linearRampToValueAtTime(to, now+0.05); g.gain.linearRampToValueAtTime(0.25, now+ms/1000);}catch{}
+  } else {
+    try{ el.volume=to; setTimeout(()=>{ el.volume=0.22; }, ms); }catch{}
+  }
+}
+
+/* ===== Pumpkins/Bats/Ghosts burst ===== */
 function pumpkinURI(variant='orange'){
-  const faces = [
+  const faces=[
     `<path d="M24 34 q4 -3 8 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.2" fill="#1a1206"/><circle cx="38" cy="30" r="2.2" fill="#1a1206"/>`,
     `<path d="M22 38 q10 6 20 0" fill="none" stroke="#1a1206" stroke-width="3.2" stroke-linecap="round"/><path d="M24 30 l4 3 l-4 3 z" fill="#1a1206"/><path d="M40 30 l4 3 l-4 3 z" fill="#1a1206"/>`,
     `<path d="M24 38 q8 -6 16 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.8" fill="#1a1206"/><rect x="36" y="28" width="5" height="5" fill="#1a1206" rx="1"/>`
   ];
-  const showFace = Math.random() < 0.18;
+  const showFace = Math.random()<0.18;
   const faceSVG = showFace ? faces[Math.floor(Math.random()*faces.length)] : '';
-  let gradTop='#ffe8b3', gradMid='#ffb347', gradBot='#b25a00', stroke='#6e3a00';
-  if(variant==='white'){ gradTop='#ffffff'; gradMid='#f0f0f0'; gradBot='#bdbdbd'; stroke='#6f6f6f'; }
-  if(variant==='green'){ gradTop='#e8ffd9'; gradMid='#b7ff89'; gradBot='#337000'; stroke='#2a5700'; }
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  let gradTop='#ffe8b3',gradMid='#ffb347',gradBot='#b25a00',stroke='#6e3a00';
+  if(variant==='white'){gradTop='#ffffff';gradMid='#f0f0f0';gradBot='#bdbdbd';stroke='#6f6f6f'}
+  if(variant==='green'){gradTop='#e8ffd9';gradMid='#b7ff89';gradBot='#337000';stroke='#2a5700'}
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
     <defs><radialGradient id="g" cx="50%" cy="40%" r="62%">
-      <stop offset="0%" stop-color="${gradTop}"/><stop offset="68%" stop-color="${gradMid}"/><stop offset="100%" stop-color="${gradBot}"/>
-    </radialGradient></defs>
+      <stop offset="0%" stop-color="${gradTop}"/><stop offset="68%" stop-color="${gradMid}"/><stop offset="100%" stop-color="${gradBot}"/></radialGradient></defs>
     <ellipse cx="32" cy="36" rx="23" ry="16.5" fill="url(#g)" stroke="${stroke}" stroke-width="2.2"/>
     <path d="M32 12 c-2 4 2 5 0 8" fill="none" stroke="${stroke}" stroke-width="2.4" stroke-linecap="round"/>
     <path d="M22 22 q-6 14 0 28" fill="none" stroke="${stroke}" stroke-opacity=".35" stroke-width="1.6"/>
@@ -366,158 +334,104 @@ function pumpkinURI(variant='orange'){
   </svg>`;
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
-function batURI(){
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32">
-    <path d="M2,16 C10,10 14,10 22,14 C24,8 32,8 34,14 C42,10 46,10 62,16 C50,18 46,20 34,18 C32,24 24,24 22,18 C14,20 10,18 2,16 Z"
-          fill="#fff6d6" stroke="#e6c77a" stroke-width="1"/>
-  </svg>`;
+function batURI(){ const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32">
+  <path d="M2,16 C10,10 14,10 22,14 C24,8 32,8 34,14 C42,10 46,10 62,16 C50,18 46,20 34,18 C32,24 24,24 22,18 C14,20 10,18 2,16 Z"
+        fill="#fff6d6" stroke="#e6c77a" stroke-width="1"/></svg>`; return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg); }
+function ghostURI(){ const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 80">
+  <defs><linearGradient id="gg" x1="0" x2="0" y1="0" y2="1">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#dfe8ff" stop-opacity="0.82"/></linearGradient></defs>
+  <path d="M12 28 Q12 6 32 6 Q52 6 52 28 V66 Q48 62 44 66 Q40 62 36 66 Q32 62 28 66 Q24 62 20 66 Q16 62 12 66 Z"
+        fill="url(#gg)" stroke="#9fb3ff" stroke-opacity=".35" stroke-width="1.4"/>
+  <circle cx="26" cy="30" r="3" fill="#2f3350"/><circle cx="38" cy="30" r="3" fill="#2f3350"/></svg>`;
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
-function ghostURI(){
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 80">
-    <defs><linearGradient id="gg" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
-      <stop offset="100%" stop-color="#dfe8ff" stop-opacity="0.82"/>
-    </linearGradient></defs>
-    <path d="M12 28 Q12 6 32 6 Q52 6 52 28 V66 Q48 62 44 66 Q40 62 36 66 Q32 62 28 66 Q24 62 20 66 Q16 62 12 66 Z"
-          fill="url(#gg)" stroke="#9fb3ff" stroke-opacity=".35" stroke-width="1.4"/>
-    <circle cx="26" cy="30" r="3" fill="#2f3350"/>
-    <circle cx="38" cy="30" r="3" fill="#2f3350"/>
-  </svg>`;
-  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
-}
-
-/* ===== BURSTS ===== */
-function spawnBurst(count=200, big=false){
-  const cx = innerWidth * (0.35 + Math.random()*0.3);
-  const cy = innerHeight * (0.35 + Math.random()*0.3);
-  const batImg = batURI(), ghostImg = ghostURI();
-  const pumpkinVariants=['orange','white','green'];
-
-  for (let i=0;i<count;i++){
-    const roll = Math.random();
-    if (roll < 0.65){
+function spawnBurst(count=220,big=false){
+  const cx=innerWidth*(0.35+Math.random()*0.3), cy=innerHeight*(0.35+Math.random()*0.3);
+  const batImg=batURI(), ghostImg=ghostURI(), pumpkinVariants=['orange','white','green'];
+  for(let i=0;i<count;i++){
+    const roll=Math.random();
+    if(roll<0.65){
       const p=document.createElement('div'); p.className='pump';
-      const sizeBase = big ? 54 : 36;
-      const size = sizeBase + Math.random()*(big?52:28);
-      p.style.width=size+'px'; p.style.height=size+'px';
-      p.style.left=cx+'px'; p.style.top=cy+'px';
+      const sizeBase=big?54:36, size=sizeBase+Math.random()*(big?52:28);
+      p.style.width=size+'px'; p.style.height=size+'px'; p.style.left=cx+'px'; p.style.top=cy+'px';
       p.style.backgroundImage=`url("${pumpkinURI(pumpkinVariants[i%3])}")`;
-      const angle = (i/count)*2*Math.PI + Math.random()*0.7;
-      const dist  = (big?360:220) + Math.random()*(big?720:520);
-      const dx=Math.cos(angle)*dist, dy=Math.sin(angle)*dist;
-      const rot=(Math.random()*360-180)+'deg';
-      const dur=2600 + Math.random()*1900;
+      const angle=(i/count)*2*Math.PI+Math.random()*0.7, dist=(big?360:220)+Math.random()*(big?720:520);
+      const dx=Math.cos(angle)*dist, dy=Math.sin(angle)*dist, rot=(Math.random()*360-180)+'deg', dur=3000+Math.random()*2200; /* slower */
       p.animate(
-        [
-          { transform:'translate(-50%,-50%) scale(0.8) rotate(0)', opacity:0.0 },
-          { transform:'translate(-50%,-50%) scale(1.05) rotate(0)', opacity:1.0, offset:0.22 },
-          { transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.12) rotate(${rot})`, opacity:0 }
-        ],
-        { duration:dur, easing:'cubic-bezier(.15,.7,.2,1)', fill:'forwards' }
+        [{transform:'translate(-50%,-50%) scale(0.8) rotate(0)',opacity:0.0},
+         {transform:'translate(-50%,-50%) scale(1.05) rotate(0)',opacity:1.0,offset:0.22},
+         {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.12) rotate(${rot})`,opacity:0}],
+        {duration:dur,easing:'cubic-bezier(.15,.7,.2,1)',fill:'forwards'}
       );
-      document.body.appendChild(p); setTimeout(()=>p.remove(), dur+320);
-    } else if (roll < 0.85){
-      const b=document.createElement('div'); b.className='bat';
-      b.style.backgroundImage=`url("${batImg}")`;
-      const y = 0.1*innerHeight + Math.random()*0.8*innerHeight;
-      b.style.left='-140px'; b.style.top=y+'px';
-      const dur = 5600 + Math.random()*2400;
-      const up = (Math.random() * 14) - 7;
-      b.animate(
-        [{ transform: 'translate(-140px,0) rotate(-8deg)', opacity: 0.98 },
-         { transform: `translate(${innerWidth+160}px, ${up}vh) rotate(12deg)`, opacity: 0.96 }],
-        { duration: dur, easing: 'ease-in-out', fill: 'forwards' }
-      );
-      document.body.appendChild(b); setTimeout(()=>b.remove(), dur+700);
-    } else {
-      const g=document.createElement('div'); g.className='ghost';
-      g.style.backgroundImage=`url("${ghostImg}")`;
-      const x = cx + (Math.random()*2-1) * (big?300:200);
-      const y0 = cy + (Math.random()*80 - 40);
-      g.style.left = x+'px'; g.style.top = (y0+60)+'px';
-      const dur = 3000 + Math.random()*2000;
-      g.animate(
-        [{ transform:'translate(-50%,-50%) scale(0.85)', opacity:0.0 },
-         { transform:'translate(-50%,-60%) scale(1.0)', opacity:0.95, offset:0.22 },
-         { transform:'translate(-50%,-125%) scale(1.06)', opacity:0.0 }],
-        { duration: dur, easing:'ease-out', fill:'forwards' }
-      );
-      document.body.appendChild(g); setTimeout(()=>g.remove(), dur+260);
+      document.body.appendChild(p); setTimeout(()=>p.remove(),dur+400);
+    }else if(roll<0.85){
+      const b=document.createElement('div'); b.className='bat'; b.style.backgroundImage=`url("${batImg}")`;
+      const y=0.1*innerHeight+Math.random()*0.8*innerHeight; b.style.left='-140px'; b.style.top=y+'px';
+      const dur=6200+Math.random()*2600, up=(Math.random()*14)-7;
+      b.animate([{transform:'translate(-140px,0) rotate(-8deg)',opacity:0.98},
+                 {transform:`translate(${innerWidth+160}px, ${up}vh) rotate(12deg)`,opacity:0.96}],
+                 {duration:dur,easing:'ease-in-out',fill:'forwards'});
+      document.body.appendChild(b); setTimeout(()=>b.remove(),dur+800);
+    }else{
+      const g=document.createElement('div'); g.className='ghost'; g.style.backgroundImage=`url("${ghostImg}")`;
+      const x=cx+(Math.random()*2-1)*(big?300:200), y0=cy+(Math.random()*80-40); g.style.left=x+'px'; g.style.top=(y0+60)+'px';
+      const dur=3600+Math.random()*2400;
+      g.animate([{transform:'translate(-50%,-50%) scale(0.85)',opacity:0.0},
+                 {transform:'translate(-50%,-60%) scale(1.0)',opacity:0.95,offset:0.22},
+                 {transform:'translate(-50%,-125%) scale(1.06)',opacity:0.0}],
+                 {duration:dur,easing:'ease-out',fill:'forwards'});
+      document.body.appendChild(g); setTimeout(()=>g.remove(),dur+300);
     }
   }
 }
 
-/* ===== FINALE ===== */
+/* ===== Finale (30s) ===== */
 let finaleTimer=null, finaleInterval=null, fireworksTimer=null;
-function lightning(){
-  const l = document.getElementById('lightning');
-  l.classList.remove('zap'); void l.offsetWidth; l.classList.add('zap');
-}
+function lightning(){ const l=document.getElementById('lightning'); l.classList.remove('zap'); void l.offsetWidth; l.classList.add('zap'); }
 function grandFinale(){
-  const overlay = document.getElementById('finale');
-  overlay.classList.add('show');
-  if (navigator.vibrate) navigator.vibrate([160, 80, 200, 80, 240, 80, 320]); // MUCH STRONGER finale haptics
-
-  const quickExit = () => {
-    overlay.classList.remove('show');
-    document.getElementById('fadeBlack').style.opacity = 0;
-    stopNode(SFX.closingNode); SFX.closingNode=null;
-    const music = document.getElementById('closingMusic');
-    music.pause?.(); music.currentTime = 0;
-    clearInterval(finaleInterval); clearInterval(fireworksTimer); clearTimeout(finaleTimer);
-    overlay.removeEventListener('click', quickExit);
-    restartHunt();
-    startBG();
-  };
-  overlay.addEventListener('click', quickExit);
+  const overlay=document.getElementById('finale'); overlay.classList.add('show');
+  if (navigator.vibrate) navigator.vibrate([160,80,200,80,240,80,320]);
+  const quickExit=()=>{ overlay.classList.remove('show'); document.getElementById('fadeBlack').style.opacity=0;
+    stopNode(SFX.closingNode); SFX.closingNode=null; const music=document.getElementById('closingMusic'); music.pause?.(); music.currentTime=0;
+    clearInterval(finaleInterval); clearInterval(fireworksTimer); clearTimeout(finaleTimer); overlay.removeEventListener('click',quickExit);
+    restartHunt(); startBG(); };
+  overlay.addEventListener('click',quickExit);
 
   stopBG();
-  const st = document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
+  const st=document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
   runSpotlight(); runFireworks(true); runFog();
 
-  spawnBurst(520,true);
-  finaleInterval = setInterval(()=>spawnBurst(260,false), 3000);
+  spawnBurst(580,true);
+  finaleInterval=setInterval(()=>spawnBurst(280,false),3200);
 
-  const music = document.getElementById('closingMusic');
-  if (audioReady) {
-    const buf = SFX.buffers[FILES.closing];
-    if (buf){ SFX.closingNode = playBuf(FILES.closing, 0.7, false); }
-    else { music.volume = 0.7; music.play().catch(()=>{}); }
-  } else {
-    music.volume = 0.7; music.play().catch(()=>{});
-  }
-  const cue = (t, fn)=>setTimeout(fn, t);
+  const music=document.getElementById('closingMusic');
+  if (audioReady && SFX.buffers[FILES.closing]) { SFX.closingNode = playBuf(FILES.closing,0.7,false); } else { music.volume=0.7; music.play().catch(()=>{}); }
+
+  const cue=(t,fn)=>setTimeout(fn,t);
   cue(8000, ()=>{ playHit(); lightning(); });
-  cue(12000, ()=>{ playHit(); });
-  cue(18000, ()=>{ playHit(); lightning(); });
-  cue(24000, ()=>{ playHit(); });
+  cue(12000,()=>{ playHit(); });
+  cue(18000,()=>{ playHit(); lightning(); });
+  cue(24000,()=>{ playHit(); });
 
-  fireworksTimer = setInterval(()=>runFireworks(false), 6000);
+  fireworksTimer=setInterval(()=>runFireworks(false), 6200);
 
   clearTimeout(finaleTimer);
-  finaleTimer = setTimeout(()=>{
+  finaleTimer=setTimeout(()=>{
     clearInterval(finaleInterval); clearInterval(fireworksTimer);
-    stopNode(SFX.closingNode); SFX.closingNode=null;
-    music.pause?.(); music.currentTime = 0;
-    const fb = document.getElementById('fadeBlack'); fb.style.opacity = 1;
-    setTimeout(()=>{
-      overlay.classList.remove('show');
-      fb.style.opacity = 0;
-      overlay.removeEventListener('click', quickExit);
-      restartHunt();
-      startBG();
-    }, 2200);
+    stopNode(SFX.closingNode); SFX.closingNode=null; music.pause?.(); music.currentTime=0;
+    const fb=document.getElementById('fadeBlack'); fb.style.opacity=1;
+    setTimeout(()=>{ overlay.classList.remove('show'); fb.style.opacity=0; overlay.removeEventListener('click',quickExit); restartHunt(); startBG(); }, 2200);
   }, 30000);
 }
 
-/* Fireworks */
+/* Fireworks canvas */
 function runFireworks(big=false){
-  const canvas = document.getElementById('fw'), ctx = canvas.getContext('2d');
+  const canvas=document.getElementById('fw'), ctx=canvas.getContext('2d');
   let w=canvas.width=innerWidth*devicePixelRatio, h=canvas.height=innerHeight*devicePixelRatio;
   const parts=[];
   function addBurst(x,y,color,scale=1){
-    const n=((big?180:120)*scale)|0;
+    const n=((big?200:140)*scale)|0;
     for(let i=0;i<n;i++){
       const ang=Math.random()*Math.PI*2, sp=(1.2+Math.random()*3.6)*(w/1600)*scale;
       parts.push({x,y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:70+Math.random()*40,color,alpha:1});
@@ -537,50 +451,40 @@ function runFireworks(big=false){
     const palette=['#ffd35c','#fff1b8','#ff8a00','#ffe6b3','#ffe07a','#ffffff'];
     addBurst(x,y, palette[Math.floor(Math.random()*palette.length)], scale);
   }
-  wave(1.0); setTimeout(()=>wave(1.2),220); setTimeout(()=>wave(1.0),440); setTimeout(()=>wave(1.6),900);
-  window.addEventListener('resize',()=>{ w=canvas.width=innerWidth*devicePixelRatio; h=canvas.height=innerHeight*devicePixelRatio; });
+  wave(1.0); setTimeout(()=>wave(1.2),250); setTimeout(()=>wave(1.0),500); setTimeout(()=>wave(1.6),950);
+  addEventListener('resize',()=>{ w=canvas.width=innerWidth*devicePixelRatio; h=canvas.height=innerHeight*devicePixelRatio; });
   tick();
   const obs=new MutationObserver(()=>{ if(!document.getElementById('finale').classList.contains('show')){ obs.disconnect(); ctx.clearRect(0,0,w,h);} });
   obs.observe(document.getElementById('finale'),{attributes:true,attributeFilter:['class']});
 }
 
-/* Fog */
+/* Fog canvas */
 function runFog(){
-  const c = document.getElementById('fog'), x = c.getContext('2d');
-  let W = c.width = innerWidth, H = c.height = innerHeight;
-  const img = x.createImageData(W, H); const data = img.data; let t = 0;
-  function noise(nx, ny){
-    function rnd(ix,iy){ const s=Math.sin(ix*127.1+iy*311.7)*43758.5453; return s - Math.floor(s); }
+  const c=document.getElementById('fog'), x=c.getContext('2d');
+  let W=c.width=innerWidth, H=c.height=innerHeight; const img=x.createImageData(W,H); const data=img.data; let t=0;
+  function noise(nx,ny){ function rnd(ix,iy){ const s=Math.sin(ix*127.1+iy*311.7)*43758.5453; return s-Math.floor(s); }
     const x0=Math.floor(nx), y0=Math.floor(ny), xf=nx-x0, yf=ny-y0;
     const v00=rnd(x0,y0), v10=rnd(x0+1,y0), v01=rnd(x0,y0+1), v11=rnd(x0+1,y0+1);
     const u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
-    return (1-u)*(1-v)*v00 + u*(1-v)*v10 + (1-u)*v*v01 + u*v*v11;
-  }
+    return (1-u)*(1-v)*v00 + u*(1-v)*v10 + (1-u)*v*v01 + u*v*v11; }
   function draw(){
-    const s = 0.009; t += 0.003;
-    for(let y=0, i=0; y<H; y++){
-      for(let x0=0; x0<W; x0++, i+=4){
-        const n = noise((x0+t*120)*s, (y+t*60)*s);
-        const v = 220 + n*25;
-        data[i]=v; data[i+1]=v; data[i+2]=v; data[i+3]=38;
-      }
-    }
+    const s=0.009; t+=0.003;
+    for(let y=0,i=0;y<H;y++){ for(let x0=0;x0<W;x0++,i+=4){
+      const n=noise((x0+t*120)*s,(y+t*60)*s), v=220+n*25; data[i]=v; data[i+1]=v; data[i+2]=v; data[i+3]=38; }}
     x.putImageData(img,0,0);
     if(document.getElementById('finale').classList.contains('show')) requestAnimationFrame(draw);
   }
-  draw();
-  addEventListener('resize',()=>{ W=c.width=innerWidth; H=c.height=innerHeight; });
+  draw(); addEventListener('resize',()=>{ W=c.width=innerWidth; H=c.height=innerHeight; });
 }
 
 /* Spotlight */
 function runSpotlight(){
   const spot=document.getElementById('spot'); let t=0;
-  (function step(){ t+=0.015; spot.style.setProperty('--x', (50+Math.sin(t)*30)+'%'); spot.style.setProperty('--y',(30+Math.cos(t*0.7)*8)+'%');
-    if(document.getElementById('finale').classList.contains('show')) requestAnimationFrame(step);
-  })();
+  (function step(){ t+=0.015; spot.style.setProperty('--x',(50+Math.sin(t)*30)+'%'); spot.style.setProperty('--y',(30+Math.cos(t*0.7)*8)+'%');
+    if(document.getElementById('finale').classList.contains('show')) requestAnimationFrame(step); })();
 }
 
-/* BOOT */
+/* Boot */
 render();
 </script>
 </body>
