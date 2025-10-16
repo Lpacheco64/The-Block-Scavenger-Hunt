@@ -14,14 +14,10 @@
   .card{background:var(--card);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:16px}
   .btn{border-radius:14px;padding:14px 18px;font-weight:700;background:#ff6600;color:#000}
   video{border-radius:12px}
-
-  /* celebratory sprites */
   .pump,.bat,.ghost{position:fixed;pointer-events:none;z-index:1000;background-size:100% 100%;background-repeat:no-repeat;will-change:transform,opacity}
   .pump{filter:drop-shadow(0 0 10px rgba(255,240,190,.9))}
   .bat {width:70px;height:36px;filter:drop-shadow(0 0 6px rgba(255,240,200,.7))}
   .ghost{width:52px;height:64px;filter:drop-shadow(0 0 10px rgba(255,255,255,.6))}
-
-  /* finale */
   #finale{position:fixed;inset:0;display:none;z-index:2000;background:radial-gradient(1400px 700px at 50% 30%, rgba(255,128,0,.10), rgba(0,0,0,.95))}
   #finale.show{display:block}
   #fw,#fog{position:absolute;inset:0;width:100%;height:100%}
@@ -33,23 +29,15 @@
   .zap{animation:zap .6s ease-out}
   @keyframes zap{0%{opacity:0}10%{opacity:.95;background:radial-gradient(800px 400px at 40% 30%, rgba(255,255,255,.95), rgba(255,255,255,0) 60%)}25%{opacity:0}40%{opacity:.9;background:radial-gradient(600px 300px at 70% 20%, rgba(255,255,255,.9), rgba(255,255,255,0) 60%)}100%{opacity:0}}
   #fadeBlack{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:3000;transition:opacity 2s ease}
-
   #audioGate{position:fixed;inset:auto 0 16px 0;display:flex;justify-content:center;pointer-events:none;z-index:3000}
   #audioGate button{pointer-events:auto;background:#ffd35c;color:#000;font-weight:800;border-radius:999px;padding:.6rem 1rem;box-shadow:0 10px 30px rgba(255,200,90,.35);border:none}
-
   #errToast{position:fixed;left:12px;bottom:12px;z-index:4000;background:#111827;color:#fef3c7;border:1px solid #374151;border-radius:10px;padding:10px 12px;font:12px/1.3 monospace;max-width:90vw;white-space:pre-wrap}
-
-  @media print {
-    body { background: #fff; }
-    .card { box-shadow: none; border: 1px solid #ddd; }
-    #audioGate, #finale, #lightning, #fadeBlack { display: none !important; }
-  }
+  @media print { body { background:#fff } .card{box-shadow:none;border:1px solid #ddd} #audioGate,#finale,#lightning,#fadeBlack{display:none!important} }
 </style>
 </head>
 <body>
   <div id="game" class="max-w-md mx-auto space-y-4"></div>
 
-  <!-- Finale overlay -->
   <div id="finale" aria-hidden="true">
     <canvas id="fw"></canvas>
     <canvas id="fog"></canvas>
@@ -59,22 +47,21 @@
   <div id="lightning"></div>
   <div id="fadeBlack"></div>
 
-  <!-- iOS audio unlock -->
   <div id="audioGate"><button onclick="enableSFX()">Enable Sound</button></div>
 
-  <!-- Audio tags (fallback for bg/finale if WebAudio not ready) -->
+  <!-- Fallback <audio> tags if WebAudio isn’t ready -->
   <audio id="closingMusic" src="halloween-spooky-music-411457.mp3"></audio>
   <audio id="bgFallback" src="halloween-349615.mp3" loop style="display:none"></audio>
+  <!-- Your recorded witch message -->
+  <audio id="witchMessageEl" src="your-witch-message.mp3" preload="auto"></audio>
 
 <script>
-/* ===== Tiny toast for runtime issues (helps testing on phones) ===== */
 function toast(msg){ const t=document.createElement('div'); t.id='errToast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),6000); }
 window.addEventListener('error', e=> toast('Error: ' + (e?.message||e)));
 window.addEventListener('unhandledrejection', e=> toast('Promise: ' + (e?.reason?.message||e.reason||e)));
 
-/* ===== Event & Stops (Top of the Block removed) ===== */
-const EVENT_ID = "haunted-block-2025";
-const STOPS = [
+const EVENT_ID="haunted-block-2025";
+const STOPS=[
   { id:"stop-el-chamo",              business:"El Chamo",                 title:"Venezuelan Vampire Bites",     riddle:"A hungry vampire craves arepas—follow the smell of sizzling corn cakes!" },
   { id:"stop-kukri",                 business:"Kukri",                    title:"Crispy Chicken Crown",          riddle:"A raven guards a crispy crown—find the throne of the mighty chicken!" },
   { id:"stop-stackers",              business:"Stackers",                 title:"Tower of Treats",               riddle:"Towering patties rise like midnight moons—seek the tallest stack!" },
@@ -92,56 +79,49 @@ const STOPS = [
   { id:"stop-candy-bar",             business:"The Candy Bar",            title:"Trick-or-Treat Counter",        riddle:"Count the sweets if you dare—trick-or-treats await your stare." }
 ];
 
-/* ===== State & UI ===== */
-const KEY = k => `${EVENT_ID}:${k}`;
-let team = localStorage.getItem(KEY('team')) || '';
-let index = parseInt(localStorage.getItem(KEY('index'))||'0',10);
-function save(){ localStorage.setItem(KEY('team'), team); localStorage.setItem(KEY('index'), String(index)); }
-const wrapCard = inner => `<div class="card">${inner}</div>`;
+const KEY=k=>`${EVENT_ID}:${k}`;
+let team=localStorage.getItem(KEY('team'))||'';
+let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
+function save(){ localStorage.setItem(KEY('team'),team); localStorage.setItem(KEY('index'),String(index)); }
+const wrapCard=inner=>`<div class="card">${inner}</div>`;
 
 function render(){
-  const root = document.getElementById('game');
-  const params = new URL(location.href).searchParams;
-  if (params.get('print') === '1') { renderPrintPack(); return; }
+  const root=document.getElementById('game');
+  const params=new URL(location.href).searchParams;
+  if(params.get('print')==='1'){ renderPrintPack(); return; }
 
   if(!team){
-    root.innerHTML = wrapCard(`
+    root.innerHTML=wrapCard(`
       <h1 class="text-xl font-bold mb-1">Haunted Block Hunt</h1>
       <p class="text-sm text-gray-400 mb-3">Enter your team name to begin. Visit each business, scan the QR, and unlock the next clue.</p>
       <input id="teamInput" class="w-full px-3 py-3 rounded-lg border border-zinc-700 bg-zinc-900" placeholder="Team name">
-      <button class="btn w-full mt-3" onclick="startTeam()">Start Hunt</button>
-    `);
+      <button class="btn w-full mt-3" onclick="startTeam()">Start Hunt</button>`);
     return;
   }
 
   if(index<STOPS.length){
-    const c = STOPS[index];
-    root.innerHTML =
-      wrapCard(`<h2 class="text-lg font-bold">${c.title}</h2><p>${c.riddle}</p>`) +
+    const c=STOPS[index];
+    root.innerHTML=
+      wrapCard(`<h2 class="text-lg font-bold">${c.title}</h2><p>${c.riddle}</p>`)+
       wrapCard(`
         <div class="text-sm text-gray-400 mb-2">Scan the checkpoint QR at <strong>${c.business}</strong></div>
         <div id="camera" class="overflow-hidden rounded-lg border border-zinc-700">
           <video id="preview" style="width:100%;height:auto" autoplay muted playsinline></video>
         </div>
-        <div class="text-xs text-gray-500 mt-2">If the camera doesn’t start, allow camera permissions and ensure you’re using HTTPS.</div>
-      `);
+        <div class="text-xs text-gray-500 mt-2">If the camera doesn’t start, allow camera permissions and ensure you’re using HTTPS.</div>`);
     startScanner(c.id);
-  } else {
+  }else{
     grandFinale();
   }
 }
-function startTeam(){
-  const inp = document.getElementById('teamInput');
-  team = (inp.value||'').trim(); index=0; save(); render();
-  startBG(); // start bg music right after Enable Sound (per your preference) — also called here in case sound was enabled earlier
-}
+function startTeam(){ const inp=document.getElementById('teamInput'); team=(inp.value||'').trim(); index=0; save(); render(); startBG(); }
 function restartHunt(){ index=0; save(); render(); }
 
-/* ===== Print Pack (participant START + each stop) ===== */
+/* Print Pack */
 function renderPrintPack(){
-  document.title = 'Haunted Block Hunt — Print Pack';
-  const root = document.getElementById('game');
-  root.innerHTML = `
+  document.title='Haunted Block Hunt — Print Pack';
+  const root=document.getElementById('game');
+  root.innerHTML=`
     <div class="card">
       <div class="flex items-center justify-between">
         <h1 class="text-xl font-bold">Print Pack</h1>
@@ -149,93 +129,80 @@ function renderPrintPack(){
       </div>
       <p class="text-sm text-gray-400 mt-2">Includes a START QR (participant URL) and one for each stop.</p>
     </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3" id="qrGrid"></div>
-  `;
-  const grid = document.getElementById('qrGrid');
-
-  const startURL = location.origin + location.pathname;
-  const startCard = document.createElement('div');
-  startCard.className = 'card';
-  startCard.innerHTML = `
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3" id="qrGrid"></div>`;
+  const grid=document.getElementById('qrGrid');
+  const startURL=location.origin+location.pathname;
+  const startCard=document.createElement('div');
+  startCard.className='card';
+  startCard.innerHTML=`
     <div class="text-xs text-gray-400">START</div>
     <div class="font-bold mb-2">Scan to Begin</div>
     <div id="qr-start" class="flex items-center justify-center my-3"></div>
     <div class="text-[11px] text-gray-400 break-all">${startURL}</div>`;
   grid.appendChild(startCard);
-  new QRCode(document.getElementById('qr-start'), { text:startURL, width:220, height:220, correctLevel:QRCode.CorrectLevel.M });
-
+  new QRCode(document.getElementById('qr-start'),{ text:startURL, width:220, height:220, correctLevel:QRCode.CorrectLevel.M });
   STOPS.forEach(s=>{
-    const card=document.createElement('div');
-    card.className='card';
-    card.innerHTML=`
-      <div class="text-xs text-gray-400">${s.business}</div>
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`<div class="text-xs text-gray-400">${s.business}</div>
       <div class="font-bold">${s.title}</div>
       <div id="qr-${s.id}" class="flex items-center justify-center my-3"></div>
       <div class="text-[11px] text-gray-400 break-all">${s.id}</div>`;
     grid.appendChild(card);
-    new QRCode(document.getElementById(`qr-${s.id}`), { text:s.id, width:220, height:220, correctLevel:QRCode.CorrectLevel.M });
+    new QRCode(document.getElementById(`qr-${s.id}`),{ text:s.id, width:220, height:220, correctLevel:QRCode.CorrectLevel.M });
   });
 }
 
-/* ===== Scanner (robust + iOS-friendly) ===== */
+/* Scanner */
 let codeReader; let scanLock=false;
 function normalizeQRText(t){ return (''+t).trim().toLowerCase(); }
-
 async function startScanner(expectedId){
   stopScanner(); scanLock=false;
-  const expectedNorm = normalizeQRText(expectedId);
-  const v = document.getElementById('preview');
-  if (!v) { showCamError(new TypeError('preview <video> not found')); return; }
-  if (!navigator.mediaDevices?.getUserMedia) { showCamError(new TypeError('getUserMedia not available (HTTPS/permission?)')); return; }
+  const expectedNorm=normalizeQRText(expectedId);
+  const v=document.getElementById('preview');
+  if(!v){ showCamError(new TypeError('preview <video> not found')); return; }
+  if(!navigator.mediaDevices?.getUserMedia){ showCamError(new TypeError('getUserMedia not available (HTTPS/permission?)')); return; }
 
   try{
-    const warm = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'} }, audio:false });
-    v.srcObject = warm; await v.play().catch(()=>{});
+    const warm=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+    v.srcObject=warm; await v.play().catch(()=>{});
+    let deviceId=null;
+    try{ const devices=await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
+      if(devices?.length){ const back=devices.find(d=>/back|rear|environment/i.test(d.label)); deviceId=(back||devices.at(-1)).deviceId; }
+    }catch(e){ console.warn('Device list error:',e); }
 
-    let deviceId = null;
-    try{
-      const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-      if (devices?.length){ const back = devices.find(d=>/back|rear|environment/i.test(d.label)); deviceId=(back||devices.at(-1)).deviceId; }
-    }catch(e){ console.warn('Device list error:', e); }
-
-    codeReader = new ZXing.BrowserMultiFormatReader();
-    await codeReader.decodeFromVideoDevice(deviceId, 'preview', (result, err)=>{
-      if (!result || scanLock) return;
-      const got = normalizeQRText(result.getText());
-      if (got !== expectedNorm) return;
-
-      scanLock = true;
-      spawnBurst(220,false);
+    codeReader=new ZXing.BrowserMultiFormatReader();
+    await codeReader.decodeFromVideoDevice(deviceId,'preview',(result,err)=>{
+      if(!result||scanLock) return;
+      const got=normalizeQRText(result.getText());
+      if(got!==expectedNorm) return;
+      scanLock=true;
+      spawnBurst(240,false);
       playHit();
-      if (navigator.vibrate) navigator.vibrate([120,70,160,70,240]); // stronger haptics
+      if(navigator.vibrate) navigator.vibrate([120,70,160,70,240]);
       index++; save(); stopScanner();
-      setTimeout(render, 850);
+      setTimeout(render,850);
     });
   }catch(e){ showCamError(e); }
 }
 function stopScanner(){
   try{ codeReader?.reset(); }catch{}
-  try{
-    const v=document.getElementById('preview'); const s=v?.srcObject;
-    if (s?.getTracks) s.getTracks().forEach(t=>t.stop());
-    if (v) v.srcObject=null;
-  }catch{}
+  try{ const v=document.getElementById('preview'); const s=v?.srcObject; if(s?.getTracks) s.getTracks().forEach(t=>t.stop()); if(v) v.srcObject=null; }catch{}
 }
 function showCamError(e){
-  console.error('Camera error:', e);
-  const msg = (e && (e.name||e.message)) ? (e.name + (e.message?(': '+e.message):'')) : String(e);
+  console.error('Camera error:',e);
+  const msg=(e&&(e.name||e.message))?(e.name+(e.message?(': '+e.message):'')):String(e);
   let hint='';
-  if (/NotAllowedError|Permission/i.test(msg)) hint=' • Camera permission blocked. Allow in site settings, then reload.';
-  else if (/NotFoundError|Overconstrained|NotReadable/i.test(msg)) hint=' • No camera found or already in use.';
-  else if (/SecurityError/i.test(msg)) hint=' • Needs HTTPS (use your GitHub Pages URL).';
-  else if (/TypeError/i.test(msg)) hint=' • Element/stream missing.';
+  if(/NotAllowedError|Permission/i.test(msg)) hint=' • Camera permission blocked. Allow in site settings, then reload.';
+  else if(/NotFoundError|Overconstrained|NotReadable/i.test(msg)) hint=' • No camera found or already in use.';
+  else if(/SecurityError/i.test(msg)) hint=' • Needs HTTPS (use your GitHub Pages URL).';
+  else if(/TypeError/i.test(msg)) hint=' • Element/stream missing.';
   document.getElementById('camera')?.insertAdjacentHTML('afterend', `<div class="text-xs text-red-300 mt-2">Camera error: ${msg}${hint}</div>`);
 }
 
-/* ===== Audio (iOS unlock + SFX + BG loop) ===== */
+/* Audio (iOS unlock + BG + SFX + Finale layering) */
 let AC, masterGain, audioReady=false;
-const FILES = {
-  hits: [
+const FILES={
+  hits:[
     'witch-laugh-95203.mp3',
     'ghoul-ghost-scares-169233.mp3',
     'creepy-wind-410541.mp3',
@@ -243,81 +210,71 @@ const FILES = {
     'scary-transition-401717.mp3',
     'halloween-wolf-howling-410542.mp3'
   ],
-  closing: 'halloween-spooky-music-411457.mp3',
-  bg: 'halloween-349615.mp3'
+  closing:'halloween-spooky-music-411457.mp3', // finale underscore
+  bg:'halloween-349615.mp3',                   // background loop
+  witch:'your-witch-message.mp3'               // your recorded message
 };
-const SFX = { buffers:{}, closingNode:null, bgNode:null };
-const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+const SFX={buffers:{}, closingNode:null, bgNode:null, witchNode:null};
+const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
 
 async function enableSFX(){
-  if (audioReady) return;
-  const Ctx = window.AudioContext||window.webkitAudioContext; if(!Ctx){ document.getElementById('audioGate')?.remove(); return; }
-  AC = AC || new Ctx();
-  if (AC.state==='suspended'){ try{ await AC.resume(); }catch{} }
-  masterGain = masterGain || AC.createGain();
-  masterGain.gain.value = 1.0; masterGain.connect(AC.destination);
-  audioReady = true;
-  // Preload into WebAudio
-  [...FILES.hits, FILES.closing, FILES.bg].forEach(url=>loadBuf(url));
-  // Tap-confirmed tiny click to fully unlock on iOS
-  const osc = AC.createOscillator(); const g = AC.createGain(); g.gain.value=0.0001; osc.connect(g); g.connect(masterGain); osc.start(); osc.stop(AC.currentTime+0.02);
-  // Start BG immediately after Enable Sound (your preference)
-  setTimeout(()=>{ startBG(); document.getElementById('bgFallback').play().catch(()=>{}); }, 100);
+  if(audioReady) return;
+  const Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx){ document.getElementById('audioGate')?.remove(); return; }
+  AC=AC||new Ctx(); if(AC.state==='suspended'){ try{ await AC.resume(); }catch{} }
+  masterGain=masterGain||AC.createGain(); masterGain.gain.value=1.0; masterGain.connect(AC.destination);
+  audioReady=true;
+  [...FILES.hits, FILES.closing, FILES.bg, FILES.witch].forEach(url=>loadBuf(url));
+  // tiny click to fully unlock iOS
+  const osc=AC.createOscillator(), g=AC.createGain(); g.gain.value=0.0001; osc.connect(g); g.connect(masterGain); osc.start(); osc.stop(AC.currentTime+0.02);
+  setTimeout(()=>{ startBG(); document.getElementById('bgFallback').play().catch(()=>{}); },100);
   document.getElementById('audioGate')?.remove();
 }
 window.addEventListener('pointerdown', ()=>{ if(!audioReady) enableSFX(); }, {once:true,capture:true});
 
 async function loadBuf(url){
-  try{
-    const res = await fetch(url, {cache:'force-cache'}); if(!res.ok) return;
-    const arr = await res.arrayBuffer();
-    const buf = await new Promise((ok,no)=>AC.decodeAudioData(arr, ok, no));
-    SFX.buffers[url] = buf;
+  try{ const res=await fetch(url,{cache:'force-cache'}); if(!res.ok) return;
+    const arr=await res.arrayBuffer();
+    const buf=await new Promise((ok,no)=>AC.decodeAudioData(arr,ok,no));
+    SFX.buffers[url]=buf;
   }catch{}
 }
-function playBuf(url, vol=1, loop=false){
+function playBuf(url,vol=1,loop=false,offset=0){
   const buf=SFX.buffers[url]; if(!AC||!buf) return null;
-  const src=AC.createBufferSource(); const g=AC.createGain();
-  g.gain.value = vol; src.buffer=buf; src.loop=loop;
-  src.connect(g); g.connect(masterGain); src.start();
-  return {src,g};
+  const src=AC.createBufferSource(), g=AC.createGain(); g.gain.value=vol; src.buffer=buf; src.loop=loop;
+  src.connect(g); g.connect(masterGain); src.start(0, offset); return {src,g};
 }
-function stopNode(n){ try{n?.src?.stop(); n?.g?.disconnect();}catch{} }
-function playHit(){ const url = pick(FILES.hits); if (audioReady && SFX.buffers[url]) { playBuf(url,1,false); duckBG(1500,0.08); } }
+function stopNode(n){ try{ n?.src?.stop(); n?.g?.disconnect(); }catch{} }
 
 function startBG(){
-  const el = document.getElementById('bgFallback');
-  if (audioReady && !SFX.bgNode && SFX.buffers[FILES.bg]){
-    const node = playBuf(FILES.bg, 0.25, true);
-    if (node?.src?.buffer?.duration){ node.src.loopStart=0.0; node.src.loopEnd=node.src.buffer.duration-0.05; }
-    SFX.bgNode=node; try{ el.pause(); el.currentTime=0; }catch{}
-    return;
+  const el=document.getElementById('bgFallback');
+  if(audioReady && !SFX.bgNode && SFX.buffers[FILES.bg]){
+    const node=playBuf(FILES.bg,0.25,true);
+    if(node?.src?.buffer?.duration){ node.src.loopStart=0; node.src.loopEnd=node.src.buffer.duration-0.05; }
+    SFX.bgNode=node; try{ el.pause(); el.currentTime=0; }catch{}; return;
   }
   try{ el.volume=0.22; el.play().catch(()=>{}); }catch{}
 }
 function stopBG(){
-  if (SFX.bgNode){ stopNode(SFX.bgNode); SFX.bgNode=null; }
+  if(SFX.bgNode){ stopNode(SFX.bgNode); SFX.bgNode=null; }
   const el=document.getElementById('bgFallback'); try{ el.pause(); el.currentTime=0; }catch{}
 }
-function duckBG(ms=1200,to=0.10){
-  const el=document.getElementById('bgFallback');
-  if (SFX.bgNode && AC){
-    const g=SFX.bgNode.g, now=AC.currentTime;
-    try{ g.gain.cancelScheduledValues(now); g.gain.linearRampToValueAtTime(to, now+0.05); g.gain.linearRampToValueAtTime(0.25, now+ms/1000);}catch{}
+function duck(node,ms=1200,to=0.12,back=0.25){
+  if(node?.g && AC){
+    const g=node.g, now=AC.currentTime;
+    try{ g.gain.cancelScheduledValues(now); g.gain.linearRampToValueAtTime(to, now+0.05); g.gain.linearRampToValueAtTime(back, now+ms/1000); }catch{}
   } else {
-    try{ el.volume=to; setTimeout(()=>{ el.volume=0.22; }, ms); }catch{}
+    const el=document.getElementById('bgFallback');
+    try{ el.volume=to; setTimeout(()=>{ el.volume=back; }, ms); }catch{}
   }
 }
+function playHit(){ const url=pick(FILES.hits); if(audioReady && SFX.buffers[url]){ playBuf(url,1,false); duck(SFX.bgNode,1500,0.08,0.25); } }
 
-/* ===== Pumpkins/Bats/Ghosts burst ===== */
+/* Visual Sprites */
 function pumpkinURI(variant='orange'){
-  const faces=[
-    `<path d="M24 34 q4 -3 8 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.2" fill="#1a1206"/><circle cx="38" cy="30" r="2.2" fill="#1a1206"/>`,
-    `<path d="M22 38 q10 6 20 0" fill="none" stroke="#1a1206" stroke-width="3.2" stroke-linecap="round"/><path d="M24 30 l4 3 l-4 3 z" fill="#1a1206"/><path d="M40 30 l4 3 l-4 3 z" fill="#1a1206"/>`,
-    `<path d="M24 38 q8 -6 16 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.8" fill="#1a1206"/><rect x="36" y="28" width="5" height="5" fill="#1a1206" rx="1"/>`
-  ];
-  const showFace = Math.random()<0.18;
-  const faceSVG = showFace ? faces[Math.floor(Math.random()*faces.length)] : '';
+  const faces=[`<path d="M24 34 q4 -3 8 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.2" fill="#1a1206"/><circle cx="38" cy="30" r="2.2" fill="#1a1206"/>`,
+               `<path d="M22 38 q10 6 20 0" fill="none" stroke="#1a1206" stroke-width="3.2" stroke-linecap="round"/><path d="M24 30 l4 3 l-4 3 z" fill="#1a1206"/><path d="M40 30 l4 3 l-4 3 z" fill="#1a1206"/>`,
+               `<path d="M24 38 q8 -6 16 0" fill="none" stroke="#1a1206" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="30" r="2.8" fill="#1a1206"/><rect x="36" y="28" width="5" height="5" fill="#1a1206" rx="1"/>`];
+  const showFace=Math.random()<0.18; const faceSVG=showFace?faces[Math.floor(Math.random()*faces.length)]:'';
   let gradTop='#ffe8b3',gradMid='#ffb347',gradBot='#b25a00',stroke='#6e3a00';
   if(variant==='white'){gradTop='#ffffff';gradMid='#f0f0f0';gradBot='#bdbdbd';stroke='#6f6f6f'}
   if(variant==='green'){gradTop='#e8ffd9';gradMid='#b7ff89';gradBot='#337000';stroke='#2a5700'}
@@ -330,8 +287,7 @@ function pumpkinURI(variant='orange'){
     <path d="M28 20 q-6 16 0 32" fill="none" stroke="${stroke}" stroke-opacity=".35" stroke-width="1.6"/>
     <path d="M36 20 q6 16 0 32"  fill="none" stroke="${stroke}" stroke-opacity=".35" stroke-width="1.6"/>
     <path d="M42 22 q6 14 0 28"  fill="none" stroke="${stroke}" stroke-opacity=".35" stroke-width="1.6"/>
-    ${faceSVG}
-  </svg>`;
+    ${faceSVG}</svg>`;
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 function batURI(){ const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32">
@@ -346,7 +302,7 @@ function ghostURI(){ const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox=
   <circle cx="26" cy="30" r="3" fill="#2f3350"/><circle cx="38" cy="30" r="3" fill="#2f3350"/></svg>`;
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
-function spawnBurst(count=220,big=false){
+function spawnBurst(count=240,big=false){
   const cx=innerWidth*(0.35+Math.random()*0.3), cy=innerHeight*(0.35+Math.random()*0.3);
   const batImg=batURI(), ghostImg=ghostURI(), pumpkinVariants=['orange','white','green'];
   for(let i=0;i<count;i++){
@@ -357,7 +313,7 @@ function spawnBurst(count=220,big=false){
       p.style.width=size+'px'; p.style.height=size+'px'; p.style.left=cx+'px'; p.style.top=cy+'px';
       p.style.backgroundImage=`url("${pumpkinURI(pumpkinVariants[i%3])}")`;
       const angle=(i/count)*2*Math.PI+Math.random()*0.7, dist=(big?360:220)+Math.random()*(big?720:520);
-      const dx=Math.cos(angle)*dist, dy=Math.sin(angle)*dist, rot=(Math.random()*360-180)+'deg', dur=3000+Math.random()*2200; /* slower */
+      const dx=Math.cos(angle)*dist, dy=Math.sin(angle)*dist, rot=(Math.random()*360-180)+'deg', dur=3000+Math.random()*2200;
       p.animate(
         [{transform:'translate(-50%,-50%) scale(0.8) rotate(0)',opacity:0.0},
          {transform:'translate(-50%,-50%) scale(1.05) rotate(0)',opacity:1.0,offset:0.22},
@@ -386,46 +342,98 @@ function spawnBurst(count=220,big=false){
   }
 }
 
-/* ===== Finale (30s) ===== */
+/* Finale (music+SFX for a few seconds, duck, play witch message, then resume music) */
 let finaleTimer=null, finaleInterval=null, fireworksTimer=null;
 function lightning(){ const l=document.getElementById('lightning'); l.classList.remove('zap'); void l.offsetWidth; l.classList.add('zap'); }
+
 function grandFinale(){
   const overlay=document.getElementById('finale'); overlay.classList.add('show');
-  if (navigator.vibrate) navigator.vibrate([160,80,200,80,240,80,320]);
-  const quickExit=()=>{ overlay.classList.remove('show'); document.getElementById('fadeBlack').style.opacity=0;
-    stopNode(SFX.closingNode); SFX.closingNode=null; const music=document.getElementById('closingMusic'); music.pause?.(); music.currentTime=0;
-    clearInterval(finaleInterval); clearInterval(fireworksTimer); clearTimeout(finaleTimer); overlay.removeEventListener('click',quickExit);
-    restartHunt(); startBG(); };
-  overlay.addEventListener('click',quickExit);
-
-  stopBG();
+  if(navigator.vibrate) navigator.vibrate([160,80,200,80,240,80,320]);
   const st=document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
   runSpotlight(); runFireworks(true); runFog();
 
-  spawnBurst(580,true);
-  finaleInterval=setInterval(()=>spawnBurst(280,false),3200);
+  spawnBurst(600,true);
+  finaleInterval=setInterval(()=>spawnBurst(320,false),3200);
 
-  const music=document.getElementById('closingMusic');
-  if (audioReady && SFX.buffers[FILES.closing]) { SFX.closingNode = playBuf(FILES.closing,0.7,false); } else { music.volume=0.7; music.play().catch(()=>{}); }
+  // Start/continue finale underscore music
+  const closingEl=document.getElementById('closingMusic');
+  if(audioReady && SFX.buffers[FILES.closing]){ SFX.closingNode=playBuf(FILES.closing,0.7,false); }
+  else { closingEl.volume=0.7; closingEl.play().catch(()=>{}); }
 
+  // Let music & SFX run for a few seconds
+  setTimeout(()=>{
+    // Duck both BG and closing music
+    duck(SFX.bgNode, 8000, 0.08, 0.20);
+    if(SFX.closingNode){ duck(SFX.closingNode, 8000, 0.12, 0.35); }
+    else { closingEl.volume = 0.35; setTimeout(()=>closingEl.volume=0.7, 8000); }
+
+    // Play your recorded witch message OVER the music
+    playWitchMessage().catch(()=>{});
+  }, 3000);
+
+  // Extra stingers + lightning during finale
   const cue=(t,fn)=>setTimeout(fn,t);
   cue(8000, ()=>{ playHit(); lightning(); });
   cue(12000,()=>{ playHit(); });
   cue(18000,()=>{ playHit(); lightning(); });
   cue(24000,()=>{ playHit(); });
 
+  // Additional fireworks waves
   fireworksTimer=setInterval(()=>runFireworks(false), 6200);
 
+  // Auto-finish at ~30s
   clearTimeout(finaleTimer);
-  finaleTimer=setTimeout(()=>{
-    clearInterval(finaleInterval); clearInterval(fireworksTimer);
-    stopNode(SFX.closingNode); SFX.closingNode=null; music.pause?.(); music.currentTime=0;
-    const fb=document.getElementById('fadeBlack'); fb.style.opacity=1;
-    setTimeout(()=>{ overlay.classList.remove('show'); fb.style.opacity=0; overlay.removeEventListener('click',quickExit); restartHunt(); startBG(); }, 2200);
-  }, 30000);
+  finaleTimer=setTimeout(()=>finishFinale(), 30000);
+
+  // Tap/click to exit early
+  const quickExit=()=>{ cleanupFinale(); restartHunt(); startBG(); overlay.removeEventListener('click',quickExit); };
+  overlay.addEventListener('click', quickExit);
 }
 
-/* Fireworks canvas */
+async function playWitchMessage(){
+  const witchEl=document.getElementById('witchMessageEl');
+  if(audioReady && SFX.buffers[FILES.witch]){
+    // Play via WebAudio for iOS reliability
+    SFX.witchNode=playBuf(FILES.witch, 1.0, false);
+    const dur = SFX.buffers[FILES.witch].duration;
+    setTimeout(()=>{ // fade music back up after message
+      if(SFX.bgNode?.g){ try{ SFX.bgNode.g.gain.linearRampToValueAtTime(0.25, AC.currentTime+0.6);}catch{} }
+      const closingEl=document.getElementById('closingMusic');
+      if(SFX.closingNode?.g){ try{ SFX.closingNode.g.gain.linearRampToValueAtTime(0.7, AC.currentTime+0.6);}catch{} }
+      else { try{ closingEl.volume=0.7; }catch{} }
+    }, (dur*1000)+200);
+  }else{
+    // Fallback: HTMLAudioElement
+    try{
+      await witchEl.play();
+      witchEl.onended=()=>{
+        try{
+          const el=document.getElementById('bgFallback');
+          el.volume=0.22;
+          const closing=document.getElementById('closingMusic'); closing.volume=0.7;
+        }catch{}
+      };
+    }catch(e){ console.warn('Witch message play error', e); }
+  }
+}
+
+function finishFinale(){
+  clearInterval(finaleInterval); clearInterval(fireworksTimer);
+  const music=document.getElementById('closingMusic');
+  stopNode(SFX.closingNode); SFX.closingNode=null; music.pause?.(); music.currentTime=0;
+  const fb=document.getElementById('fadeBlack'); fb.style.opacity=1;
+  setTimeout(()=>{ cleanupFinale(); restartHunt(); startBG(); }, 1800);
+}
+function cleanupFinale(){
+  const overlay=document.getElementById('finale');
+  overlay.classList.remove('show');
+  document.getElementById('fadeBlack').style.opacity=0;
+  stopNode(SFX.witchNode); SFX.witchNode=null;
+  stopNode(SFX.closingNode); SFX.closingNode=null;
+  try{ const music=document.getElementById('closingMusic'); music.pause?.(); music.currentTime=0; }catch{}
+}
+
+/* Fireworks */
 function runFireworks(big=false){
   const canvas=document.getElementById('fw'), ctx=canvas.getContext('2d');
   let w=canvas.width=innerWidth*devicePixelRatio, h=canvas.height=innerHeight*devicePixelRatio;
@@ -458,7 +466,7 @@ function runFireworks(big=false){
   obs.observe(document.getElementById('finale'),{attributes:true,attributeFilter:['class']});
 }
 
-/* Fog canvas */
+/* Fog */
 function runFog(){
   const c=document.getElementById('fog'), x=c.getContext('2d');
   let W=c.width=innerWidth, H=c.height=innerHeight; const img=x.createImageData(W,H); const data=img.data; let t=0;
