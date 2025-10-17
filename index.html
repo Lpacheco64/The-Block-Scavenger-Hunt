@@ -81,10 +81,10 @@
   <!-- Audio -->
   <audio id="closingMusic" src="halloween-spooky-music-411457.mp3"></audio>
   <audio id="bgFallback" src="halloween-349615.mp3" loop style="display:none"></audio>
-  <!-- Your final closing message (m4a primary; mp4 fallback if you also upload it) -->
-  <audio id="witchMessageEl" preload="auto">
-    <source src="final-closing.m4a" type="audio/mp4">
-    <source src="final-closing.mp4" type="audio/mp4">
+  <!-- Final closing message (space is URL-encoded to %20) -->
+  <audio id="witchMessageEl" preload="auto" playsinline crossorigin="anonymous">
+    <source src="final%20closing.m4a" type="audio/mp4">
+    <source src="final%20closing.mp4" type="audio/mp4">
   </audio>
 
 <script>
@@ -208,7 +208,7 @@ async function startScanner(expectedId){
       const got=normalizeQRText(result.getText());
       if(got!==expectedNorm) return;
       scanLock=true;
-      celebrateSmall(); // lanterns/fireflies/ribbons + bats
+      celebrateSmall();
       playHit();
       if(navigator.vibrate) navigator.vibrate([140,70,200,70,260]);
       index++; save(); stopScanner();
@@ -240,7 +240,7 @@ const FILES={
   ],
   closing:'halloween-spooky-music-411457.mp3',
   bg:'halloween-349615.mp3',
-  witch:'final-closing.m4a'
+  witch:'final%20closing.m4a'   // URL-encoded space
 };
 const SFX={buffers:{}, closingNode:null, bgNode:null, witchNode:null};
 const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
@@ -294,7 +294,7 @@ function duck(node,ms=1600,to=0.10,back=0.25){
     try{ el.volume=to; setTimeout(()=>{ el.volume=back; }, ms); }catch{}
   }
 }
-function playHit(){ const url=pick(FILES.hits); if(audioReady && SFX.buffers[url]){ playBuf(url,1,false); duck(SFX.bgNode,2000,0.08,0.25); } }
+function playHit(){ const url=pick(FILES.hits); if(audioReady && SFX.buffers[url]){ playBuf(url,1,false); duck(SFX.bgNode,2200,0.06,0.25); } }
 
 /* BAT SVG + spawners */
 function batSweepURI(){
@@ -412,12 +412,13 @@ function grandFinale(){
   if(audioReady && SFX.buffers[FILES.closing]){ SFX.closingNode=playBuf(FILES.closing,0.7,false); }
   else { closingEl.volume=0.7; closingEl.play().catch(()=>{}); }
 
+  /* Start the voiceover 2s earlier (at 1s) and duck more dramatically */
   setTimeout(()=>{
-    duck(SFX.bgNode, 8000, 0.08, 0.20);
-    if(SFX.closingNode){ duck(SFX.closingNode, 8000, 0.12, 0.35); }
-    else { closingEl.volume=0.35; setTimeout(()=>closingEl.volume=0.7, 8000); }
+    duck(SFX.bgNode, 9000, 0.04, 0.22);              // deeper/longer duck of BG
+    if(SFX.closingNode){ duck(SFX.closingNode, 9000, 0.08, 0.35); } // duck closing track under VO
+    else { closingEl.volume=0.35; setTimeout(()=>closingEl.volume=0.7, 9000); }
     playWitchMessage().catch(()=>{});
-  }, 3000);
+  }, 1000);
 
   const cue=(t,fn)=>setTimeout(fn,t);
   cue(8000, ()=>{ playHit(); lightning(); });
@@ -438,9 +439,9 @@ async function playWitchMessage(){
   const witchEl=document.getElementById('witchMessageEl');
   if(audioReady && SFX.buffers[FILES.witch]){
     SFX.witchNode=playBuf(FILES.witch, 1.0, false);
-    const dur=SFX.buffers[FILES.witch].duration;
+    const dur=SFX.buffers[FILES.witch].duration || 6;
     setTimeout(()=>{
-      if(SFX.bgNode?.g){ try{ SFX.bgNode.g.gain.linearRampToValueAtTime(0.25, AC.currentTime+0.6);}catch{} }
+      if(SFX.bgNode?.g){ try{ SFX.bgNode.g.gain.linearRampToValueAtTime(0.22, AC.currentTime+0.6);}catch{} }
       const closingEl=document.getElementById('closingMusic');
       if(SFX.closingNode?.g){ try{ SFX.closingNode.g.gain.linearRampToValueAtTime(0.7, AC.currentTime+0.6);}catch{} }
       else { try{ closingEl.volume=0.7; }catch{} }
@@ -454,7 +455,9 @@ async function playWitchMessage(){
           const closing=document.getElementById('closingMusic'); closing.volume=0.7;
         }catch{}
       };
-    }catch(e){ console.warn('Witch message play error', e); }
+    }catch(e){
+      console.warn('Voiceover fallback failed', e);
+    }
   }
 }
 
