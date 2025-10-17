@@ -248,7 +248,7 @@ async function startScanner(expectedId){
       scanLock=true;
       celebrateSmall();
       playHit();
-      if(navigator.vibrate) navigator.vibrate([120,60,160,60,200]); // slightly gentler pattern
+      if(navigator.vibrate) navigator.vibrate([120,60,160,60,200]);
       index++; save(); stopScanner();
       setTimeout(render,950);
     });
@@ -290,7 +290,6 @@ async function enableSFX(){
   masterGain=masterGain||AC.createGain(); masterGain.gain.value=1.0; masterGain.connect(AC.destination);
   audioReady=true;
   [...FILES.hits, FILES.closing, FILES.bg, FILES.witch].forEach(url=>loadBuf(url));
-  // ultrashort unlock tone (silent)
   const osc=AC.createOscillator(), g=AC.createGain(); g.gain.value=0.0001; osc.connect(g); g.connect(masterGain); osc.start(); osc.stop(AC.currentTime+0.02);
   setTimeout(()=>{ startBG(); document.getElementById('bgFallback').play().catch(()=>{}); },100);
   document.getElementById('audioGate')?.remove();
@@ -314,7 +313,7 @@ function stopNode(n){ try{ n?.src?.stop(); n?.g?.disconnect(); }catch{} }
 function startBG(){
   const el=document.getElementById('bgFallback');
   if(audioReady && !SFX.bgNode && SFX.buffers[FILES.bg]){
-    const node=playBuf(FILES.bg,0.20,true);              // softer BG
+    const node=playBuf(FILES.bg,0.20,true);
     if(node?.src?.buffer?.duration){ node.src.loopStart=0; node.src.loopEnd=node.src.buffer.duration-0.05; }
     SFX.bgNode=node; try{ el.pause(); el.currentTime=0; }catch{}; return;
   }
@@ -324,7 +323,7 @@ function stopBG(){
   if(SFX.bgNode){ stopNode(SFX.bgNode); SFX.bgNode=null; }
   const el=document.getElementById('bgFallback'); try{ el.pause(); el.currentTime=0; }catch{}
 }
-function duck(node,ms=1600,to=0.08,back=0.20){ // overall quieter floor and return
+function duck(node,ms=1600,to=0.08,back=0.20){
   if(node?.g && AC){
     const g=node.g, now=AC.currentTime;
     try{ g.gain.cancelScheduledValues(now); g.gain.linearRampToValueAtTime(to, now+0.05); g.gain.linearRampToValueAtTime(back, now+ms/1000); }catch{}
@@ -335,7 +334,6 @@ function duck(node,ms=1600,to=0.08,back=0.20){ // overall quieter floor and retu
 }
 function playHit(){
   const url=pick(FILES.hits);
-  // SFX volume reduced to keep witch message clear later
   if(audioReady && SFX.buffers[url]){ playBuf(url,0.55,false); duck(SFX.bgNode,1800,0.06,0.18); }
 }
 
@@ -450,13 +448,12 @@ function grandFinale(){
   finaleInterval=setInterval(()=>{ spawnLanterns(12,false); spawnFireflies(36,false); spawnRibbons(14,false); spawnBatsSweep(8); }, 3000);
 
   const closingEl=document.getElementById('closingMusic');
-  if(audioReady && SFX.buffers[FILES.closing]){ SFX.closingNode=playBuf(FILES.closing,0.55,false); }  // slightly softer
+  if(audioReady && SFX.buffers[FILES.closing]){ SFX.closingNode=playBuf(FILES.closing,0.55,false); }
   else { closingEl.volume=0.55; closingEl.play().catch(()=>{}); }
 
-  // Start VO a bit earlier, and duck more dramatically so the voice is clear
   setTimeout(()=>{
-    duck(SFX.bgNode, 10000, 0.04, 0.18);                 // deeper/longer duck of BG
-    if(SFX.closingNode){ duck(SFX.closingNode, 10000, 0.10, 0.40); } // keep closing track lower under VO
+    duck(SFX.bgNode, 10000, 0.04, 0.18);
+    if(SFX.closingNode){ duck(SFX.closingNode, 10000, 0.10, 0.40); }
     else { closingEl.volume=0.40; setTimeout(()=>closingEl.volume=0.55, 10000); }
     playWitchMessage().catch(()=>{});
   }, 1000);
@@ -469,16 +466,13 @@ function grandFinale(){
 
   fireworksTimer=setInterval(()=>runFireworks(false), 6200);
 
+  // SHOW FINALE FOR 60s, THEN CLOSE TO BLACK (no restart)
   clearTimeout(finaleTimer);
-  finaleTimer=setTimeout(()=>finishFinale(), 30000);
-
-  const quickExit=()=>{ cleanupFinale(); restartHunt(); startBG(); overlay.removeEventListener('click',quickExit); };
-  overlay.addEventListener('click', quickExit);
+  finaleTimer=setTimeout(()=>finishFinale(), 60000);
 }
 
 async function playWitchMessage(){
   const witchEl=document.getElementById('witchMessageEl');
-  // Voiceover should sit on top; we keep SFX low during finale
   if(audioReady && SFX.buffers[FILES.witch]){
     SFX.witchNode=playBuf(FILES.witch, 1.0, false);
     const dur=SFX.buffers[FILES.witch].duration || 6;
@@ -505,15 +499,23 @@ async function playWitchMessage(){
 
 function finishFinale(){
   clearInterval(finaleInterval); clearInterval(fireworksTimer);
-  const music=document.getElementById('closingMusic');
-  stopNode(SFX.closingNode); SFX.closingNode=null; music.pause?.(); music.currentTime=0;
-  const fb=document.getElementById('fadeBlack'); fb.style.opacity=1;
-  setTimeout(()=>{ cleanupFinale(); restartHunt(); startBG(); }, 1800);
+  // Fade to black and STOP everything (no restart)
+  try{ stopNode(SFX.closingNode); SFX.closingNode=null; document.getElementById('closingMusic').pause(); document.getElementById('closingMusic').currentTime=0; }catch{}
+  try{ stopNode(SFX.witchNode); SFX.witchNode=null; }catch{}
+  stopBG();
+
+  const fb=document.getElementById('fadeBlack');
+  fb.style.opacity=1; // fade to black
+  // After fade, clean up visuals but keep screen black
+  setTimeout(()=>{ cleanupFinale(true); }, 1800);
 }
-function cleanupFinale(){
-  document.getElementById('finale').classList.remove('show');
-  document.getElementById('fadeBlack').style.opacity=0;
-  document.getElementById('winBanner').classList.remove('show');
+function cleanupFinale(endToBlack=false){
+  const finale=document.getElementById('finale');
+  const banner=document.getElementById('winBanner');
+  finale.classList.remove('show');
+  banner.classList.remove('show');
+  // Leave fadeBlack at opacity:1 if endToBlack to "close out"
+  if(!endToBlack){ document.getElementById('fadeBlack').style.opacity=0; }
   stopNode(SFX.witchNode); SFX.witchNode=null;
   stopNode(SFX.closingNode); SFX.closingNode=null;
   try{ const music=document.getElementById('closingMusic'); music.pause?.(); music.currentTime=0; }catch{}
