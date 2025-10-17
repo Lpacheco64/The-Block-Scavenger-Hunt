@@ -15,7 +15,16 @@
   .btn{border-radius:14px;padding:14px 18px;font-weight:700;background:#ff6600;color:#000}
   video{border-radius:12px}
 
-  /* Celebration sprites (lanterns, fireflies, ribbons, bats) */
+  /* Start Gate */
+  #startGate{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;text-align:center;background:radial-gradient(1200px 800px at 50% 40%, #1a0b00, #000);color:#ffe8b0;animation:fadeIn 0.8s ease}
+  #startGate .wrap{max-width:780px;padding:28px 20px}
+  #startGate .title{font:800 clamp(28px,7vw,60px)/1.1 'Poppins',sans-serif;color:#ffb84a;text-shadow:0 0 15px rgba(255,200,100,.7),0 0 30px rgba(255,120,0,.5)}
+  #startGate .subtitle{margin-top:10px;font:500 clamp(16px,3vw,22px)/1.4 'Poppins',sans-serif;color:#ffebbb;opacity:.9}
+  #startGate button{margin-top:28px;padding:16px 48px;border-radius:999px;font:700 22px/1 'Poppins',sans-serif;background:linear-gradient(135deg,#ff6600,#ffd35c);color:#000;box-shadow:0 0 20px rgba(255,170,60,.5);transition:transform .2s ease, box-shadow .3s ease}
+  #startGate button:hover{transform:scale(1.05);box-shadow:0 0 40px rgba(255,190,90,.8)}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  /* Small celebration sprites */
   .lantern,.firefly,.ribbon,.batSweep{position:fixed;pointer-events:none;z-index:1200;will-change:transform,opacity}
   .lantern{width:70px;height:90px;background:radial-gradient(50% 50% at 50% 40%, #fff1c1, #ffbb55 60%, #a64b00 100%); border-radius:12px 12px 18px 18px/16px 16px 24px 24px; box-shadow:inset 0 -8px 14px rgba(0,0,0,.25); filter:drop-shadow(0 0 12px rgba(255,200,120,.65))}
   .lantern::after{content:'';position:absolute;left:50%;top:-14px;transform:translateX(-50%);width:22px;height:12px;border-radius:6px;background:#5a2a00;box-shadow:0 2px 0 rgba(0,0,0,.25)}
@@ -36,7 +45,7 @@
   @keyframes zap{0%{opacity:0}10%{opacity:.95;background:radial-gradient(800px 400px at 40% 30%, rgba(255,255,255,.95), rgba(255,255,255,0) 60%)}25%{opacity:0}40%{opacity:.9;background:radial-gradient(600px 300px at 70% 20%, rgba(255,255,255,.9), rgba(255,255,255,0) 60%)}100%{opacity:0}}
   #fadeBlack{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:3000;transition:opacity 2s ease}
 
-  /* Pulse-glow "You Won!" banner */
+  /* Win banner */
   #winBanner{position:fixed;inset:0;display:none;z-index:2600;align-items:center;justify-content:center;text-align:center;padding:24px}
   #winBanner.show{display:flex}
   .winCard{max-width:780px}
@@ -51,7 +60,7 @@
 
   #errToast{position:fixed;left:12px;bottom:12px;z-index:4000;background:#111827;color:#fef3c7;border:1px solid #374151;border-radius:10px;padding:10px 12px;font:12px/1.3 monospace;max-width:90vw;white-space:pre-wrap}
 
-  @media print { body{background:#fff} .card{box-shadow:none;border:1px solid #ddd} #audioGate,#finale,#lightning,#fadeBlack,#winBanner{display:none!important} }
+  @media print { body{background:#fff} .card{box-shadow:none;border:1px solid #ddd} #audioGate,#finale,#lightning,#fadeBlack,#winBanner,#startGate{display:none!important} }
 </style>
 </head>
 <body>
@@ -88,10 +97,12 @@
   </audio>
 
 <script>
+/* ---------- Utilities & Toast ---------- */
 function toast(msg){ const t=document.createElement('div'); t.id='errToast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),6000); }
 window.addEventListener('error', e=> toast('Error: ' + (e?.message||e)));
 window.addEventListener('unhandledrejection', e=> toast('Promise: ' + (e?.reason?.message||e.reason||e)));
 
+/* ---------- Game Data ---------- */
 const EVENT_ID="haunted-block-2025";
 const STOPS=[
   { id:"stop-el-chamo",              business:"El Chamo",                 title:"Venezuelan Vampire Bites",     riddle:"A hungry vampire craves arepas—follow the smell of sizzling corn cakes!" },
@@ -111,15 +122,42 @@ const STOPS=[
   { id:"stop-candy-bar",             business:"The Candy Bar",            title:"Trick-or-Treat Counter",        riddle:"Count the sweets if you dare—trick-or-treats await your stare." }
 ];
 
+/* ---------- State ---------- */
 const KEY=k=>`${EVENT_ID}:${k}`;
 let team=localStorage.getItem(KEY('team'))||'';
 let index=parseInt(localStorage.getItem(KEY('index'))||'0',10);
 function save(){ localStorage.setItem(KEY('team'),team); localStorage.setItem(KEY('index'),String(index)); }
 const wrapCard=inner=>`<div class="card">${inner}</div>`;
 
+/* ---------- Start Gate ---------- */
+function renderStartGate(){
+  const gate=document.createElement('div');
+  gate.id='startGate';
+  gate.innerHTML=`
+    <div class="wrap">
+      <img src="./2b375fc7-bcb9-4c60-acec-fcc5ad6a318f.JPG" class="h-20 mx-auto mb-6" alt="The Block Logo">
+      <div class="title">Haunted Block Hunt</div>
+      <div class="subtitle">Begin your spooky adventure</div>
+      <button onclick="dismissGate()">Start Hunt</button>
+    </div>`;
+  document.body.appendChild(gate);
+}
+function dismissGate(){
+  const g=document.getElementById('startGate');
+  g.style.opacity='0'; g.style.transition='opacity .35s ease';
+  setTimeout(()=>{ g.remove(); enableSFX(); render(); }, 380);
+}
+
+/* ---------- Render ---------- */
 function render(){
   const root=document.getElementById('game');
   const params=new URL(location.href).searchParams;
+
+  if(params.get('gate')==='1' && !document.getElementById('startGate') && !team){
+    renderStartGate();
+    return;
+  }
+
   if(params.get('print')==='1'){ renderPrintPack(); return; }
 
   if(!team){
@@ -149,7 +187,7 @@ function render(){
 function startTeam(){ const inp=document.getElementById('teamInput'); team=(inp.value||'').trim(); index=0; save(); render(); startBG(); }
 function restartHunt(){ index=0; save(); render(); }
 
-/* Print Pack */
+/* ---------- Print Pack ---------- */
 function renderPrintPack(){
   document.title='Haunted Block Hunt — Print Pack';
   const root=document.getElementById('game');
@@ -163,7 +201,7 @@ function renderPrintPack(){
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3" id="qrGrid"></div>`;
   const grid=document.getElementById('qrGrid');
-  const startURL=location.origin+location.pathname;
+  const startURL=location.origin+location.pathname+'?gate=1';
   const startCard=document.createElement('div');
   startCard.className='card';
   startCard.innerHTML=`
@@ -184,7 +222,7 @@ function renderPrintPack(){
   });
 }
 
-/* Scanner */
+/* ---------- Scanner ---------- */
 let codeReader; let scanLock=false;
 function normalizeQRText(t){ return (''+t).trim().toLowerCase(); }
 async function startScanner(expectedId){
@@ -210,7 +248,7 @@ async function startScanner(expectedId){
       scanLock=true;
       celebrateSmall();
       playHit();
-      if(navigator.vibrate) navigator.vibrate([140,70,200,70,260]);
+      if(navigator.vibrate) navigator.vibrate([120,60,160,60,200]); // slightly gentler pattern
       index++; save(); stopScanner();
       setTimeout(render,950);
     });
@@ -231,7 +269,7 @@ function showCamError(e){
   document.getElementById('camera')?.insertAdjacentHTML('afterend', `<div class="text-xs text-red-300 mt-2">Camera error: ${msg}${hint}</div>`);
 }
 
-/* Audio (iOS unlock + BG + SFX + Finale layering) */
+/* ---------- Audio (BG, SFX, Finale, ducking) ---------- */
 let AC, masterGain, audioReady=false;
 const FILES={
   hits:[
@@ -252,6 +290,7 @@ async function enableSFX(){
   masterGain=masterGain||AC.createGain(); masterGain.gain.value=1.0; masterGain.connect(AC.destination);
   audioReady=true;
   [...FILES.hits, FILES.closing, FILES.bg, FILES.witch].forEach(url=>loadBuf(url));
+  // ultrashort unlock tone (silent)
   const osc=AC.createOscillator(), g=AC.createGain(); g.gain.value=0.0001; osc.connect(g); g.connect(masterGain); osc.start(); osc.stop(AC.currentTime+0.02);
   setTimeout(()=>{ startBG(); document.getElementById('bgFallback').play().catch(()=>{}); },100);
   document.getElementById('audioGate')?.remove();
@@ -275,17 +314,17 @@ function stopNode(n){ try{ n?.src?.stop(); n?.g?.disconnect(); }catch{} }
 function startBG(){
   const el=document.getElementById('bgFallback');
   if(audioReady && !SFX.bgNode && SFX.buffers[FILES.bg]){
-    const node=playBuf(FILES.bg,0.25,true);
+    const node=playBuf(FILES.bg,0.20,true);              // softer BG
     if(node?.src?.buffer?.duration){ node.src.loopStart=0; node.src.loopEnd=node.src.buffer.duration-0.05; }
     SFX.bgNode=node; try{ el.pause(); el.currentTime=0; }catch{}; return;
   }
-  try{ el.volume=0.22; el.play().catch(()=>{}); }catch{}
+  try{ el.volume=0.18; el.play().catch(()=>{}); }catch{}
 }
 function stopBG(){
   if(SFX.bgNode){ stopNode(SFX.bgNode); SFX.bgNode=null; }
   const el=document.getElementById('bgFallback'); try{ el.pause(); el.currentTime=0; }catch{}
 }
-function duck(node,ms=1600,to=0.10,back=0.25){
+function duck(node,ms=1600,to=0.08,back=0.20){ // overall quieter floor and return
   if(node?.g && AC){
     const g=node.g, now=AC.currentTime;
     try{ g.gain.cancelScheduledValues(now); g.gain.linearRampToValueAtTime(to, now+0.05); g.gain.linearRampToValueAtTime(back, now+ms/1000); }catch{}
@@ -294,9 +333,13 @@ function duck(node,ms=1600,to=0.10,back=0.25){
     try{ el.volume=to; setTimeout(()=>{ el.volume=back; }, ms); }catch{}
   }
 }
-function playHit(){ const url=pick(FILES.hits); if(audioReady && SFX.buffers[url]){ playBuf(url,1,false); duck(SFX.bgNode,2200,0.06,0.25); } }
+function playHit(){
+  const url=pick(FILES.hits);
+  // SFX volume reduced to keep witch message clear later
+  if(audioReady && SFX.buffers[url]){ playBuf(url,0.55,false); duck(SFX.bgNode,1800,0.06,0.18); }
+}
 
-/* BAT SVG + spawners */
+/* ---------- Bats & Small Celebrations ---------- */
 function batSweepURI(){
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32">
     <path d="M2,16 C10,10 14,10 22,14 C24,8 32,8 34,14 C42,10 46,10 62,16
@@ -307,13 +350,11 @@ function batSweepURI(){
   </svg>`;
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
-
-/* Celebration: lanterns + fireflies + ribbons + bat sweep */
 function celebrateSmall(){
   spawnLanterns(10,false);
-  spawnFireflies(24,false);
-  spawnRibbons(10,false);
-  spawnBatsSweep(6);
+  spawnFireflies(20,false);
+  spawnRibbons(8,false);
+  spawnBatsSweep(5);
 }
 function spawnLanterns(n=16, big=true){
   const centerX=innerWidth*(0.35+Math.random()*0.3), baseY=innerHeight*(0.55+Math.random()*0.2);
@@ -391,7 +432,7 @@ function spawnBatsSweep(n=10){
   }
 }
 
-/* Finale */
+/* ---------- Finale ---------- */
 let finaleTimer=null, finaleInterval=null, fireworksTimer=null;
 function lightning(){ const l=document.getElementById('lightning'); l.classList.remove('zap'); void l.offsetWidth; l.classList.add('zap'); }
 
@@ -402,21 +443,21 @@ function grandFinale(){
   const st=document.getElementById('strobe'); st.classList.remove('show'); void st.offsetWidth; st.classList.add('show');
   runSpotlight(); runFireworks(true); runFog();
 
-  spawnLanterns(28,true);
-  spawnFireflies(60,true);
-  spawnRibbons(24,true);
-  spawnBatsSweep(16);
-  finaleInterval=setInterval(()=>{ spawnLanterns(14,false); spawnFireflies(40,false); spawnRibbons(16,false); spawnBatsSweep(8); }, 3000);
+  spawnLanterns(26,true);
+  spawnFireflies(56,true);
+  spawnRibbons(22,true);
+  spawnBatsSweep(14);
+  finaleInterval=setInterval(()=>{ spawnLanterns(12,false); spawnFireflies(36,false); spawnRibbons(14,false); spawnBatsSweep(8); }, 3000);
 
   const closingEl=document.getElementById('closingMusic');
-  if(audioReady && SFX.buffers[FILES.closing]){ SFX.closingNode=playBuf(FILES.closing,0.7,false); }
-  else { closingEl.volume=0.7; closingEl.play().catch(()=>{}); }
+  if(audioReady && SFX.buffers[FILES.closing]){ SFX.closingNode=playBuf(FILES.closing,0.55,false); }  // slightly softer
+  else { closingEl.volume=0.55; closingEl.play().catch(()=>{}); }
 
-  /* Start the voiceover 2s earlier (at 1s) and duck more dramatically */
+  // Start VO a bit earlier, and duck more dramatically so the voice is clear
   setTimeout(()=>{
-    duck(SFX.bgNode, 9000, 0.04, 0.22);              // deeper/longer duck of BG
-    if(SFX.closingNode){ duck(SFX.closingNode, 9000, 0.08, 0.35); } // duck closing track under VO
-    else { closingEl.volume=0.35; setTimeout(()=>closingEl.volume=0.7, 9000); }
+    duck(SFX.bgNode, 10000, 0.04, 0.18);                 // deeper/longer duck of BG
+    if(SFX.closingNode){ duck(SFX.closingNode, 10000, 0.10, 0.40); } // keep closing track lower under VO
+    else { closingEl.volume=0.40; setTimeout(()=>closingEl.volume=0.55, 10000); }
     playWitchMessage().catch(()=>{});
   }, 1000);
 
@@ -437,22 +478,23 @@ function grandFinale(){
 
 async function playWitchMessage(){
   const witchEl=document.getElementById('witchMessageEl');
+  // Voiceover should sit on top; we keep SFX low during finale
   if(audioReady && SFX.buffers[FILES.witch]){
     SFX.witchNode=playBuf(FILES.witch, 1.0, false);
     const dur=SFX.buffers[FILES.witch].duration || 6;
     setTimeout(()=>{
-      if(SFX.bgNode?.g){ try{ SFX.bgNode.g.gain.linearRampToValueAtTime(0.22, AC.currentTime+0.6);}catch{} }
+      if(SFX.bgNode?.g){ try{ SFX.bgNode.g.gain.linearRampToValueAtTime(0.18, AC.currentTime+0.6);}catch{} }
       const closingEl=document.getElementById('closingMusic');
-      if(SFX.closingNode?.g){ try{ SFX.closingNode.g.gain.linearRampToValueAtTime(0.7, AC.currentTime+0.6);}catch{} }
-      else { try{ closingEl.volume=0.7; }catch{} }
+      if(SFX.closingNode?.g){ try{ SFX.closingNode.g.gain.linearRampToValueAtTime(0.55, AC.currentTime+0.6);}catch{} }
+      else { try{ closingEl.volume=0.55; }catch{} }
     }, (dur*1000)+200);
   }else{
     try{
       await witchEl.play();
       witchEl.onended=()=>{
         try{
-          const el=document.getElementById('bgFallback'); el.volume=0.22;
-          const closing=document.getElementById('closingMusic'); closing.volume=0.7;
+          const el=document.getElementById('bgFallback'); el.volume=0.18;
+          const closing=document.getElementById('closingMusic'); closing.volume=0.55;
         }catch{}
       };
     }catch(e){
@@ -477,7 +519,7 @@ function cleanupFinale(){
   try{ const music=document.getElementById('closingMusic'); music.pause?.(); music.currentTime=0; }catch{}
 }
 
-/* Fireworks */
+/* ---------- Fireworks ---------- */
 function runFireworks(big=false){
   const canvas=document.getElementById('fw'), ctx=canvas.getContext('2d');
   let w=canvas.width=innerWidth*devicePixelRatio, h=canvas.height=innerHeight*devicePixelRatio;
@@ -510,7 +552,7 @@ function runFireworks(big=false){
   obs.observe(document.getElementById('finale'),{attributes:true,attributeFilter:['class']});
 }
 
-/* Fog */
+/* ---------- Fog ---------- */
 function runFog(){
   const c=document.getElementById('fog'), x=c.getContext('2d');
   let W=c.width=innerWidth, H=c.height=innerHeight; const img=x.createImageData(W,H); const data=img.data; let t=0;
@@ -529,14 +571,14 @@ function runFog(){
   draw(); addEventListener('resize',()=>{ W=c.width=innerWidth; H=c.height=innerHeight; });
 }
 
-/* Spotlight */
+/* ---------- Spotlight ---------- */
 function runSpotlight(){
   const spot=document.getElementById('spot'); let t=0;
   (function step(){ t+=0.015; spot.style.setProperty('--x',(50+Math.sin(t)*30)+'%'); spot.style.setProperty('--y',(30+Math.cos(t*0.7)*8)+'%');
     if(document.getElementById('finale').classList.contains('show')) requestAnimationFrame(step); })();
 }
 
-/* Boot */
+/* ---------- Boot ---------- */
 render();
 </script>
 </body>
