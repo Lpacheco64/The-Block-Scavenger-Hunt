@@ -15,12 +15,13 @@
   .btn{border-radius:14px;padding:14px 18px;font-weight:700;background:#ff6600;color:#000}
   video{border-radius:12px}
 
-  /* Celebration sprites (new: lanterns, fireflies, ribbons) */
-  .lantern,.firefly,.ribbon{position:fixed;pointer-events:none;z-index:1200;will-change:transform,opacity;filter:drop-shadow(0 0 12px rgba(255,200,120,.65))}
-  .lantern{width:70px;height:90px;background:radial-gradient(50% 50% at 50% 40%, #fff1c1, #ffbb55 60%, #a64b00 100%); border-radius:12px 12px 18px 18px/16px 16px 24px 24px; box-shadow:inset 0 -8px 14px rgba(0,0,0,.25)}
+  /* Celebration sprites (lanterns, fireflies, ribbons, bats) */
+  .lantern,.firefly,.ribbon,.batSweep{position:fixed;pointer-events:none;z-index:1200;will-change:transform,opacity}
+  .lantern{width:70px;height:90px;background:radial-gradient(50% 50% at 50% 40%, #fff1c1, #ffbb55 60%, #a64b00 100%); border-radius:12px 12px 18px 18px/16px 16px 24px 24px; box-shadow:inset 0 -8px 14px rgba(0,0,0,.25); filter:drop-shadow(0 0 12px rgba(255,200,120,.65))}
   .lantern::after{content:'';position:absolute;left:50%;top:-14px;transform:translateX(-50%);width:22px;height:12px;border-radius:6px;background:#5a2a00;box-shadow:0 2px 0 rgba(0,0,0,.25)}
   .firefly{width:10px;height:10px;border-radius:50%;background:#fff7d1;box-shadow:0 0 16px 6px rgba(255,242,180,.85)}
-  .ribbon{width:8px;height:120px;background:linear-gradient(180deg,#fff1c1,#ffd36b 45%,#ff9b2f 80%);border-radius:8px}
+  .ribbon{width:8px;height:120px;background:linear-gradient(180deg,#fff1c1,#ffd36b 45%,#ff9b2f 80%);border-radius:8px;filter:drop-shadow(0 0 8px rgba(255,220,140,.6))}
+  .batSweep{width:96px;height:48px;filter:drop-shadow(0 0 8px rgba(255,240,200,.8));background-size:100% 100%;background-repeat:no-repeat}
 
   /* Finale overlay + effects */
   #finale{position:fixed;inset:0;display:none;z-index:2000;background:radial-gradient(1400px 700px at 50% 30%, rgba(255,128,0,.10), rgba(0,0,0,.95))}
@@ -80,7 +81,11 @@
   <!-- Audio -->
   <audio id="closingMusic" src="halloween-spooky-music-411457.mp3"></audio>
   <audio id="bgFallback" src="halloween-349615.mp3" loop style="display:none"></audio>
-  <audio id="witchMessageEl" src="your-witch-message.mp3" preload="auto"></audio>
+  <!-- Your final closing message (m4a primary; mp4 fallback if you also upload it) -->
+  <audio id="witchMessageEl" preload="auto">
+    <source src="final-closing.m4a" type="audio/mp4">
+    <source src="final-closing.mp4" type="audio/mp4">
+  </audio>
 
 <script>
 function toast(msg){ const t=document.createElement('div'); t.id='errToast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),6000); }
@@ -173,7 +178,7 @@ function renderPrintPack(){
     card.innerHTML=`<div class="text-xs text-gray-400">${s.business}</div>
       <div class="font-bold">${s.title}</div>
       <div id="qr-${s.id}" class="flex items-center justify-center my-3"></div>
-      <div class="text-[11px] text-gray-400 break-all">${s.id}</div>`;
+      <div class="text:[11px] text-gray-400 break-all">${s.id}</div>`;
     grid.appendChild(card);
     new QRCode(document.getElementById(`qr-${s.id}`),{ text:s.id, width:220, height:220, correctLevel:QRCode.CorrectLevel.M });
   });
@@ -203,7 +208,7 @@ async function startScanner(expectedId){
       const got=normalizeQRText(result.getText());
       if(got!==expectedNorm) return;
       scanLock=true;
-      celebrateSmall(); // new celebration
+      celebrateSmall(); // lanterns/fireflies/ribbons + bats
       playHit();
       if(navigator.vibrate) navigator.vibrate([140,70,200,70,260]);
       index++; save(); stopScanner();
@@ -235,7 +240,7 @@ const FILES={
   ],
   closing:'halloween-spooky-music-411457.mp3',
   bg:'halloween-349615.mp3',
-  witch:'your-witch-message.mp3'
+  witch:'final-closing.m4a'
 };
 const SFX={buffers:{}, closingNode:null, bgNode:null, witchNode:null};
 const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
@@ -291,60 +296,98 @@ function duck(node,ms=1600,to=0.10,back=0.25){
 }
 function playHit(){ const url=pick(FILES.hits); if(audioReady && SFX.buffers[url]){ playBuf(url,1,false); duck(SFX.bgNode,2000,0.08,0.25); } }
 
-/* Celebration: lanterns + fireflies + ribbons */
+/* BAT SVG + spawners */
+function batSweepURI(){
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32">
+    <path d="M2,16 C10,10 14,10 22,14 C24,8 32,8 34,14 C42,10 46,10 62,16
+             C50,18 46,20 34,18 C32,24 24,24 22,18 C14,20 10,18 2,16 Z"
+      fill="#fff6d6" stroke="#e5c989" stroke-width="1.25" />
+    <circle cx="31" cy="15" r="2" fill="#2a2230"/>
+    <circle cx="35" cy="15" r="2" fill="#2a2230"/>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+
+/* Celebration: lanterns + fireflies + ribbons + bat sweep */
 function celebrateSmall(){
-  spawnLanterns(10, false);
-  spawnFireflies(24, false);
-  spawnRibbons(10, false);
+  spawnLanterns(10,false);
+  spawnFireflies(24,false);
+  spawnRibbons(10,false);
+  spawnBatsSweep(6);
 }
 function spawnLanterns(n=16, big=true){
   const centerX=innerWidth*(0.35+Math.random()*0.3), baseY=innerHeight*(0.55+Math.random()*0.2);
   for(let i=0;i<n;i++){
     const e=document.createElement('div'); e.className='lantern';
-    const s= (big? 0.9:0.7) + Math.random()* (big?0.9:0.5);
-    e.style.left=centerX + (Math.random()*180-90)+'px';
-    e.style.top= (baseY + Math.random()*80)+'px';
+    const s=(big? 0.9:0.7)+Math.random()*(big?0.9:0.5);
+    e.style.left=centerX+(Math.random()*180-90)+'px';
+    e.style.top=(baseY+Math.random()*80)+'px';
     e.style.transform=`translate(-50%,-50%) scale(${s})`;
     document.body.appendChild(e);
-    const dy= (big? - (220+Math.random()*380) : - (140+Math.random()*220));
+    const dy=(big?-(220+Math.random()*380):-(140+Math.random()*220));
     const drift=(Math.random()*120-60);
     e.animate(
       [{transform:`translate(-50%,-50%) scale(${s})`,opacity:.0},
        {transform:`translate(calc(-50% + ${drift}px), calc(-50% + ${dy/2}px)) scale(${s*1.02})`,opacity:.95,offset:.25},
        {transform:`translate(calc(-50% + ${drift*1.6}px), calc(-50% + ${dy}px)) scale(${s*1.04})`,opacity:0}],
-      {duration: 4200+Math.random()*2200, easing:'cubic-bezier(.18,.7,.2,1)', fill:'forwards'}
+      {duration:4200+Math.random()*2200,easing:'cubic-bezier(.18,.7,.2,1)',fill:'forwards'}
     );
-    setTimeout(()=>e.remove(), 6800);
+    setTimeout(()=>e.remove(),6800);
   }
 }
 function spawnFireflies(n=36, big=true){
   for(let i=0;i<n;i++){
     const e=document.createElement('div'); e.className='firefly';
-    const x= Math.random()*innerWidth, y= innerHeight*(0.4+Math.random()*0.4);
+    const x=Math.random()*innerWidth, y=innerHeight*(0.4+Math.random()*0.4);
     e.style.left=x+'px'; e.style.top=y+'px'; document.body.appendChild(e);
-    const dx=(Math.random()*2-1)* (big?220:140), dy= - (60+Math.random()* (big?220:140));
-    const dur= 2800+Math.random()*2200;
+    const dx=(Math.random()*2-1)*(big?220:140), dy=-(60+Math.random()*(big?220:140));
+    const dur=2800+Math.random()*2200;
     e.animate(
       [{transform:'translate(-50%,-50%) scale(.7)',opacity:.0},
        {transform:'translate(-50%,-60%) scale(.95)',opacity:.95,offset:.32},
        {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.02)`,opacity:0}],
-      {duration:dur, easing:'ease-in-out', fill:'forwards'}
+      {duration:dur,easing:'ease-in-out',fill:'forwards'}
     );
-    setTimeout(()=>e.remove(), dur+400);
+    setTimeout(()=>e.remove(),dur+400);
   }
 }
 function spawnRibbons(n=14, big=true){
   for(let i=0;i<n;i++){
     const e=document.createElement('div'); e.className='ribbon';
-    e.style.left= (Math.random()*100)+'vw'; e.style.top='-140px'; document.body.appendChild(e);
-    const rot= (Math.random()*160-80)+'deg';
-    const dur= 5000+Math.random()*2400;
+    e.style.left=(Math.random()*100)+'vw'; e.style.top='-140px'; document.body.appendChild(e);
+    const rot=(Math.random()*160-80)+'deg';
+    const dur=5000+Math.random()*2400;
     e.animate(
-      [{transform:`translateY(0) rotate(${rot})`, opacity: .0},
-       {transform:`translateY(${innerHeight+180}px) rotate(${rot})`, opacity: .96}],
-      {duration:dur, easing:'cubic-bezier(.2,.65,.2,1)', fill:'forwards'}
+      [{transform:`translateY(0) rotate(${rot})`,opacity:.0},
+       {transform:`translateY(${innerHeight+180}px) rotate(${rot})`,opacity:.96}],
+      {duration:dur,easing:'cubic-bezier(.2,.65,.2,1)',fill:'forwards'}
     );
-    setTimeout(()=>e.remove(), dur+400);
+    setTimeout(()=>e.remove(),dur+400);
+  }
+}
+function spawnBatsSweep(n=10){
+  const img=batSweepURI();
+  for(let i=0;i<n;i++){
+    const b=document.createElement('div');
+    b.className='batSweep';
+    b.style.backgroundImage=`url("${img}")`;
+    const startX=-140-Math.random()*120;
+    const startY=innerHeight*(0.15+Math.random()*0.7);
+    const endX=innerWidth+160+Math.random()*160;
+    const endY=startY+(Math.random()*120-60);
+    b.style.left=startX+'px';
+    b.style.top=startY+'px';
+    document.body.appendChild(b);
+    const dur=3800+Math.random()*2200;
+    b.animate(
+      [
+        { transform:`translate(0,0) rotate(-6deg)`, opacity:.0 },
+        { transform:`translate(${(endX-startX)*0.1}px, ${(endY-startY)*0.1}px) rotate(0deg)`, opacity:.95, offset:.12 },
+        { transform:`translate(${endX-startX}px, ${endY-startY}px) rotate(10deg)`, opacity:.92 }
+      ],
+      { duration:dur, easing:'cubic-bezier(.2,.65,.2,1)', fill:'forwards' }
+    );
+    setTimeout(()=>b.remove(),dur+400);
   }
 }
 
@@ -362,7 +405,8 @@ function grandFinale(){
   spawnLanterns(28,true);
   spawnFireflies(60,true);
   spawnRibbons(24,true);
-  finaleInterval=setInterval(()=>{ spawnLanterns(14,false); spawnFireflies(40,false); spawnRibbons(16,false); }, 3000);
+  spawnBatsSweep(16);
+  finaleInterval=setInterval(()=>{ spawnLanterns(14,false); spawnFireflies(40,false); spawnRibbons(16,false); spawnBatsSweep(8); }, 3000);
 
   const closingEl=document.getElementById('closingMusic');
   if(audioReady && SFX.buffers[FILES.closing]){ SFX.closingNode=playBuf(FILES.closing,0.7,false); }
