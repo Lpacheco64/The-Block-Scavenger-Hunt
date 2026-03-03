@@ -23,7 +23,6 @@
       --gold2:#ffb84a;
       --green:#2cff9a;
       --green2:#00d174;
-      --bubble:rgba(255,255,255,.08);
     }
     html,body{height:100%}
     body{
@@ -94,7 +93,7 @@
     @keyframes dash{0%{opacity:.55}50%{opacity:1}100%{opacity:.55}}
     video{width:100%;height:auto;display:block}
 
-    /* Full-screen FX canvas */
+    /* FX canvas */
     #fxCanvas{
       position:fixed; inset:0;
       width:100%; height:100%;
@@ -129,69 +128,54 @@
       color:rgba(242,255,244,.82);
     }
 
-    /* Leprechaun */
-    .lepPanel{
-      display:grid;
-      grid-template-columns: 88px 1fr;
-      gap:12px;
-      align-items:start;
-    }
+    /* Lottie slot */
     .lepBox{
-      width:88px; height:88px;
+      width:86px; height:86px;
       border-radius:18px;
       border:1px solid rgba(255,255,255,.10);
       background:
-        radial-gradient(40px 40px at 30% 30%, rgba(255,213,106,.22), rgba(0,0,0,0) 60%),
-        radial-gradient(50px 50px at 70% 70%, rgba(0,255,140,.16), rgba(0,0,0,0) 62%),
-        rgba(255,255,255,.05);
+        radial-gradient(40px 40px at 30% 30%, rgba(255,213,106,.25), rgba(0,0,0,0) 60%),
+        radial-gradient(50px 50px at 70% 70%, rgba(0,255,140,.18), rgba(0,0,0,0) 62%),
+        rgba(255,255,255,.06);
       overflow:hidden;
       display:flex;
       align-items:center;
       justify-content:center;
     }
-    .lepAnim{
-      width:120px; height:120px;
-      transform: translateY(8px);
-      pointer-events:none;
-    }
+    .lepBox > div { width: 110%; height: 110%; }
 
+    /* Speech bubble */
+    .bubbleWrap{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+    }
     .bubble{
       position:relative;
-      background:var(--bubble);
-      border:1px solid rgba(255,255,255,.10);
+      flex:1;
       border-radius:16px;
-      padding:12px 12px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      padding:14px 14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
     }
     .bubble:before{
       content:"";
       position:absolute;
-      left:-8px;
-      top:18px;
-      width:14px;height:14px;
-      background:var(--bubble);
-      border-left:1px solid rgba(255,255,255,.10);
-      border-bottom:1px solid rgba(255,255,255,.10);
-      transform: rotate(45deg);
-      border-bottom-left-radius:4px;
+      left:-10px; top:18px;
+      width:0; height:0;
+      border-top:10px solid transparent;
+      border-bottom:10px solid transparent;
+      border-right:10px solid rgba(255,255,255,.10);
     }
-    .bubbleTitle{
-      font-weight:900;
-      color:var(--gold);
-      font-size:16px;
-      line-height:1.15;
-    }
-    .bubbleMeta{
-      margin-top:2px;
-      font-size:11px;
-      color:rgba(242,255,244,.60);
-      letter-spacing:.10em;
-      text-transform:uppercase;
-    }
-    .bubbleText{
-      margin-top:10px;
-      white-space:pre-line;
-      font-size:14px;
-      color:rgba(242,255,244,.92);
+    .bubble:after{
+      content:"";
+      position:absolute;
+      left:-9px; top:18px;
+      width:0; height:0;
+      border-top:10px solid transparent;
+      border-bottom:10px solid transparent;
+      border-right:10px solid rgba(255,255,255,.06);
     }
 
     /* Toast */
@@ -223,11 +207,6 @@
       backdrop-filter: blur(10px);
     }
     #finalOverlay.show{display:flex}
-
-    @media (max-width:420px){
-      .lepPanel{grid-template-columns: 78px 1fr}
-      .lepBox{width:78px;height:78px;border-radius:16px}
-    }
   </style>
 </head>
 
@@ -236,22 +215,20 @@
 
   <div class="max-w-md mx-auto px-3 py-4 space-y-3 relative z-50" id="appRoot"></div>
 
-  <!-- Start Gate -->
+  <!-- Start Gate (always shown on load so audio unlock is reliable) -->
   <div id="gate">
     <div class="max-w-md w-full card p-5 glowRing">
-      <div class="lepPanel">
-        <div class="lepBox" aria-hidden="true">
-          <div id="gateLep" class="lepAnim"></div>
-        </div>
+      <div class="flex items-center gap-3">
+        <div class="lepBox" aria-hidden="true"><div id="gateLep"></div></div>
         <div>
           <div class="text-xs uppercase tracking-widest" style="color:rgba(242,255,244,.72)">The Block Presents</div>
           <div class="title mt-1">Leprechaun Gold Hunt</div>
-          <p class="sub mt-3">
-            Scan each stop’s QR to unlock the next rhyme.
-            Camera + sound require permission.
-          </p>
         </div>
       </div>
+
+      <p class="sub mt-3">
+        Scan each stop’s QR to unlock the next rhyme. Camera + sound require permission.
+      </p>
 
       <div class="flex gap-2 mt-4">
         <button class="btn btnPrimary w-full" id="btnStart">Start Hunt</button>
@@ -262,8 +239,8 @@
         <div class="pill">15 stops • Final at Tavern</div>
       </div>
 
-      <div class="mt-3 text-xs" style="color:rgba(242,255,244,.55)">
-        Tip: Keep audio lightweight (music + reactions). Clues are shown in the speech bubble.
+      <div class="mt-3 text-xs" style="color:rgba(242,255,244,.60)">
+        Tip: Clues are text (fast). Voice is used for reactions + opening/finale to keep pacing snappy.
       </div>
     </div>
   </div>
@@ -289,6 +266,20 @@
 
 <script>
 /* =========================================================
+   0) Optional Reset (append ?reset=1 to clear progress)
+   ========================================================= */
+(function maybeReset(){
+  const url = new URL(location.href);
+  if(url.searchParams.get("reset")==="1"){
+    Object.keys(localStorage).forEach(k => {
+      if(String(k).startsWith("block-leprechaun-2026:")) localStorage.removeItem(k);
+    });
+    url.searchParams.delete("reset");
+    history.replaceState({}, "", url.toString());
+  }
+})();
+
+/* =========================================================
    1) Locked Game Data (FINAL TEXT)
    ========================================================= */
 const EVENT_ID = "block-leprechaun-2026";
@@ -296,206 +287,88 @@ const EVENT_ID = "block-leprechaun-2026";
 const GAME = {
   title: "The Block — Leprechaun Gold Hunt",
   finalId: "tavern_on_the_green",
-
-  // Lottie animation files (you already created these paths)
-  anim: {
-    idle: "assets/anim/lep_idle.json",
-    talk: "assets/anim/lep_talk.json",
-    happy: "assets/anim/lep_happy.json",
-    oops: "assets/anim/lep_oops.json"
-  },
-
   nodes: [
-    {
-      id:"benny_sausage_company",
-      business:"Benny Sausage Company",
-      stopTitle:"Pot O’ Sausages",
-      clueText:
+    { id:"benny_sausage_company", business:"Benny Sausage Company", stopTitle:"Pot O’ Sausages", clueText:
 `A leprechaun danced and dropped his gold,
 But stopped for sausages hot and bold.
 If your nose says “YUM” and tummy says “GO,”
-You found the place where sausages glow!`,
-      voiceFile:"assets/audio/clue_benny_sausage_company.mp3",
-      order:1
-    },
-    {
-      id:"birria_estilo_zacatecas",
-      business:"Birria Estilo Zacatecas",
-      stopTitle:"Rainbow Taco Trail",
-      clueText:
+You found the place where sausages glow!`, order:1 },
+    { id:"birria_estilo_zacatecas", business:"Birria Estilo Zacatecas", stopTitle:"Rainbow Taco Trail", clueText:
 `At the end of the rainbow, tacos await,
 Dripping with magic on every plate.
 Follow the smell, don’t be slow,
-The leprechaun whispers, “Tacos below!”`,
-      voiceFile:"assets/audio/clue_birria_estilo_zacatecas.mp3",
-      order:2
-    },
-    {
-      id:"bubble_bliss",
-      business:"Bubble Bliss",
-      stopTitle:"Lucky Bubble Lab",
-      clueText:
+The leprechaun whispers, “Tacos below!”`, order:2 },
+    { id:"bubble_bliss", business:"Bubble Bliss", stopTitle:"Lucky Bubble Lab", clueText:
 `No eating here, don’t take a bite,
 These fizzy treasures are bath-time delight.
 Potions that bubble, sparkle, and hiss,
-Find the leprechaun’s bubbly bliss!`,
-      voiceFile:"assets/audio/clue_bubble_bliss.mp3",
-      order:3
-    },
-    {
-      id:"busy_bee_frozen_custard",
-      business:"Busy Bee Frozen Custard",
-      stopTitle:"Frozen Clover Cream",
-      clueText:
+Find the leprechaun’s bubbly bliss!`, order:3 },
+    { id:"busy_bee_frozen_custard", business:"Busy Bee Frozen Custard", stopTitle:"Frozen Clover Cream", clueText:
 `Buzz buzz buzz goes the clover bee,
 Guarding cold gold for you and me.
 Swirls of magic, creamy and bright,
-Find the frozen rainbow delight!`,
-      voiceFile:"assets/audio/clue_busy_bee_frozen_custard.mp3",
-      order:4
-    },
-    {
-      id:"chickys_coffee",
-      business:"Chicky’s Coffee",
-      stopTitle:"Leprechaun Energy Brew",
-      clueText:
+Find the frozen rainbow delight!`, order:4 },
+    { id:"chickys_coffee", business:"Chicky’s Coffee", stopTitle:"Leprechaun Energy Brew", clueText:
 `A sleepy leprechaun needed a sip,
 Now he dances and does a jig flip!
 Follow the smell of warm magic brew,
-The lucky cup is waiting for you.`,
-      voiceFile:"assets/audio/clue_chickys_coffee.mp3",
-      order:5
-    },
-    {
-      id:"dim_sum_dynasty",
-      business:"Dim Sum Dynasty",
-      stopTitle:"Fortune of Gold Dumplings",
-      clueText:
+The lucky cup is waiting for you.`, order:5 },
+    { id:"dim_sum_dynasty", business:"Dim Sum Dynasty", stopTitle:"Fortune of Gold Dumplings", clueText:
 `Tiny gold pillows, steamy and round,
 A leprechaun’s treasure is almost found.
 Lift the lid and follow the steam,
-Dumpling magic like a dream!`,
-      voiceFile:"assets/audio/clue_dim_sum_dynasty.mp3",
-      order:6
-    },
-    {
-      id:"el_chamo",
-      business:"El Chamo",
-      stopTitle:"Golden Pocket Feast",
-      clueText:
+Dumpling magic like a dream!`, order:6 },
+    { id:"el_chamo", business:"El Chamo", stopTitle:"Golden Pocket Feast", clueText:
 `The leprechaun stuffed his lucky gold,
 Into warm pockets crispy and bold.
 If your nose starts dancing too,
-The golden pocket waits for you!`,
-      voiceFile:"assets/audio/clue_el_chamo.mp3",
-      order:7
-    },
-    {
-      id:"enchanted_books",
-      business:"Enchanted Books",
-      stopTitle:"Spellbook of Shamrocks",
-      clueText:
+The golden pocket waits for you!`, order:7 },
+    { id:"enchanted_books", business:"Enchanted Books", stopTitle:"Spellbook of Shamrocks", clueText:
 `A magical book with clovers inside,
 Hides secrets the leprechauns can’t hide.
 Turn the pages, take a look,
-Find the lucky storybook!`,
-      voiceFile:"assets/audio/clue_enchanted_books.mp3",
-      order:8
-    },
-    {
-      id:"link_link",
-      business:"Link Link",
-      stopTitle:"Golden Charm Forge",
-      clueText:
+Find the lucky storybook!`, order:8 },
+    { id:"link_link", business:"Link Link", stopTitle:"Golden Charm Forge", clueText:
 `Clink clink clink goes the gold,
 Tiny treasures shiny and bold.
 Chains of luck the leprechauns bring,
-Find the place where charms cling!`,
-      voiceFile:"assets/audio/clue_link_link.mp3",
-      order:9
-    },
-    {
-      id:"stackers_burgers",
-      business:"Stackers Burgers",
-      stopTitle:"Tower of Lucky Bites",
-      clueText:
+Find the place where charms cling!`, order:9 },
+    { id:"stackers_burgers", business:"Stackers Burgers", stopTitle:"Tower of Lucky Bites", clueText:
 `High as a rainbow, burgers stack,
 A leprechaun couldn’t resist a snack.
 Follow the tower, don’t delay,
-Lucky burgers lead the way!`,
-      voiceFile:"assets/audio/clue_stackers_burgers.mp3",
-      order:10
-    },
-    {
-      id:"thats_my_rez_sandwich",
-      business:"That’s My Rez Sandwich",
-      stopTitle:"Lucky Sandwich Stop",
-      clueText:
+Lucky burgers lead the way!`, order:10 },
+    { id:"thats_my_rez_sandwich", business:"That’s My Rez Sandwich", stopTitle:"Lucky Sandwich Stop", clueText:
 `Bread and magic stacked just right,
 A leprechaun built this tasty bite.
 If your belly says “YES!” and feet say “GO,”
-The lucky sandwich shop you now know!`,
-      voiceFile:"assets/audio/clue_thats_my_rez_sandwich.mp3",
-      order:11
-    },
-    {
-      id:"the_boba_lounge",
-      business:"The Boba Lounge",
-      stopTitle:"Rainbow Bubble Brew",
-      clueText:
+The lucky sandwich shop you now know!`, order:11 },
+    { id:"the_boba_lounge", business:"The Boba Lounge", stopTitle:"Rainbow Bubble Brew", clueText:
 `Floating pearls in a magical cup,
 The leprechaun drank it all up.
 Sip the rainbow, follow the glow,
-Find the bubbles that dance below!`,
-      voiceFile:"assets/audio/clue_the_boba_lounge.mp3",
-      order:12
-    },
-    {
-      id:"the_candy_bar",
-      business:"The Candy Bar",
-      stopTitle:"Treasure of Sweet Gold",
-      clueText:
+Find the bubbles that dance below!`, order:12 },
+    { id:"the_candy_bar", business:"The Candy Bar", stopTitle:"Treasure of Sweet Gold", clueText:
 `Candy coins and sugar delight,
 Guarded by leprechauns day and night.
 Sweetest treasure, shiny and bright,
-Find the gold of sugary light!`,
-      voiceFile:"assets/audio/clue_the_candy_bar.mp3",
-      order:13
-    },
-    {
-      id:"thicc_pizza",
-      business:"Thicc Pizza",
-      stopTitle:"Rectangle Gold Slice",
-      clueText:
+Find the gold of sugary light!`, order:13 },
+    { id:"thicc_pizza", business:"Thicc Pizza", stopTitle:"Rectangle Gold Slice", clueText:
 `Not round, not square, but long and bold,
 A pizza shaped like bars of gold!
 Follow the smell of cheesy delight,
-The rectangle treasure is in sight!`,
-      voiceFile:"assets/audio/clue_thicc_pizza.mp3",
-      order:14
-    },
-    {
-      id:"tavern_on_the_green",
-      business:"Tavern on the Green",
-      stopTitle:"Lucky Clover Tavern (Final)",
-      clueText:
+The rectangle treasure is in sight!`, order:14 },
+    { id:"tavern_on_the_green", business:"Tavern on the Green", stopTitle:"Lucky Clover Tavern (Final)", clueText:
 `Green lights glow where stories are told,
 Of clovers, rainbows, and pots of gold.
 Follow the glow, don’t be shy,
-The lucky tavern stands nearby!`,
-      voiceFile:"assets/audio/clue_tavern_on_the_green.mp3",
-      order:15,
-      isFinal:true
-    }
+The lucky tavern stands nearby!`, order:15, isFinal:true }
   ],
-
-  // Audio plan: keep clues as text (not required). Use reactions/opening/finale if you want.
   audio: {
+    // NOTE: keep these filenames if you upload them; missing files won't crash.
     opening: "assets/audio/opening.mp3",
     finale: "assets/audio/finale.mp3",
     musicLoop: "assets/audio/music_loop.mp3",
-
-    // OPTIONAL: reaction voice lines (or short SFX). If missing, app still works.
     correct: [
       "assets/audio/correct_01.mp3",
       "assets/audio/correct_02.mp3",
@@ -510,32 +383,37 @@ The lucky tavern stands nearby!`,
       "assets/audio/wrong_04.mp3",
       "assets/audio/wrong_05.mp3"
     ],
-
     sfx: {
       coinBurst: "assets/audio/sfx_coin_burst.mp3",
       rainbowSweep: "assets/audio/sfx_rainbow_sweep.mp3"
     }
+  },
+  anim: {
+    idle: "assets/anim/lep_idle.json",
+    talk: "assets/anim/lep_talk.json",
+    happy: "assets/anim/lep_happy.json",
+    oops: "assets/anim/lep_oops.json"
   }
 };
 
 /* =========================================================
    2) Storage + State
+   (Gate is NOT persisted; it always shows on load so audio unlock works.)
    ========================================================= */
 const KEY = (k) => `${EVENT_ID}:${k}`;
 const State = {
   team: localStorage.getItem(KEY("team")) || "",
   idx: Number(localStorage.getItem(KEY("idx")) || "0"),
-  started: localStorage.getItem(KEY("started")) === "1",
   audioEnabled: localStorage.getItem(KEY("audioEnabled")) !== "0",
   musicEnabled: localStorage.getItem(KEY("musicEnabled")) !== "0",
   voiceEnabled: localStorage.getItem(KEY("voiceEnabled")) !== "0",
   sfxEnabled: localStorage.getItem(KEY("sfxEnabled")) !== "0",
   done: localStorage.getItem(KEY("done")) === "1",
 };
+
 function saveState(){
   localStorage.setItem(KEY("team"), State.team);
   localStorage.setItem(KEY("idx"), String(State.idx));
-  localStorage.setItem(KEY("started"), State.started ? "1":"0");
   localStorage.setItem(KEY("audioEnabled"), State.audioEnabled ? "1":"0");
   localStorage.setItem(KEY("musicEnabled"), State.musicEnabled ? "1":"0");
   localStorage.setItem(KEY("voiceEnabled"), State.voiceEnabled ? "1":"0");
@@ -557,89 +435,79 @@ window.addEventListener("error", e=> toast("Error: " + (e?.message||e)));
 window.addEventListener("unhandledrejection", e=> toast("Promise: " + (e?.reason?.message||e.reason||e)));
 
 /* =========================================================
-   4) Leprechaun Animation Controller (Lottie)
+   4) Leprechaun Animation (Lottie)
    ========================================================= */
 const Lep = (() => {
-  let inst = null;
-  let current = null;
-  let swapLock = false;
+  let player = null;
+  let current = "idle";
+  let hostId = null;
 
-  function canUse(){ return !!window.lottie; }
-
-  async function loadJSON(url){
-    const res = await fetch(url, { cache:"force-cache" });
-    if(!res.ok) throw new Error("Animation missing: " + url);
-    return await res.json();
+  function mount(elId){
+    hostId = elId;
+    load("idle");
   }
 
-  async function mount(container, mode="idle"){
-    if(!canUse() || !container) return;
-    container.innerHTML = "";
-    inst = lottie.loadAnimation({
-      container,
+  async function load(mode){
+    current = mode;
+    const el = document.getElementById(hostId);
+    if(!el) return;
+
+    // clear existing
+    try{ player?.destroy(); }catch{}
+    el.innerHTML = "";
+
+    const path = GAME.anim[mode] || GAME.anim.idle;
+
+    player = lottie.loadAnimation({
+      container: el,
       renderer: "svg",
       loop: true,
       autoplay: true,
-      path: GAME.anim[mode] || GAME.anim.idle
-    });
-    current = mode;
-  }
-
-  function setSpeed(v){
-    try{ inst?.setSpeed(v); }catch{}
-  }
-
-  function playMode(mode, {loop=true, holdMs=0}={}){
-    if(!inst || swapLock) return;
-    const path = GAME.anim[mode] || GAME.anim.idle;
-    if(mode === current) return;
-
-    swapLock = true;
-    try{
-      inst.destroy();
-    }catch{}
-    inst = null;
-
-    const container = document.querySelector("[data-lep-container='1']");
-    if(!container){
-      swapLock = false;
-      return;
-    }
-
-    inst = lottie.loadAnimation({
-      container,
-      renderer: "svg",
-      loop,
-      autoplay: true,
       path
     });
-    current = mode;
 
-    setTimeout(()=>{ swapLock = false; }, 120);
-
-    if(holdMs > 0){
-      setTimeout(()=>{ playMode("idle", {loop:true}); }, holdMs);
-    }
+    player.addEventListener("data_failed", () => {
+      // If Lottie file missing, don't crash.
+      // Show a subtle fallback box.
+      el.innerHTML = "<div style='width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(242,255,244,.6)'>anim missing</div>";
+    });
   }
 
-  return { mount, playMode, setSpeed };
+  function set(mode){
+    if(mode === current) return;
+    load(mode);
+  }
+
+  async function pulse(mode, ms=900){
+    set(mode);
+    clearTimeout(pulse._t);
+    pulse._t = setTimeout(()=> set("idle"), ms);
+  }
+
+  return { mount, set, pulse };
 })();
 
 /* =========================================================
-   5) Audio Engine (WebAudio mixer + ducking; safe if files missing)
+   5) Audio Engine
+   - Background music uses HTMLAudio (most reliable on GitHub Pages)
+   - VO/SFX uses WebAudio buffers (safe if missing)
+   - Music ducks during VO
    ========================================================= */
 const AudioEngine = (() => {
-  let AC=null, masterGain=null, musicGain=null, voGain=null, sfxGain=null;
+  let AC=null, masterGain=null, voGain=null, sfxGain=null;
   let buffers = new Map();
-  let musicNode=null;
   let currentVO=null;
   let unlocked=false;
+
+  // HTML audio for music
+  const bg = new Audio();
+  bg.loop = true;
+  bg.preload = "auto";
+  bg.src = GAME.audio.musicLoop;
 
   const LEVELS = {
     musicNormal: 0.35,
     musicDucked: 0.10,
-    duckInMs: 80,
-    duckOutMs: 320,
     vo: 1.0,
     sfx: 0.9
   };
@@ -648,37 +516,45 @@ const AudioEngine = (() => {
 
   async function unlock(){
     if(unlocked) return true;
-    if(!hasCtx()) return false;
 
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    AC = AC || new Ctx({ latencyHint: "interactive" });
-    if(AC.state === "suspended"){
-      try{ await AC.resume(); }catch{}
+    // Music needs gesture too
+    try{
+      bg.volume = State.musicEnabled ? LEVELS.musicNormal : 0.0;
+      if(State.musicEnabled){
+        await bg.play();
+      }
+    }catch{
+      // ok; user can toggle music off/on after Start; browser might block until another gesture
     }
 
-    masterGain = masterGain || AC.createGain();
-    musicGain  = musicGain  || AC.createGain();
-    voGain     = voGain     || AC.createGain();
-    sfxGain    = sfxGain    || AC.createGain();
+    if(hasCtx()){
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      AC = AC || new Ctx({ latencyHint: "interactive" });
+      if(AC.state === "suspended"){
+        try{ await AC.resume(); }catch{}
+      }
 
-    masterGain.gain.value = 1.0;
-    musicGain.gain.value = State.musicEnabled ? LEVELS.musicNormal : 0.0;
-    voGain.gain.value = State.voiceEnabled ? 1.0 : 0.0;
-    sfxGain.gain.value = State.sfxEnabled ? 1.0 : 0.0;
+      masterGain = masterGain || AC.createGain();
+      voGain     = voGain     || AC.createGain();
+      sfxGain    = sfxGain    || AC.createGain();
 
-    musicGain.connect(masterGain);
-    voGain.connect(masterGain);
-    sfxGain.connect(masterGain);
-    masterGain.connect(AC.destination);
+      masterGain.gain.value = 1.0;
+      voGain.gain.value = State.voiceEnabled ? 1.0 : 0.0;
+      sfxGain.gain.value = State.sfxEnabled ? 1.0 : 0.0;
 
-    // micro "tick" to satisfy iOS
-    try{
-      const osc = AC.createOscillator();
-      const g = AC.createGain();
-      g.gain.value = 0.0001;
-      osc.connect(g); g.connect(masterGain);
-      osc.start(); osc.stop(AC.currentTime + 0.02);
-    }catch{}
+      voGain.connect(masterGain);
+      sfxGain.connect(masterGain);
+      masterGain.connect(AC.destination);
+
+      // micro tick for iOS
+      try{
+        const osc = AC.createOscillator();
+        const g = AC.createGain();
+        g.gain.value = 0.0001;
+        osc.connect(g); g.connect(masterGain);
+        osc.start(); osc.stop(AC.currentTime + 0.02);
+      }catch{}
+    }
 
     unlocked = true;
     return true;
@@ -693,37 +569,25 @@ const AudioEngine = (() => {
       const buf = await new Promise((ok, no) => AC.decodeAudioData(arr, ok, no));
       buffers.set(url, buf);
     }catch{
-      // missing or blocked -> ignore
+      // ignore
     }
   }
 
   async function preloadCore(){
-    if(!unlocked) return;
+    if(!unlocked || !AC) return;
     await Promise.all([
-      load(GAME.audio.musicLoop),
       load(GAME.audio.opening),
       load(GAME.audio.finale),
       ...GAME.audio.correct.map(load),
       ...GAME.audio.wrong.map(load),
       load(GAME.audio.sfx.coinBurst),
-      load(GAME.audio.sfx.rainbowSweep)
+      load(GAME.audio.sfx.rainbowSweep),
     ]);
   }
 
-  function ramp(param, to, ms){
-    if(!AC) return;
-    const now = AC.currentTime;
-    try{
-      param.cancelScheduledValues(now);
-      param.setValueAtTime(param.value, now);
-      param.linearRampToValueAtTime(to, now + ms/1000);
-    }catch{}
-  }
-
   function duck(on){
-    if(!unlocked) return;
-    if(!State.musicEnabled){ ramp(musicGain.gain, 0.0, 80); return; }
-    ramp(musicGain.gain, on ? LEVELS.musicDucked : LEVELS.musicNormal, on ? LEVELS.duckInMs : LEVELS.duckOutMs);
+    if(!State.musicEnabled) return;
+    bg.volume = on ? LEVELS.musicDucked : LEVELS.musicNormal;
   }
 
   function stopNode(n){
@@ -740,20 +604,11 @@ const AudioEngine = (() => {
     const g = AC.createGain();
     g.gain.value = vol;
 
-    if(bus==="music"){ src.connect(g); g.connect(musicGain); }
-    else if(bus==="vo"){ src.connect(g); g.connect(voGain); }
+    if(bus==="vo"){ src.connect(g); g.connect(voGain); }
     else { src.connect(g); g.connect(sfxGain); }
 
     try{ src.start(0); }catch{}
     return {src, g};
-  }
-
-  async function startMusic(){
-    if(!unlocked || musicNode) return;
-    await load(GAME.audio.musicLoop);
-    const buf = buffers.get(GAME.audio.musicLoop);
-    if(!buf) return;
-    musicNode = playBuffer(buf, {bus:"music", vol:1.0, loop:true});
   }
 
   function setToggles({music, voice, sfx}={}){
@@ -761,11 +616,23 @@ const AudioEngine = (() => {
     if(typeof voice === "boolean") State.voiceEnabled = voice;
     if(typeof sfx === "boolean") State.sfxEnabled = sfx;
 
-    if(unlocked){
-      ramp(musicGain.gain, State.musicEnabled ? LEVELS.musicNormal : 0.0, 120);
-      ramp(voGain.gain, State.voiceEnabled ? 1.0 : 0.0, 120);
-      ramp(sfxGain.gain, State.sfxEnabled ? 1.0 : 0.0, 120);
+    // music
+    try{
+      if(State.musicEnabled){
+        bg.volume = LEVELS.musicNormal;
+        bg.play().catch(()=>{});
+      }else{
+        bg.pause();
+        bg.currentTime = 0;
+      }
+    }catch{}
+
+    // vo/sfx busses
+    if(AC){
+      try{ voGain.gain.value = State.voiceEnabled ? 1.0 : 0.0; }catch{}
+      try{ sfxGain.gain.value = State.sfxEnabled ? 1.0 : 0.0; }catch{}
     }
+
     saveState();
   }
 
@@ -773,14 +640,16 @@ const AudioEngine = (() => {
     if(!arr?.length) return null;
     if(arr.length === 1) return arr[0];
     let c = arr[Math.floor(Math.random()*arr.length)];
-    if(c === last) c = arr[(arr.indexOf(c)+1) % arr.length];
+    if(c === last){
+      c = arr[(arr.indexOf(c)+1) % arr.length];
+    }
     return c;
   }
 
   let lastCorrect=null, lastWrong=null;
 
   async function playSFX(url){
-    if(!unlocked || !State.sfxEnabled) return;
+    if(!unlocked || !State.sfxEnabled || !AC) return;
     await load(url);
     const buf = buffers.get(url);
     if(!buf) return;
@@ -788,7 +657,7 @@ const AudioEngine = (() => {
   }
 
   async function playVO(url){
-    if(!unlocked || !State.voiceEnabled) return;
+    if(!unlocked || !State.voiceEnabled || !AC) return;
     await load(url);
     const buf = buffers.get(url);
     if(!buf) return;
@@ -809,18 +678,17 @@ const AudioEngine = (() => {
   async function playCorrect(){
     const url = pickNoRepeat(GAME.audio.correct, lastCorrect);
     lastCorrect = url;
-    if(url) await playVO(url);
+    await playVO(url);
   }
   async function playWrong(){
     const url = pickNoRepeat(GAME.audio.wrong, lastWrong);
     lastWrong = url;
-    if(url) await playVO(url);
+    await playVO(url);
   }
 
   return {
     unlock,
     preloadCore,
-    startMusic,
     playVO,
     playCorrect,
     playWrong,
@@ -935,7 +803,8 @@ const FX = (() => {
 })();
 
 /* =========================================================
-   7) Scanner (ZXing) + validation (correct + wrong feedback)
+   7) Scanner (ZXing) + validation
+   - Shows WRONG feedback when a QR is scanned but doesn't match.
    ========================================================= */
 const Scanner = (() => {
   let reader=null;
@@ -948,6 +817,7 @@ const Scanner = (() => {
     try{ reader?.reset(); }catch{}
     reader=null;
     scanLock=false;
+    wrongCooldown=false;
     try{
       const v=document.getElementById("preview");
       const s=v?.srcObject;
@@ -956,7 +826,7 @@ const Scanner = (() => {
     }catch{}
   }
 
-  async function start(expectedId, {onCorrect, onWrong}){
+  async function start(expectedId, onHit){
     stop();
     scanLock=false;
     wrongCooldown=false;
@@ -986,21 +856,25 @@ const Scanner = (() => {
     }catch{}
 
     reader = new ZXing.BrowserMultiFormatReader();
-    await reader.decodeFromVideoDevice(deviceId, "preview", (result, err) => {
+    await reader.decodeFromVideoDevice(deviceId, "preview", async (result, err) => {
       if(!result) return;
+
       const got = normalize(result.getText());
 
       if(got === expected && !scanLock){
         scanLock = true;
-        onCorrect?.(got);
+        onHit?.(got);
         return;
       }
 
-      // Wrong scan feedback (rate-limited so it doesn't spam)
-      if(got !== expected && !scanLock && !wrongCooldown){
+      // wrong scan feedback (throttled)
+      if(got !== expected && !wrongCooldown){
         wrongCooldown = true;
-        onWrong?.(got);
-        setTimeout(()=>{ wrongCooldown=false; }, 900);
+        Lep.pulse("oops", 900);
+        if(navigator.vibrate) navigator.vibrate([80,60,80]);
+        await AudioEngine.playWrong();
+        toast("Wrong checkpoint for this step.");
+        setTimeout(()=> wrongCooldown=false, 1200);
       }
     });
   }
@@ -1076,24 +950,21 @@ function teamCard(){
   `;
 }
 
-function lepClueCard(node){
+function clueBubble(node){
   return `
     <div class="card p-4">
-      <div class="lepPanel">
-        <div class="lepBox">
-          <div class="lepAnim" data-lep-container="1"></div>
-        </div>
-
+      <div class="bubbleWrap">
+        <div class="lepBox"><div id="lepMain"></div></div>
         <div class="bubble">
-          <div class="bubbleMeta">${escapeHTML(node.business)}</div>
-          <div class="bubbleTitle">${escapeHTML(node.stopTitle)}</div>
-          <div class="bubbleText">${escapeHTML(node.clueText)}</div>
-
+          <div class="text-[11px] uppercase tracking-widest" style="color:rgba(242,255,244,.65)">${escapeHTML(node.business)}</div>
+          <div class="text-[15px] font-extrabold mt-1" style="color:var(--gold)">${escapeHTML(node.stopTitle)}</div>
+          <div class="mt-2 whitespace-pre-line text-[14px]" style="color:rgba(242,255,244,.92)">
+            ${escapeHTML(node.clueText)}
+          </div>
           <div class="mt-3 flex gap-2">
             <button class="btn btnGhost w-full" id="btnRepeatClue">Repeat Clue</button>
           </div>
-
-          <div class="mt-2 text-xs" style="color:rgba(242,255,244,.55)">
+          <div class="mt-2 text-[11px]" style="color:rgba(242,255,244,.55)">
             Tip: Clues are text (fast). Voice is used for reactions + opening/finale to keep pacing snappy.
           </div>
         </div>
@@ -1158,15 +1029,14 @@ function render(){
     ${progressUI()}
     ${teamCard()}
     ${controlsUI()}
-    ${lepClueCard(node)}
+    ${clueBubble(node)}
     ${scannerCard(node)}
   `;
 
-  // Mount leprechaun animation for the main UI
-  const lepContainer = document.querySelector("[data-lep-container='1']");
-  Lep.mount(lepContainer, "idle").catch(()=>{ /* ignore */ });
+  // mount main leprechaun
+  Lep.mount("lepMain");
+  Lep.set("idle");
 
-  // Wire team save
   document.getElementById("btnSaveTeam").onclick = () => {
     const v = (document.getElementById("teamInput").value || "").trim();
     State.team = v;
@@ -1174,11 +1044,11 @@ function render(){
     toast("Team saved.");
   };
 
-  // Wire toggles
   root.querySelectorAll("[data-toggle]").forEach(btn => {
     btn.onclick = () => {
       const k = btn.getAttribute("data-toggle");
-      State[k] = !State[k];
+      const next = !State[k];
+      State[k] = next;
       AudioEngine.setToggles({
         music: State.musicEnabled,
         voice: State.voiceEnabled,
@@ -1188,70 +1058,53 @@ function render(){
     };
   });
 
-  // Repeat clue: animate "talk" and (optional) play clue VO file if you later add it
   document.getElementById("btnRepeatClue").onclick = async () => {
-    Lep.playMode("talk", {loop:true, holdMs:1200});
-    // Optional: if you decide later you WANT clue audio, keep this line:
-    // if(AudioEngine.unlocked) await AudioEngine.playVO(node.voiceFile);
+    Lep.pulse("talk", 900);
+    // Optional: small "spark" sfx if you upload one
+    // AudioEngine.playSFX(GAME.audio.sfx.rainbowSweep);
   };
 
   document.getElementById("btnRescan").onclick = () => startScanningForNode(node);
 
-  // Start scanning
   startScanningForNode(node);
 }
 
 async function startScanningForNode(node){
   try{
-    await Scanner.start(node.id, {
-      onCorrect: async () => {
-        // Visuals
-        FX.rainbow();
-        FX.coinBurst(window.innerWidth*0.5, window.innerHeight*0.38, 140);
-        if(navigator.vibrate) navigator.vibrate([110,60,150]);
+    await Scanner.start(node.id, async () => {
+      // correct scan
+      Lep.pulse("happy", 1100);
 
-        // Lep reaction
-        Lep.playMode("happy", {loop:true, holdMs:1400});
+      FX.rainbow();
+      FX.coinBurst(window.innerWidth*0.5, window.innerHeight*0.38, 140);
+      if(navigator.vibrate) navigator.vibrate([110,60,150]);
 
-        // Optional SFX/VO (safe if files missing)
-        AudioEngine.playSFX(GAME.audio.sfx.coinBurst);
-        await AudioEngine.playCorrect();
+      // optional SFX file
+      AudioEngine.playSFX(GAME.audio.sfx.coinBurst);
 
-        // Advance after a beat
-        setTimeout(async () => {
-          Scanner.stop();
+      // correct reaction VO (ducks music)
+      await AudioEngine.playCorrect();
 
-          const wasFinal = !!node.isFinal || node.id === GAME.finalId;
-          State.idx = State.idx + 1;
+      setTimeout(async () => {
+        Scanner.stop();
+
+        const wasFinal = !!node.isFinal || node.id === GAME.finalId;
+        State.idx = State.idx + 1;
+        saveState();
+
+        if(wasFinal || State.idx >= GAME.nodes.length){
+          State.done = true;
           saveState();
+          showFinal();
+          await AudioEngine.playVO(GAME.audio.finale);
+          FX.rainbow();
+          FX.coinBurst(window.innerWidth*0.5, window.innerHeight*0.34, 220);
+          return;
+        }
 
-          if(wasFinal || State.idx >= GAME.nodes.length){
-            State.done = true;
-            saveState();
-            showFinal();
-
-            Lep.playMode("happy", {loop:true});
-            await AudioEngine.playVO(GAME.audio.finale);
-
-            FX.rainbow();
-            FX.coinBurst(window.innerWidth*0.5, window.innerHeight*0.34, 220);
-            return;
-          }
-
-          render();
-        }, 850);
-      },
-
-      onWrong: async () => {
-        // Wrong scan: quick feedback
-        Lep.playMode("oops", {loop:true, holdMs:1200});
-        if(navigator.vibrate) navigator.vibrate([60,40,60]);
-
-        // Optional wrong VO
-        await AudioEngine.playWrong();
-      }
+        render();
+      }, 850);
     });
-
   }catch(e){
     toast("Camera error: " + (e?.message || e));
   }
@@ -1262,30 +1115,28 @@ function showFinal(){
 }
 
 /* =========================================================
-   9) Gate (Start Hunt): unlock audio + start music + opening VO
+   9) Gate (Start Hunt)
    ========================================================= */
 const gate = document.getElementById("gate");
 
-// Gate leprechaun (separate container)
-Lep.mount(document.getElementById("gateLep"), "idle").catch(()=>{});
+// Gate animation (safe if file missing)
+Lep.mount("gateLep");
 
 document.getElementById("btnStart").onclick = async () => {
   gate.style.opacity = "0";
   gate.style.transition = "opacity .28s ease";
   setTimeout(()=>gate.remove(), 300);
 
-  State.started = true;
-  saveState();
-
   await AudioEngine.unlock();
   await AudioEngine.preloadCore();
+
   AudioEngine.setToggles({
     music: State.musicEnabled,
     voice: State.voiceEnabled,
     sfx: State.sfxEnabled
   });
 
-  await AudioEngine.startMusic();
+  // Optional opening VO (if file exists)
   await AudioEngine.playVO(GAME.audio.opening);
 
   render();
@@ -1313,22 +1164,11 @@ function escapeHTML(s){
 function escapeAttr(s){
   return String(s).replaceAll('"',"&quot;");
 }
-
-/* =========================================================
-   11) Boot
-   ========================================================= */
-(function boot(){
-  if(State.started){
-    gate.remove();
-    render();
-    if(!AudioEngine.unlocked){
-      toast("Tap Start Hunt on a fresh load to enable audio (iPhone/Android rule).");
-    }
-  }
-})();
 </script>
+
 </body>
 </html>
+
 
 
 
