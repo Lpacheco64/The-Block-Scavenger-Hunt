@@ -93,7 +93,6 @@
     @keyframes dash{0%{opacity:.55}50%{opacity:1}100%{opacity:.55}}
     video{width:100%;height:auto;display:block}
 
-    /* FX canvas */
     #fxCanvas{
       position:fixed; inset:0;
       width:100%; height:100%;
@@ -101,7 +100,6 @@
       pointer-events:none;
     }
 
-    /* Start gate */
     #gate{
       position:fixed; inset:0;
       z-index:200;
@@ -128,7 +126,6 @@
       color:rgba(242,255,244,.82);
     }
 
-    /* Lottie slot */
     .lepBox{
       width:86px; height:86px;
       border-radius:18px;
@@ -144,7 +141,6 @@
     }
     .lepBox > div { width: 110%; height: 110%; }
 
-    /* Speech bubble */
     .bubbleWrap{
       display:flex;
       gap:12px;
@@ -178,7 +174,6 @@
       border-right:10px solid rgba(255,255,255,.06);
     }
 
-    /* Toast */
     #toast{
       position:fixed;
       left:12px;
@@ -195,7 +190,6 @@
       white-space:pre-wrap;
     }
 
-    /* Finale overlay */
     #finalOverlay{
       position:fixed; inset:0;
       z-index:180;
@@ -215,7 +209,16 @@
 
   <div class="max-w-md mx-auto px-3 py-4 space-y-3 relative z-50" id="appRoot"></div>
 
-  <!-- Start Gate (always shown on load so audio unlock is reliable) -->
+  <!-- Background music element (most reliable on mobile + GitHub Pages) -->
+  <audio
+    id="bgMusic"
+    src="assets/audio/music_loop.mp3"
+    preload="auto"
+    loop
+    playsinline
+    webkit-playsinline
+  ></audio>
+
   <div id="gate">
     <div class="max-w-md w-full card p-5 glowRing">
       <div class="flex items-center gap-3">
@@ -245,7 +248,6 @@
     </div>
   </div>
 
-  <!-- Finale -->
   <div id="finalOverlay" class="items-center justify-center p-5">
     <div class="max-w-md w-full card p-6 text-center glowRing">
       <div class="text-3xl font-extrabold" style="color:var(--gold)">You found the gold!</div>
@@ -365,7 +367,6 @@ Follow the glow, don’t be shy,
 The lucky tavern stands nearby!`, order:15, isFinal:true }
   ],
   audio: {
-    // NOTE: keep these filenames if you upload them; missing files won't crash.
     opening: "assets/audio/opening.mp3",
     finale: "assets/audio/finale.mp3",
     musicLoop: "assets/audio/music_loop.mp3",
@@ -398,7 +399,6 @@ The lucky tavern stands nearby!`, order:15, isFinal:true }
 
 /* =========================================================
    2) Storage + State
-   (Gate is NOT persisted; it always shows on load so audio unlock works.)
    ========================================================= */
 const KEY = (k) => `${EVENT_ID}:${k}`;
 const State = {
@@ -429,7 +429,7 @@ function toast(msg){
   toastEl.style.display = "block";
   toastEl.textContent = String(msg);
   clearTimeout(toastEl._t);
-  toastEl._t = setTimeout(()=>{ toastEl.style.display="none"; }, 6000);
+  toastEl._t = setTimeout(()=>{ toastEl.style.display="none"; }, 7000);
 }
 window.addEventListener("error", e=> toast("Error: " + (e?.message||e)));
 window.addEventListener("unhandledrejection", e=> toast("Promise: " + (e?.reason?.message||e.reason||e)));
@@ -452,7 +452,6 @@ const Lep = (() => {
     const el = document.getElementById(hostId);
     if(!el) return;
 
-    // clear existing
     try{ player?.destroy(); }catch{}
     el.innerHTML = "";
 
@@ -467,8 +466,6 @@ const Lep = (() => {
     });
 
     player.addEventListener("data_failed", () => {
-      // If Lottie file missing, don't crash.
-      // Show a subtle fallback box.
       el.innerHTML = "<div style='width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(242,255,244,.6)'>anim missing</div>";
     });
   }
@@ -488,10 +485,11 @@ const Lep = (() => {
 })();
 
 /* =========================================================
-   5) Audio Engine
-   - Background music uses HTMLAudio (most reliable on GitHub Pages)
+   5) Audio Engine (UPDATED FOR RELIABILITY)
+   - Background music uses <audio id="bgMusic"> (best for mobile)
    - VO/SFX uses WebAudio buffers (safe if missing)
    - Music ducks during VO
+   - Adds diagnostics if music file is missing / not served
    ========================================================= */
 const AudioEngine = (() => {
   let AC=null, masterGain=null, voGain=null, sfxGain=null;
@@ -499,62 +497,92 @@ const AudioEngine = (() => {
   let currentVO=null;
   let unlocked=false;
 
-  // HTML audio for music
-  const bg = new Audio();
-  bg.loop = true;
-  bg.preload = "auto";
-  bg.src = GAME.audio.musicLoop;
+  const bg = document.getElementById("bgMusic");
 
   const LEVELS = {
-    musicNormal: 0.35,
-    musicDucked: 0.10,
+    musicNormal: 0.55,   // louder than before
+    musicDucked: 0.18,
     vo: 1.0,
     sfx: 0.9
   };
 
   function hasCtx(){ return !!(window.AudioContext || window.webkitAudioContext); }
 
+  function wireBgDiagnostics(){
+    if(!bg || bg._wired) return;
+    bg._wired = true;
+
+    bg.addEventListener("error", () => {
+      const u = bg.currentSrc || bg.src;
+      toast("MUSIC ERROR loading:\n" + u + "\nCheck file exists + GitHub Pages deployed.");
+    });
+
+    bg.addEventListener("stalled", () => toast("Music stalled (network)."));
+    bg.addEventListener("waiting", () => toast("Music waiting/buffering..."));
+  }
+
+  async function ensureCtx(){
+    if(!hasCtx()) return;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    AC = AC || new Ctx({ latencyHint: "interactive" });
+
+    if(AC.state === "suspended"){
+      try{ await AC.resume(); }catch{}
+    }
+
+    masterGain = masterGain || AC.createGain();
+    voGain     = voGain     || AC.createGain();
+    sfxGain    = sfxGain    || AC.createGain();
+
+    masterGain.gain.value = 1.0;
+    voGain.gain.value = State.voiceEnabled ? 1.0 : 0.0;
+    sfxGain.gain.value = State.sfxEnabled ? 1.0 : 0.0;
+
+    voGain.connect(masterGain);
+    sfxGain.connect(masterGain);
+    masterGain.connect(AC.destination);
+
+    // iOS "tick"
+    try{
+      const osc = AC.createOscillator();
+      const g = AC.createGain();
+      g.gain.value = 0.0001;
+      osc.connect(g); g.connect(masterGain);
+      osc.start(); osc.stop(AC.currentTime + 0.02);
+    }catch{}
+  }
+
+  async function startMusicFromGesture(){
+    if(!bg) return false;
+
+    wireBgDiagnostics();
+
+    bg.loop = true;
+    bg.preload = "auto";
+    bg.muted = false;
+    bg.volume = State.musicEnabled ? LEVELS.musicNormal : 0.0;
+
+    if(!State.musicEnabled) return true;
+
+    try{
+      // IMPORTANT: call play() during/after a user gesture
+      const p = bg.play();
+      if(p && typeof p.then === "function") await p;
+      return true;
+    }catch(err){
+      toast("Music play() blocked.\nTap any button again to retry.\n" + (err?.message || err));
+      return false;
+    }
+  }
+
   async function unlock(){
     if(unlocked) return true;
 
-    // Music needs gesture too
-    try{
-      bg.volume = State.musicEnabled ? LEVELS.musicNormal : 0.0;
-      if(State.musicEnabled){
-        await bg.play();
-      }
-    }catch{
-      // ok; user can toggle music off/on after Start; browser might block until another gesture
-    }
+    // Create/resume AudioContext first (helps iOS)
+    await ensureCtx();
 
-    if(hasCtx()){
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      AC = AC || new Ctx({ latencyHint: "interactive" });
-      if(AC.state === "suspended"){
-        try{ await AC.resume(); }catch{}
-      }
-
-      masterGain = masterGain || AC.createGain();
-      voGain     = voGain     || AC.createGain();
-      sfxGain    = sfxGain    || AC.createGain();
-
-      masterGain.gain.value = 1.0;
-      voGain.gain.value = State.voiceEnabled ? 1.0 : 0.0;
-      sfxGain.gain.value = State.sfxEnabled ? 1.0 : 0.0;
-
-      voGain.connect(masterGain);
-      sfxGain.connect(masterGain);
-      masterGain.connect(AC.destination);
-
-      // micro tick for iOS
-      try{
-        const osc = AC.createOscillator();
-        const g = AC.createGain();
-        g.gain.value = 0.0001;
-        osc.connect(g); g.connect(masterGain);
-        osc.start(); osc.stop(AC.currentTime + 0.02);
-      }catch{}
-    }
+    // Then attempt music (must be user gesture)
+    await startMusicFromGesture();
 
     unlocked = true;
     return true;
@@ -569,7 +597,7 @@ const AudioEngine = (() => {
       const buf = await new Promise((ok, no) => AC.decodeAudioData(arr, ok, no));
       buffers.set(url, buf);
     }catch{
-      // ignore
+      // ignore missing files
     }
   }
 
@@ -586,7 +614,7 @@ const AudioEngine = (() => {
   }
 
   function duck(on){
-    if(!State.musicEnabled) return;
+    if(!State.musicEnabled || !bg) return;
     bg.volume = on ? LEVELS.musicDucked : LEVELS.musicNormal;
   }
 
@@ -616,18 +644,21 @@ const AudioEngine = (() => {
     if(typeof voice === "boolean") State.voiceEnabled = voice;
     if(typeof sfx === "boolean") State.sfxEnabled = sfx;
 
-    // music
-    try{
-      if(State.musicEnabled){
-        bg.volume = LEVELS.musicNormal;
-        bg.play().catch(()=>{});
-      }else{
-        bg.pause();
-        bg.currentTime = 0;
-      }
-    }catch{}
+    // Music toggle
+    if(bg){
+      try{
+        if(State.musicEnabled){
+          bg.volume = LEVELS.musicNormal;
+          // retry play (still requires gesture; toggles are gestures)
+          bg.play().catch(()=>{});
+        }else{
+          bg.pause();
+          bg.currentTime = 0;
+        }
+      }catch{}
+    }
 
-    // vo/sfx busses
+    // VO/SFX busses
     if(AC){
       try{ voGain.gain.value = State.voiceEnabled ? 1.0 : 0.0; }catch{}
       try{ sfxGain.gain.value = State.sfxEnabled ? 1.0 : 0.0; }catch{}
@@ -640,9 +671,7 @@ const AudioEngine = (() => {
     if(!arr?.length) return null;
     if(arr.length === 1) return arr[0];
     let c = arr[Math.floor(Math.random()*arr.length)];
-    if(c === last){
-      c = arr[(arr.indexOf(c)+1) % arr.length];
-    }
+    if(c === last) c = arr[(arr.indexOf(c)+1) % arr.length];
     return c;
   }
 
@@ -686,6 +715,13 @@ const AudioEngine = (() => {
     await playVO(url);
   }
 
+  // If a browser killed audio when tab backgrounded, retry on return.
+  document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible" && unlocked && State.musicEnabled){
+      bg?.play?.().catch(()=>{});
+    }
+  });
+
   return {
     unlock,
     preloadCore,
@@ -695,6 +731,7 @@ const AudioEngine = (() => {
     playSFX,
     setToggles,
     duck,
+    startMusicFromGesture,
     get unlocked(){ return unlocked; }
   };
 })();
@@ -804,7 +841,6 @@ const FX = (() => {
 
 /* =========================================================
    7) Scanner (ZXing) + validation
-   - Shows WRONG feedback when a QR is scanned but doesn't match.
    ========================================================= */
 const Scanner = (() => {
   let reader=null;
@@ -867,7 +903,6 @@ const Scanner = (() => {
         return;
       }
 
-      // wrong scan feedback (throttled)
       if(got !== expected && !wrongCooldown){
         wrongCooldown = true;
         Lep.pulse("oops", 900);
@@ -926,6 +961,7 @@ function controlsUI(){
         ${mkToggle("Music","musicEnabled",State.musicEnabled)}
         ${mkToggle("Voice","voiceEnabled",State.voiceEnabled)}
         ${mkToggle("SFX","sfxEnabled",State.sfxEnabled)}
+        <button class="pill" id="btnTestSound">Test Sound</button>
       </div>
       <div class="mt-2 text-xs" style="color:rgba(242,255,244,.55)">
         Music ducks automatically during voice lines.
@@ -1033,7 +1069,6 @@ function render(){
     ${scannerCard(node)}
   `;
 
-  // mount main leprechaun
   Lep.mount("lepMain");
   Lep.set("idle");
 
@@ -1045,7 +1080,8 @@ function render(){
   };
 
   root.querySelectorAll("[data-toggle]").forEach(btn => {
-    btn.onclick = () => {
+    btn.onclick = async () => {
+      // toggle clicks are gestures => retry music play if needed
       const k = btn.getAttribute("data-toggle");
       const next = !State[k];
       State[k] = next;
@@ -1054,14 +1090,21 @@ function render(){
         voice: State.voiceEnabled,
         sfx: State.sfxEnabled
       });
+      await AudioEngine.startMusicFromGesture();
       render();
     };
   });
 
+  document.getElementById("btnTestSound").onclick = async () => {
+    await AudioEngine.unlock();
+    await AudioEngine.startMusicFromGesture();
+    // small VO attempt if present; otherwise you’ll still hear music
+    await AudioEngine.playVO(GAME.audio.opening);
+    toast("Test attempted. If you hear music, audio is working.");
+  };
+
   document.getElementById("btnRepeatClue").onclick = async () => {
     Lep.pulse("talk", 900);
-    // Optional: small "spark" sfx if you upload one
-    // AudioEngine.playSFX(GAME.audio.sfx.rainbowSweep);
   };
 
   document.getElementById("btnRescan").onclick = () => startScanningForNode(node);
@@ -1072,17 +1115,13 @@ function render(){
 async function startScanningForNode(node){
   try{
     await Scanner.start(node.id, async () => {
-      // correct scan
       Lep.pulse("happy", 1100);
 
       FX.rainbow();
       FX.coinBurst(window.innerWidth*0.5, window.innerHeight*0.38, 140);
       if(navigator.vibrate) navigator.vibrate([110,60,150]);
 
-      // optional SFX file
       AudioEngine.playSFX(GAME.audio.sfx.coinBurst);
-
-      // correct reaction VO (ducks music)
       await AudioEngine.playCorrect();
 
       setTimeout(async () => {
@@ -1118,15 +1157,10 @@ function showFinal(){
    9) Gate (Start Hunt)
    ========================================================= */
 const gate = document.getElementById("gate");
-
-// Gate animation (safe if file missing)
 Lep.mount("gateLep");
 
 document.getElementById("btnStart").onclick = async () => {
-  gate.style.opacity = "0";
-  gate.style.transition = "opacity .28s ease";
-  setTimeout(()=>gate.remove(), 300);
-
+  // IMPORTANT: unlock first (during this click gesture), then hide gate
   await AudioEngine.unlock();
   await AudioEngine.preloadCore();
 
@@ -1136,7 +1170,12 @@ document.getElementById("btnStart").onclick = async () => {
     sfx: State.sfxEnabled
   });
 
-  // Optional opening VO (if file exists)
+  await AudioEngine.startMusicFromGesture();
+
+  gate.style.opacity = "0";
+  gate.style.transition = "opacity .28s ease";
+  setTimeout(()=>gate.remove(), 300);
+
   await AudioEngine.playVO(GAME.audio.opening);
 
   render();
@@ -1168,6 +1207,7 @@ function escapeAttr(s){
 
 </body>
 </html>
+
 
 
 
