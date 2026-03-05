@@ -23,6 +23,7 @@
       --gold2:#ffb84a;
       --green:#2cff9a;
       --green2:#00d174;
+      --bad:#ff6b6b;
     }
     html,body{height:100%}
     body{
@@ -141,11 +142,7 @@
     }
     .lepBox > div { width: 110%; height: 110%; }
 
-    .bubbleWrap{
-      display:flex;
-      gap:12px;
-      align-items:flex-start;
-    }
+    .bubbleWrap{display:flex; gap:12px; align-items:flex-start;}
     .bubble{
       position:relative;
       flex:1;
@@ -201,24 +198,53 @@
       backdrop-filter: blur(10px);
     }
     #finalOverlay.show{display:flex}
+
+    /* Audio status banner (so you can see why music isn't playing) */
+    #audioStatus{
+      position:fixed;
+      top:10px;
+      left:50%;
+      transform:translateX(-50%);
+      z-index:260;
+      max-width:min(720px, 92vw);
+      background:rgba(10,16,12,.86);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      padding:10px 12px;
+      display:none;
+    }
+    #audioStatus .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+    #audioStatus .k{font-size:12px;color:rgba(242,255,244,.7)}
+    #audioStatus .v{font-size:12px;color:rgba(242,255,244,.92)}
+    #audioStatus .bad{color:var(--bad);font-weight:800}
+    #audioStatus .good{color:var(--green);font-weight:800}
+    #audioStatus .miniBtn{padding:8px 10px;border-radius:999px;font-weight:800;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:var(--ink)}
   </style>
 </head>
 
 <body>
   <canvas id="fxCanvas"></canvas>
 
+  <div id="audioStatus">
+    <div class="row">
+      <div>
+        <div class="k">Audio</div>
+        <div class="v" id="audioStatusText">…</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="miniBtn" id="btnTestBeep">Test Beep</button>
+        <button class="miniBtn" id="btnTestMusic">Test Music</button>
+        <button class="miniBtn" id="btnHideAudioStatus">Hide</button>
+      </div>
+    </div>
+    <div class="k" style="margin-top:6px">
+      If music still won’t play: the file is missing or the path is wrong. The app will show the failing URL in the toast.
+    </div>
+  </div>
+
   <div class="max-w-md mx-auto px-3 py-4 space-y-3 relative z-50" id="appRoot"></div>
 
-  <!-- Background music element (most reliable on mobile + GitHub Pages) -->
-  <audio
-    id="bgMusic"
-    src="assets/audio/music_loop.mp3"
-    preload="auto"
-    loop
-    playsinline
-    webkit-playsinline
-  ></audio>
-
+  <!-- Start Gate -->
   <div id="gate">
     <div class="max-w-md w-full card p-5 glowRing">
       <div class="flex items-center gap-3">
@@ -243,11 +269,17 @@
       </div>
 
       <div class="mt-3 text-xs" style="color:rgba(242,255,244,.60)">
-        Tip: Clues are text (fast). Voice is used for reactions + opening/finale to keep pacing snappy.
+        Clues are text bubbles (fast). Voice is for reactions + opening/finale.
+      </div>
+
+      <div class="mt-3 text-xs" style="color:rgba(242,255,244,.60)">
+        <span style="color:var(--gold);font-weight:800">Important:</span>
+        Your music file must be exactly: <span class="font-mono">assets/audio/music_loop.mp3</span>
       </div>
     </div>
   </div>
 
+  <!-- Finale -->
   <div id="finalOverlay" class="items-center justify-center p-5">
     <div class="max-w-md w-full card p-6 text-center glowRing">
       <div class="text-3xl font-extrabold" style="color:var(--gold)">You found the gold!</div>
@@ -268,7 +300,7 @@
 
 <script>
 /* =========================================================
-   0) Optional Reset (append ?reset=1 to clear progress)
+   0) Optional Reset (append ?reset=1)
    ========================================================= */
 (function maybeReset(){
   const url = new URL(location.href);
@@ -282,10 +314,9 @@
 })();
 
 /* =========================================================
-   1) Locked Game Data (FINAL TEXT)
+   1) Locked Game Data
    ========================================================= */
 const EVENT_ID = "block-leprechaun-2026";
-
 const GAME = {
   title: "The Block — Leprechaun Gold Hunt",
   finalId: "tavern_on_the_green",
@@ -404,17 +435,14 @@ const KEY = (k) => `${EVENT_ID}:${k}`;
 const State = {
   team: localStorage.getItem(KEY("team")) || "",
   idx: Number(localStorage.getItem(KEY("idx")) || "0"),
-  audioEnabled: localStorage.getItem(KEY("audioEnabled")) !== "0",
   musicEnabled: localStorage.getItem(KEY("musicEnabled")) !== "0",
   voiceEnabled: localStorage.getItem(KEY("voiceEnabled")) !== "0",
   sfxEnabled: localStorage.getItem(KEY("sfxEnabled")) !== "0",
   done: localStorage.getItem(KEY("done")) === "1",
 };
-
 function saveState(){
   localStorage.setItem(KEY("team"), State.team);
   localStorage.setItem(KEY("idx"), String(State.idx));
-  localStorage.setItem(KEY("audioEnabled"), State.audioEnabled ? "1":"0");
   localStorage.setItem(KEY("musicEnabled"), State.musicEnabled ? "1":"0");
   localStorage.setItem(KEY("voiceEnabled"), State.voiceEnabled ? "1":"0");
   localStorage.setItem(KEY("sfxEnabled"), State.sfxEnabled ? "1":"0");
@@ -422,7 +450,7 @@ function saveState(){
 }
 
 /* =========================================================
-   3) Toast + Error hooks
+   3) Toast + Errors
    ========================================================= */
 const toastEl = document.getElementById("toast");
 function toast(msg){
@@ -435,7 +463,7 @@ window.addEventListener("error", e=> toast("Error: " + (e?.message||e)));
 window.addEventListener("unhandledrejection", e=> toast("Promise: " + (e?.reason?.message||e.reason||e)));
 
 /* =========================================================
-   4) Leprechaun Animation (Lottie)
+   4) Leprechaun Lottie
    ========================================================= */
 const Lep = (() => {
   let player = null;
@@ -447,7 +475,7 @@ const Lep = (() => {
     load("idle");
   }
 
-  async function load(mode){
+  function load(mode){
     current = mode;
     const el = document.getElementById(hostId);
     if(!el) return;
@@ -475,7 +503,7 @@ const Lep = (() => {
     load(mode);
   }
 
-  async function pulse(mode, ms=900){
+  function pulse(mode, ms=900){
     set(mode);
     clearTimeout(pulse._t);
     pulse._t = setTimeout(()=> set("idle"), ms);
@@ -485,11 +513,10 @@ const Lep = (() => {
 })();
 
 /* =========================================================
-   5) Audio Engine (UPDATED FOR RELIABILITY)
-   - Background music uses <audio id="bgMusic"> (best for mobile)
-   - VO/SFX uses WebAudio buffers (safe if missing)
-   - Music ducks during VO
-   - Adds diagnostics if music file is missing / not served
+   5) AudioEngine (DIAGNOSTIC + RELIABLE MUSIC)
+   - Music: HTMLAudio (most reliable on GitHub Pages)
+   - VO/SFX: WebAudio (optional)
+   - Shows explicit errors when music/voice fail
    ========================================================= */
 const AudioEngine = (() => {
   let AC=null, masterGain=null, voGain=null, sfxGain=null;
@@ -497,52 +524,52 @@ const AudioEngine = (() => {
   let currentVO=null;
   let unlocked=false;
 
-  const bg = document.getElementById("bgMusic");
+  // HTML audio for background music
+  const bg = new Audio();
+  bg.loop = true;
+  bg.preload = "auto";
+  bg.crossOrigin = "anonymous"; // safe on GH Pages
+  bg.src = GAME.audio.musicLoop;
 
-  const LEVELS = {
-    musicNormal: 0.55,   // louder than before
-    musicDucked: 0.18,
-    vo: 1.0,
-    sfx: 0.9
-  };
+  const LEVELS = { musicNormal: 0.35, musicDucked: 0.10, vo: 1.0, sfx: 0.9 };
+
+  const statusBox = document.getElementById("audioStatus");
+  const statusText = document.getElementById("audioStatusText");
+  function showStatus(text){
+    statusBox.style.display = "block";
+    statusText.textContent = text;
+  }
+  function setStatus(){
+    const m = (State.musicEnabled ? "ON" : "OFF");
+    const v = (State.voiceEnabled ? "ON" : "OFF");
+    const s = (State.sfxEnabled ? "ON" : "OFF");
+    const bgState = bg?.paused ? "paused" : "playing";
+    const ctxState = AC ? AC.state : "no-audiocontext";
+    showStatus(`music=${m} (${bgState}) • voice=${v} • sfx=${s} • ctx=${ctxState} • file=${GAME.audio.musicLoop}`);
+  }
+
+  document.getElementById("btnHideAudioStatus").onclick = () => statusBox.style.display="none";
 
   function hasCtx(){ return !!(window.AudioContext || window.webkitAudioContext); }
 
-  function wireBgDiagnostics(){
-    if(!bg || bg._wired) return;
-    bg._wired = true;
-
-    bg.addEventListener("error", () => {
-      const u = bg.currentSrc || bg.src;
-      toast("MUSIC ERROR loading:\n" + u + "\nCheck file exists + GitHub Pages deployed.");
-    });
-
-    bg.addEventListener("stalled", () => toast("Music stalled (network)."));
-    bg.addEventListener("waiting", () => toast("Music waiting/buffering..."));
-  }
-
-  async function ensureCtx(){
-    if(!hasCtx()) return;
+  async function ensureContext(){
+    if(!hasCtx()) return false;
     const Ctx = window.AudioContext || window.webkitAudioContext;
     AC = AC || new Ctx({ latencyHint: "interactive" });
-
     if(AC.state === "suspended"){
-      try{ await AC.resume(); }catch{}
+      try{ await AC.resume(); }catch(e){ toast("AudioContext resume failed: " + e); }
     }
-
     masterGain = masterGain || AC.createGain();
     voGain     = voGain     || AC.createGain();
     sfxGain    = sfxGain    || AC.createGain();
-
     masterGain.gain.value = 1.0;
     voGain.gain.value = State.voiceEnabled ? 1.0 : 0.0;
     sfxGain.gain.value = State.sfxEnabled ? 1.0 : 0.0;
-
     voGain.connect(masterGain);
     sfxGain.connect(masterGain);
     masterGain.connect(AC.destination);
 
-    // iOS "tick"
+    // micro tick
     try{
       const osc = AC.createOscillator();
       const g = AC.createGain();
@@ -550,54 +577,55 @@ const AudioEngine = (() => {
       osc.connect(g); g.connect(masterGain);
       osc.start(); osc.stop(AC.currentTime + 0.02);
     }catch{}
+    return true;
   }
 
-  async function startMusicFromGesture(){
-    if(!bg) return false;
-
-    wireBgDiagnostics();
-
-    bg.loop = true;
-    bg.preload = "auto";
-    bg.muted = false;
-    bg.volume = State.musicEnabled ? LEVELS.musicNormal : 0.0;
-
-    if(!State.musicEnabled) return true;
-
-    try{
-      // IMPORTANT: call play() during/after a user gesture
-      const p = bg.play();
-      if(p && typeof p.then === "function") await p;
-      return true;
-    }catch(err){
-      toast("Music play() blocked.\nTap any button again to retry.\n" + (err?.message || err));
-      return false;
+  async function startMusicOrExplain(){
+    if(!State.musicEnabled){
+      try{ bg.pause(); bg.currentTime = 0; }catch{}
+      setStatus();
+      return;
     }
+    try{
+      bg.volume = LEVELS.musicNormal;
+      bg.load(); // forces browser to re-evaluate file
+      await bg.play();
+    }catch(e){
+      toast(
+        "Music failed to play. Most common cause: file missing or wrong path.\n" +
+        "Expected: " + GAME.audio.musicLoop + "\n" +
+        "Error: " + (e?.message || e)
+      );
+      showStatus("MUSIC ERROR — check file path: " + GAME.audio.musicLoop);
+    }
+    setStatus();
   }
 
   async function unlock(){
-    if(unlocked) return true;
+    // Always show the status box while diagnosing
+    statusBox.style.display = "block";
 
-    // Create/resume AudioContext first (helps iOS)
-    await ensureCtx();
+    // Try to start music (must be in direct gesture handler)
+    await startMusicOrExplain();
 
-    // Then attempt music (must be user gesture)
-    await startMusicFromGesture();
+    // WebAudio for VO/SFX
+    await ensureContext();
 
     unlocked = true;
+    setStatus();
     return true;
   }
 
   async function load(url){
     if(!url || buffers.has(url) || !AC) return;
     try{
-      const res = await fetch(url, { cache:"force-cache" });
+      const res = await fetch(url, { cache:"no-store" });
       if(!res.ok) return;
       const arr = await res.arrayBuffer();
       const buf = await new Promise((ok, no) => AC.decodeAudioData(arr, ok, no));
       buffers.set(url, buf);
     }catch{
-      // ignore missing files
+      // ignore
     }
   }
 
@@ -614,8 +642,8 @@ const AudioEngine = (() => {
   }
 
   function duck(on){
-    if(!State.musicEnabled || !bg) return;
-    bg.volume = on ? LEVELS.musicDucked : LEVELS.musicNormal;
+    if(!State.musicEnabled) return;
+    try{ bg.volume = on ? LEVELS.musicDucked : LEVELS.musicNormal; }catch{}
   }
 
   function stopNode(n){
@@ -623,11 +651,10 @@ const AudioEngine = (() => {
     try{ n?.g?.disconnect(); }catch{}
   }
 
-  function playBuffer(buf, {bus="sfx", vol=1, loop=false}={}){
+  function playBuffer(buf, {bus="sfx", vol=1}={}){
     if(!AC || !buf) return null;
     const src = AC.createBufferSource();
     src.buffer = buf;
-    src.loop = !!loop;
 
     const g = AC.createGain();
     g.gain.value = vol;
@@ -644,27 +671,21 @@ const AudioEngine = (() => {
     if(typeof voice === "boolean") State.voiceEnabled = voice;
     if(typeof sfx === "boolean") State.sfxEnabled = sfx;
 
-    // Music toggle
-    if(bg){
-      try{
-        if(State.musicEnabled){
-          bg.volume = LEVELS.musicNormal;
-          // retry play (still requires gesture; toggles are gestures)
-          bg.play().catch(()=>{});
-        }else{
-          bg.pause();
-          bg.currentTime = 0;
-        }
-      }catch{}
+    // music
+    if(State.musicEnabled){
+      startMusicOrExplain();
+    }else{
+      try{ bg.pause(); bg.currentTime=0; }catch{}
     }
 
-    // VO/SFX busses
+    // vo/sfx gains
     if(AC){
       try{ voGain.gain.value = State.voiceEnabled ? 1.0 : 0.0; }catch{}
       try{ sfxGain.gain.value = State.sfxEnabled ? 1.0 : 0.0; }catch{}
     }
 
     saveState();
+    setStatus();
   }
 
   function pickNoRepeat(arr, last){
@@ -698,10 +719,7 @@ const AudioEngine = (() => {
     const durationMs = Math.max(400, (buf.duration||0) * 1000);
 
     clearTimeout(playVO._t);
-    playVO._t = setTimeout(()=>{
-      currentVO = null;
-      duck(false);
-    }, durationMs + 60);
+    playVO._t = setTimeout(()=>{ currentVO=null; duck(false); }, durationMs + 60);
   }
 
   async function playCorrect(){
@@ -715,12 +733,32 @@ const AudioEngine = (() => {
     await playVO(url);
   }
 
-  // If a browser killed audio when tab backgrounded, retry on return.
-  document.addEventListener("visibilitychange", () => {
-    if(document.visibilityState === "visible" && unlocked && State.musicEnabled){
-      bg?.play?.().catch(()=>{});
+  // Diagnostics: beep works even with no files
+  async function testBeep(){
+    await ensureContext();
+    if(!AC){ toast("No AudioContext available on this browser."); return; }
+    try{
+      const osc = AC.createOscillator();
+      const g = AC.createGain();
+      g.gain.value = 0.12;
+      osc.type = "sine";
+      osc.frequency.value = 660;
+      osc.connect(g); g.connect(AC.destination);
+      osc.start();
+      osc.stop(AC.currentTime + 0.12);
+    }catch(e){
+      toast("Beep failed: " + (e?.message||e));
     }
-  });
+    setStatus();
+  }
+
+  async function testMusic(){
+    await startMusicOrExplain();
+  }
+
+  // Bind diag buttons
+  document.getElementById("btnTestBeep").onclick = () => testBeep();
+  document.getElementById("btnTestMusic").onclick = () => testMusic();
 
   return {
     unlock,
@@ -731,13 +769,14 @@ const AudioEngine = (() => {
     playSFX,
     setToggles,
     duck,
-    startMusicFromGesture,
+    testBeep,
+    testMusic,
     get unlocked(){ return unlocked; }
   };
 })();
 
 /* =========================================================
-   6) FX Engine (coins + rainbow sweep; lightweight)
+   6) FX Engine (coins + rainbow sweep)
    ========================================================= */
 const FX = (() => {
   const canvas = document.getElementById("fxCanvas");
@@ -756,91 +795,62 @@ const FX = (() => {
   resize();
 
   function addCoinBurst(x,y, count=120){
-    const cx = x*DPR, cy=y*DPR;
+    const cx=x*DPR, cy=y*DPR;
     for(let i=0;i<count;i++){
-      const a = Math.random()*Math.PI*2;
-      const sp = (1.0 + Math.random()*3.5) * DPR;
-      parts.push({
-        x:cx, y:cy,
-        vx:Math.cos(a)*sp,
-        vy:Math.sin(a)*sp - (1.2*DPR),
-        life: 55 + Math.random()*35,
-        r: (2.2 + Math.random()*2.8)*DPR,
-        spin: (Math.random()*2-1)*0.25,
-        t: Math.random()*Math.PI*2
-      });
+      const a=Math.random()*Math.PI*2;
+      const sp=(1.0+Math.random()*3.5)*DPR;
+      parts.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-(1.2*DPR),life:55+Math.random()*35,r:(2.2+Math.random()*2.8)*DPR,spin:(Math.random()*2-1)*0.25,t:Math.random()*Math.PI*2});
     }
   }
-
-  function rainbowSweep(){
-    parts.push({type:"rainbow", x:-W*0.3, life: 48});
-  }
+  function rainbowSweep(){ parts.push({type:"rainbow", x:-W*0.3, life:48}); }
 
   function tick(){
     if(!running) return;
     ctx.clearRect(0,0,W,H);
-
     for(let i=parts.length-1;i>=0;i--){
       const p=parts[i];
 
       if(p.type==="rainbow"){
-        p.life--;
-        p.x += W*0.05;
-        const w = W*0.55;
-        const grad = ctx.createLinearGradient(p.x,0,p.x+w,0);
+        p.life--; p.x += W*0.05;
+        const w=W*0.55;
+        const grad=ctx.createLinearGradient(p.x,0,p.x+w,0);
         grad.addColorStop(0,"rgba(255,0,100,0)");
         grad.addColorStop(0.15,"rgba(255,80,0,0.22)");
         grad.addColorStop(0.35,"rgba(255,230,0,0.20)");
         grad.addColorStop(0.55,"rgba(0,255,140,0.18)");
         grad.addColorStop(0.75,"rgba(0,170,255,0.16)");
         grad.addColorStop(1,"rgba(160,0,255,0)");
-        ctx.fillStyle = grad;
-        ctx.fillRect(p.x, 0, w, H);
+        ctx.fillStyle=grad;
+        ctx.fillRect(p.x,0,w,H);
         if(p.life<=0) parts.splice(i,1);
         continue;
       }
 
-      p.life--;
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.045*DPR;
-      p.t += p.spin;
+      p.life--; p.x+=p.vx; p.y+=p.vy; p.vy += 0.045*DPR; p.t += p.spin;
+      const alpha=Math.max(0,Math.min(1,p.life/70));
+      ctx.globalAlpha=alpha;
 
-      const alpha = Math.max(0, Math.min(1, p.life/70));
-      ctx.globalAlpha = alpha;
-
-      ctx.fillStyle = "rgba(255,213,106,0.95)";
+      ctx.fillStyle="rgba(255,213,106,0.95)";
       ctx.beginPath();
-      ctx.ellipse(p.x, p.y, p.r*(1.2 + 0.25*Math.sin(p.t)), p.r, p.t, 0, Math.PI*2);
+      ctx.ellipse(p.x,p.y,p.r*(1.2+0.25*Math.sin(p.t)),p.r,p.t,0,Math.PI*2);
       ctx.fill();
 
-      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.fillStyle="rgba(255,255,255,0.35)";
       ctx.beginPath();
-      ctx.ellipse(p.x - p.r*0.25, p.y - p.r*0.25, p.r*0.35, p.r*0.22, p.t, 0, Math.PI*2);
+      ctx.ellipse(p.x-p.r*0.25,p.y-p.r*0.25,p.r*0.35,p.r*0.22,p.t,0,Math.PI*2);
       ctx.fill();
 
       if(p.life<=0) parts.splice(i,1);
     }
-
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=1;
     requestAnimationFrame(tick);
   }
-
-  function ensure(){
-    if(running) return;
-    running=true;
-    requestAnimationFrame(tick);
-  }
-
-  return {
-    ensure,
-    coinBurst(x,y,count){ ensure(); addCoinBurst(x,y,count); },
-    rainbow(){ ensure(); rainbowSweep(); }
-  };
+  function ensure(){ if(running) return; running=true; requestAnimationFrame(tick); }
+  return { ensure, coinBurst(x,y,c){ ensure(); addCoinBurst(x,y,c); }, rainbow(){ ensure(); rainbowSweep(); } };
 })();
 
 /* =========================================================
-   7) Scanner (ZXing) + validation
+   7) Scanner
    ========================================================= */
 const Scanner = (() => {
   let reader=null;
@@ -870,15 +880,9 @@ const Scanner = (() => {
     const expected = normalize(expectedId);
     const videoEl = document.getElementById("preview");
     if(!videoEl) throw new Error("preview <video> missing");
+    if(!navigator.mediaDevices?.getUserMedia) throw new Error("Camera not available (HTTPS required).");
 
-    if(!navigator.mediaDevices?.getUserMedia){
-      throw new Error("Camera not available (HTTPS required).");
-    }
-
-    const warm = await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode:{ ideal:"environment" } },
-      audio:false
-    });
+    const warm = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:"environment" } }, audio:false });
     videoEl.srcObject = warm;
     await videoEl.play().catch(()=>{});
 
@@ -892,9 +896,8 @@ const Scanner = (() => {
     }catch{}
 
     reader = new ZXing.BrowserMultiFormatReader();
-    await reader.decodeFromVideoDevice(deviceId, "preview", async (result, err) => {
+    await reader.decodeFromVideoDevice(deviceId, "preview", async (result) => {
       if(!result) return;
-
       const got = normalize(result.getText());
 
       if(got === expected && !scanLock){
@@ -918,7 +921,7 @@ const Scanner = (() => {
 })();
 
 /* =========================================================
-   8) UI Rendering
+   8) UI
    ========================================================= */
 const root = document.getElementById("appRoot");
 const finalOverlay = document.getElementById("finalOverlay");
@@ -961,10 +964,9 @@ function controlsUI(){
         ${mkToggle("Music","musicEnabled",State.musicEnabled)}
         ${mkToggle("Voice","voiceEnabled",State.voiceEnabled)}
         ${mkToggle("SFX","sfxEnabled",State.sfxEnabled)}
-        <button class="pill" id="btnTestSound">Test Sound</button>
       </div>
       <div class="mt-2 text-xs" style="color:rgba(242,255,244,.55)">
-        Music ducks automatically during voice lines.
+        If music is silent, tap “Test Music” (top banner) to see the failing path.
       </div>
     </div>
   `;
@@ -979,9 +981,7 @@ function teamCard(){
           placeholder="Enter team name" value="${escapeAttr(State.team)}" />
         <button class="btn btnPrimary" id="btnSaveTeam">Save</button>
       </div>
-      <div class="mt-2 text-xs" style="color:rgba(242,255,244,.55)">
-        Stored on this device only.
-      </div>
+      <div class="mt-2 text-xs" style="color:rgba(242,255,244,.55)">Stored on this device only.</div>
     </div>
   `;
 }
@@ -994,14 +994,9 @@ function clueBubble(node){
         <div class="bubble">
           <div class="text-[11px] uppercase tracking-widest" style="color:rgba(242,255,244,.65)">${escapeHTML(node.business)}</div>
           <div class="text-[15px] font-extrabold mt-1" style="color:var(--gold)">${escapeHTML(node.stopTitle)}</div>
-          <div class="mt-2 whitespace-pre-line text-[14px]" style="color:rgba(242,255,244,.92)">
-            ${escapeHTML(node.clueText)}
-          </div>
+          <div class="mt-2 whitespace-pre-line text-[14px]" style="color:rgba(242,255,244,.92)">${escapeHTML(node.clueText)}</div>
           <div class="mt-3 flex gap-2">
-            <button class="btn btnGhost w-full" id="btnRepeatClue">Repeat Clue</button>
-          </div>
-          <div class="mt-2 text-[11px]" style="color:rgba(242,255,244,.55)">
-            Tip: Clues are text (fast). Voice is used for reactions + opening/finale to keep pacing snappy.
+            <button class="btn btnGhost w-full" id="btnRepeatClue">Wiggle Lep (No Voice)</button>
           </div>
         </div>
       </div>
@@ -1015,21 +1010,10 @@ function scannerCard(node){
       <div class="text-sm" style="color:rgba(242,255,244,.75)">
         Scan the checkpoint QR at <span class="font-extrabold" style="color:var(--gold)">${escapeHTML(node.business)}</span>.
       </div>
-
-      <div class="mt-3 scanFrame">
-        <video id="preview" autoplay muted playsinline></video>
-      </div>
-
-      <div class="mt-3 flex gap-2">
-        <button class="btn btnGhost w-full" id="btnRescan">Restart Camera</button>
-      </div>
-
-      <div class="mt-2 text-xs" style="color:rgba(242,255,244,.55)">
-        If camera fails: allow permission, use the GitHub Pages HTTPS URL, and close other apps using the camera.
-      </div>
-
+      <div class="mt-3 scanFrame"><video id="preview" autoplay muted playsinline></video></div>
+      <div class="mt-3 flex gap-2"><button class="btn btnGhost w-full" id="btnRescan">Restart Camera</button></div>
       <div class="mt-2 text-xs" style="color:rgba(242,255,244,.45)">
-        Checkpoint payload expected: <span class="font-mono">${escapeHTML(node.id)}</span>
+        Expected payload: <span class="font-mono">${escapeHTML(node.id)}</span>
       </div>
     </div>
   `;
@@ -1057,9 +1041,7 @@ function render(){
     <div class="card p-4">
       <div class="text-xs uppercase tracking-widest" style="color:rgba(242,255,244,.65)">The Block</div>
       <div class="text-xl font-extrabold mt-1">Leprechaun Gold Hunt</div>
-      <div class="mt-2 text-sm" style="color:rgba(242,255,244,.70)">
-        Scan each location’s QR to unlock the next clue.
-      </div>
+      <div class="mt-2 text-sm" style="color:rgba(242,255,244,.70)">Scan each location’s QR to unlock the next clue.</div>
     </div>
 
     ${progressUI()}
@@ -1080,35 +1062,19 @@ function render(){
   };
 
   root.querySelectorAll("[data-toggle]").forEach(btn => {
-    btn.onclick = async () => {
-      // toggle clicks are gestures => retry music play if needed
+    btn.onclick = () => {
       const k = btn.getAttribute("data-toggle");
-      const next = !State[k];
-      State[k] = next;
-      AudioEngine.setToggles({
-        music: State.musicEnabled,
-        voice: State.voiceEnabled,
-        sfx: State.sfxEnabled
-      });
-      await AudioEngine.startMusicFromGesture();
+      State[k] = !State[k];
+      AudioEngine.setToggles({ music: State.musicEnabled, voice: State.voiceEnabled, sfx: State.sfxEnabled });
       render();
     };
   });
 
-  document.getElementById("btnTestSound").onclick = async () => {
-    await AudioEngine.unlock();
-    await AudioEngine.startMusicFromGesture();
-    // small VO attempt if present; otherwise you’ll still hear music
-    await AudioEngine.playVO(GAME.audio.opening);
-    toast("Test attempted. If you hear music, audio is working.");
-  };
-
-  document.getElementById("btnRepeatClue").onclick = async () => {
+  document.getElementById("btnRepeatClue").onclick = () => {
     Lep.pulse("talk", 900);
   };
 
   document.getElementById("btnRescan").onclick = () => startScanningForNode(node);
-
   startScanningForNode(node);
 }
 
@@ -1126,7 +1092,6 @@ async function startScanningForNode(node){
 
       setTimeout(async () => {
         Scanner.stop();
-
         const wasFinal = !!node.isFinal || node.id === GAME.finalId;
         State.idx = State.idx + 1;
         saveState();
@@ -1140,7 +1105,6 @@ async function startScanningForNode(node){
           FX.coinBurst(window.innerWidth*0.5, window.innerHeight*0.34, 220);
           return;
         }
-
         render();
       }, 850);
     });
@@ -1160,22 +1124,16 @@ const gate = document.getElementById("gate");
 Lep.mount("gateLep");
 
 document.getElementById("btnStart").onclick = async () => {
-  // IMPORTANT: unlock first (during this click gesture), then hide gate
+  // This click is the critical "gesture" for audio on every device.
   await AudioEngine.unlock();
   await AudioEngine.preloadCore();
 
-  AudioEngine.setToggles({
-    music: State.musicEnabled,
-    voice: State.voiceEnabled,
-    sfx: State.sfxEnabled
-  });
-
-  await AudioEngine.startMusicFromGesture();
-
+  // Hide gate after audio unlock attempt (so you see the banner if it failed)
   gate.style.opacity = "0";
   gate.style.transition = "opacity .28s ease";
   setTimeout(()=>gate.remove(), 300);
 
+  // Optional opening VO if uploaded
   await AudioEngine.playVO(GAME.audio.opening);
 
   render();
@@ -1185,9 +1143,7 @@ document.getElementById("btnFinalSound").onclick = async () => {
   if(!AudioEngine.unlocked) return;
   await AudioEngine.playVO(GAME.audio.finale);
 };
-document.getElementById("btnFinalDone").onclick = () => {
-  toast("Hunt complete.");
-};
+document.getElementById("btnFinalDone").onclick = () => toast("Hunt complete.");
 
 /* =========================================================
    10) Helpers
@@ -1200,13 +1156,19 @@ function escapeHTML(s){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
-function escapeAttr(s){
-  return String(s).replaceAll('"',"&quot;");
-}
+function escapeAttr(s){ return String(s).replaceAll('"',"&quot;"); }
+
+/* =========================================================
+   11) Boot
+   ========================================================= */
+(function boot(){
+  // gate always shows (so Start click always exists)
+})();
 </script>
 
 </body>
 </html>
+
 
 
 
