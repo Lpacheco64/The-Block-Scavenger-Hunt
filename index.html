@@ -985,9 +985,18 @@ async function playCorrectOnce(){
   const pick = sounds[Math.floor(Math.random() * sounds.length)];
 
   try{
-    const a = new Audio(pick);
+    const a = new Audio();
+    a.src = pick;
+    a.preload = "auto";
     a.volume = 1;
+    a.currentTime = 0;
     await a.play();
+
+    await new Promise(resolve => {
+      a.onended = resolve;
+      a.onerror = resolve;
+      setTimeout(resolve, 1800);
+    });
   }catch(e){
     console.log("correct sound failed", e);
   }
@@ -1349,28 +1358,41 @@ async function startScanningForNode(node){
       Lep.pulse("lepMain", "happy", 1100);
 
       FX.rainbow();
-      FX.coinBurst(window.innerWidth*0.5, window.innerHeight*0.34, 150);
-      if(navigator.vibrate) navigator.vibrate([110,60,150]);
+      FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.34, 150);
+
+      if(navigator.vibrate){
+        navigator.vibrate([110,60,150]);
+      }
 
       AudioEngine.playSFX(GAME.audio.sfx.coinBurst);
+
       await playCorrectOnce();
 
-      setTimeout(async () => {
-        Scanner.stop();
+      Scanner.stop();
 
-        const wasFinal = !!node.isFinal || node.id === GAME.finalId;
-        State.idx = State.idx + 1;
+      const wasFinal = !!node.isFinal || node.id === GAME.finalId;
+      State.idx = State.idx + 1;
+      saveState();
+
+      if(wasFinal || State.idx >= GAME.nodes.length){
+        State.done = true;
         saveState();
 
-        if(wasFinal || State.idx >= GAME.nodes.length){
-          State.done = true;
-          saveState();
-          showFinal();
-          await AudioEngine.playVO(GAME.audio.finale);
-          FX.rainbow();
-          FX.coinBurst(window.innerWidth*0.5, window.innerHeight*0.32, 230);
-          return;
-        }
+        showFinal();
+
+        FX.rainbow();
+        FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.32, 230);
+
+        await AudioEngine.playVO(GAME.audio.finale);
+        return;
+      }
+
+      render();
+    });
+  }catch(e){
+    toast("Camera error: " + (e?.message || e));
+  }
+}
 
         render();
       }, 850);
@@ -1392,6 +1414,12 @@ function wireFinalButtons(){
 
   if(done){
     done.onclick = () => {
+      localStorage.removeItem(KEY("idx"));
+      localStorage.removeItem(KEY("done"));
+      finalOverlay.classList.remove("show");
+      State.idx = 0;
+      State.done = false;
+      saveState();
       location.reload();
     };
   }
@@ -1441,6 +1469,7 @@ function escapeAttr(s){
 </script>
 </body>
 </html>
+
 
 
 
