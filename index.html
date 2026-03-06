@@ -505,7 +505,7 @@
   <div id="toast"></div>
 
 <script>
-const BUILD = "2026-03-06-09";
+const BUILD = "2026-03-06-10";
 
 const assetUrl = (p) => {
   if (!p) return p;
@@ -1213,17 +1213,13 @@ const Scanner = (() => {
   let reader = null;
   let scanLock = false;
   let wrongCooldown = false;
+  let sessionId = 0;
 
   function normalize(t){
     return ("" + t).trim().toLowerCase();
   }
 
-  function stop(){
-    try{ reader?.reset(); }catch{}
-    reader = null;
-    scanLock = false;
-    wrongCooldown = false;
-
+  function hardStopVideo(){
     try{
       const v = document.getElementById("preview");
       const s = v?.srcObject;
@@ -1232,9 +1228,21 @@ const Scanner = (() => {
     }catch{}
   }
 
-  async function start(expectedId, onHit){
-    stop();
+  function stop(){
+    sessionId += 1;          // invalidate all old callbacks
+    scanLock = true;         // keep locked until next start()
+    wrongCooldown = false;
 
+    try{ reader?.reset(); }catch{}
+    reader = null;
+
+    hardStopVideo();
+  }
+
+  async function start(expectedId, onHit){
+    stop();                  // kill any previous scanner session first
+
+    const mySession = sessionId;
     scanLock = false;
     wrongCooldown = false;
 
@@ -1251,6 +1259,12 @@ const Scanner = (() => {
       audio: false
     });
 
+    // session may have changed while waiting for camera
+    if(mySession !== sessionId){
+      try{ warm.getTracks().forEach(t => t.stop()); }catch{}
+      return;
+    }
+
     videoEl.srcObject = warm;
     await videoEl.play().catch(() => {});
 
@@ -1266,6 +1280,8 @@ const Scanner = (() => {
     reader = new ZXing.BrowserMultiFormatReader();
 
     await reader.decodeFromVideoDevice(deviceId, "preview", async (result) => {
+      // ignore anything from stale/closed sessions
+      if(mySession !== sessionId) return;
       if(scanLock) return;
       if(!result) return;
 
@@ -1273,13 +1289,11 @@ const Scanner = (() => {
 
       if(got === expected){
         scanLock = true;
+        sessionId += 1; // immediately invalidate this callback stream too
 
         try{ reader?.reset(); }catch{}
-        try{
-          const s = videoEl?.srcObject;
-          if(s?.getTracks) s.getTracks().forEach(t => t.stop());
-          if(videoEl) videoEl.srcObject = null;
-        }catch{}
+        reader = null;
+        hardStopVideo();
 
         onHit?.(got);
         return;
@@ -1287,6 +1301,7 @@ const Scanner = (() => {
 
       if(!wrongCooldown){
         wrongCooldown = true;
+
         Lep.pulse("lepMain", "oops", 900);
 
         if(navigator.vibrate){
@@ -1297,7 +1312,10 @@ const Scanner = (() => {
         toast("Oops! Try a different spot.");
 
         setTimeout(() => {
-          wrongCooldown = false;
+          // only clear if this is still the active session
+          if(mySession === sessionId){
+            wrongCooldown = false;
+          }
         }, 1200);
       }
     });
@@ -1508,8 +1526,6 @@ async function startScanningForNode(node){
         showCelebration()
       ]);
 
-      Scanner.stop();
-
       const wasFinal = !!node.isFinal || node.id === GAME.finalId;
       State.idx = State.idx + 1;
       saveState();
@@ -1536,7 +1552,6 @@ async function startScanningForNode(node){
     toast("Camera error: " + (e?.message || e));
   }
 }
-
 function wireFinalButtons(){
   const replay = document.getElementById("btnFinalSound");
   const done = document.getElementById("btnFinalDone");
@@ -1606,6 +1621,7 @@ function escapeAttr(s){
 </script>
 </body>
 </html>
+
 
 
 
