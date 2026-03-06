@@ -212,9 +212,7 @@
       box-shadow:0 0 12px rgba(255,213,106,.26);
     }
 
-    .gameCard{
-      padding:20px;
-    }
+    .gameCard{ padding:20px; }
 
     .lepStage{
       width:150px;
@@ -346,15 +344,53 @@
       margin-top:12px;
     }
     #settingsWrap.show{display:block}
-    .settingsCard{
-      padding:16px;
-    }
+    .settingsCard{ padding:16px; }
     .settingsRow{
       display:flex;
       flex-wrap:wrap;
       gap:10px;
       justify-content:center;
       margin-top:10px;
+    }
+
+    #celebrateOverlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      z-index:170;
+      align-items:center;
+      justify-content:center;
+      background:rgba(0,0,0,.18);
+      backdrop-filter:blur(4px);
+      pointer-events:none;
+    }
+    #celebrateOverlay.show{ display:flex; }
+    .celebrateCard{
+      min-width:min(420px,92vw);
+      text-align:center;
+      padding:22px 18px;
+      border-radius:28px;
+      background:rgba(8,40,20,.88);
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow:0 18px 48px rgba(0,0,0,.28);
+      transform:scale(.96);
+      animation:popIn .18s ease forwards;
+    }
+    .celebrateText{
+      font-size:34px;
+      line-height:1.05;
+      font-weight:900;
+      color:var(--gold);
+      text-shadow:0 0 18px rgba(255,213,106,.18);
+    }
+    .celebrateSub{
+      margin-top:10px;
+      font-size:18px;
+      color:rgba(247,255,247,.92);
+    }
+    @keyframes popIn{
+      from{transform:scale(.92);opacity:.2}
+      to{transform:scale(1);opacity:1}
     }
 
     #toast{
@@ -409,12 +445,21 @@
       .clueText{font-size:18px}
       .scanBig{font-size:22px}
       .heroLep{width:96px;height:96px}
+      .celebrateText{font-size:28px}
+      .celebrateSub{font-size:16px}
     }
   </style>
 </head>
 
 <body>
   <canvas id="fxCanvas"></canvas>
+
+  <div id="celebrateOverlay">
+    <div class="celebrateCard">
+      <div class="celebrateText" id="celebrateText">Lucky Find!</div>
+      <div class="celebrateSub" id="celebrateSub">The next clue is ready.</div>
+    </div>
+  </div>
 
   <div class="max-w-md mx-auto px-3 py-4 space-y-4 relative z-50" id="appRoot"></div>
 
@@ -460,7 +505,7 @@
   <div id="toast"></div>
 
 <script>
-const BUILD = "2026-03-06-06";
+const BUILD = "2026-03-06-09";
 
 const assetUrl = (p) => {
   if (!p) return p;
@@ -723,10 +768,10 @@ const State = {
 function saveState(){
   localStorage.setItem(KEY("team"), State.team);
   localStorage.setItem(KEY("idx"), String(State.idx));
-  localStorage.setItem(KEY("musicEnabled"), State.musicEnabled ? "1":"0");
-  localStorage.setItem(KEY("voiceEnabled"), State.voiceEnabled ? "1":"0");
-  localStorage.setItem(KEY("sfxEnabled"), State.sfxEnabled ? "1":"0");
-  localStorage.setItem(KEY("done"), State.done ? "1":"0");
+  localStorage.setItem(KEY("musicEnabled"), State.musicEnabled ? "1" : "0");
+  localStorage.setItem(KEY("voiceEnabled"), State.voiceEnabled ? "1" : "0");
+  localStorage.setItem(KEY("sfxEnabled"), State.sfxEnabled ? "1" : "0");
+  localStorage.setItem(KEY("done"), State.done ? "1" : "0");
 }
 
 const toastEl = document.getElementById("toast");
@@ -736,8 +781,8 @@ function toast(msg){
   clearTimeout(toastEl._t);
   toastEl._t = setTimeout(()=>{ toastEl.style.display="none"; }, 7000);
 }
-window.addEventListener("error", e=> toast("Error: " + (e?.message||e)));
-window.addEventListener("unhandledrejection", e=> toast("Promise: " + (e?.reason?.message||e.reason||e)));
+window.addEventListener("error", e => toast("Error: " + (e?.message || e)));
+window.addEventListener("unhandledrejection", e => toast("Promise: " + (e?.reason?.message || e.reason || e)));
 
 const Lep = (() => {
   const players = new Map();
@@ -770,17 +815,17 @@ const Lep = (() => {
     mount(elId, mode, true);
     clearTimeout(pulse._t?.[elId]);
     pulse._t = pulse._t || {};
-    pulse._t[elId] = setTimeout(()=> mount(elId, "idle", true), ms);
+    pulse._t[elId] = setTimeout(() => mount(elId, "idle", true), ms);
   }
 
   return { mount, pulse };
 })();
 
 const AudioEngine = (() => {
-  let AC=null, masterGain=null, voGain=null, sfxGain=null;
+  let AC = null, masterGain = null, voGain = null, sfxGain = null;
   let buffers = new Map();
-  let currentVO=null;
-  let unlocked=false;
+  let currentVO = null;
+  let unlocked = false;
 
   const bg = new Audio();
   bg.loop = true;
@@ -813,8 +858,8 @@ const AudioEngine = (() => {
       }
 
       masterGain = masterGain || AC.createGain();
-      voGain     = voGain     || AC.createGain();
-      sfxGain    = sfxGain    || AC.createGain();
+      voGain = voGain || AC.createGain();
+      sfxGain = sfxGain || AC.createGain();
 
       masterGain.gain.value = 1.0;
       voGain.gain.value = State.voiceEnabled ? 1.0 : 0.0;
@@ -897,7 +942,7 @@ const AudioEngine = (() => {
     const g = AC.createGain();
     g.gain.value = vol;
 
-    if(bus==="vo"){ src.connect(g); g.connect(voGain); }
+    if(bus === "vo"){ src.connect(g); g.connect(voGain); }
     else { src.connect(g); g.connect(sfxGain); }
 
     try{ src.start(0); }catch{}
@@ -923,14 +968,14 @@ const AudioEngine = (() => {
   function pickNoRepeat(arr, last){
     if(!arr?.length) return null;
     if(arr.length === 1) return arr[0];
-    let c = arr[Math.floor(Math.random()*arr.length)];
+    let c = arr[Math.floor(Math.random() * arr.length)];
     if(c === last){
-      c = arr[(arr.indexOf(c)+1) % arr.length];
+      c = arr[(arr.indexOf(c) + 1) % arr.length];
     }
     return c;
   }
 
-  let lastWrong=null;
+  let lastWrong = null;
 
   async function playSFX(url){
     if(!unlocked || !State.sfxEnabled || !AC) return;
@@ -946,14 +991,14 @@ const AudioEngine = (() => {
     const buf = buffers.get(url);
     if(!buf) return;
 
-    if(currentVO){ stopNode(currentVO); currentVO=null; }
+    if(currentVO){ stopNode(currentVO); currentVO = null; }
 
     duck(true);
     currentVO = playBuffer(buf, {bus:"vo", vol:LEVELS.vo});
-    const durationMs = Math.max(400, (buf.duration||0) * 1000);
+    const durationMs = Math.max(400, (buf.duration || 0) * 1000);
 
     clearTimeout(playVO._t);
-    playVO._t = setTimeout(()=>{
+    playVO._t = setTimeout(() => {
       currentVO = null;
       duck(false);
     }, durationMs + 60);
@@ -978,27 +1023,89 @@ const AudioEngine = (() => {
   };
 })();
 
+let correctBag = [];
+let activeCorrectAudio = null;
+let activeCelebrationToken = 0;
+
+function shuffleArray(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
 async function playCorrectOnce(){
   const sounds = GAME.audio.correct;
   if(!sounds || !sounds.length) return;
 
-  const pick = sounds[Math.floor(Math.random() * sounds.length)];
+  if(correctBag.length === 0){
+    correctBag = [...sounds];
+    shuffleArray(correctBag);
+  }
+
+  const pick = correctBag.pop();
 
   try{
-    const a = new Audio();
-    a.src = pick;
+    if(activeCorrectAudio){
+      try{ activeCorrectAudio.pause(); }catch{}
+      activeCorrectAudio = null;
+    }
+
+    const a = new Audio(pick);
+    activeCorrectAudio = a;
     a.preload = "auto";
     a.volume = 1;
     a.currentTime = 0;
+
     await a.play();
 
     await new Promise(resolve => {
-      a.onended = resolve;
-      a.onerror = resolve;
-      setTimeout(resolve, 1800);
+      const done = () => resolve();
+      a.onended = done;
+      a.onerror = done;
+      setTimeout(done, 1600);
     });
+
+    if(activeCorrectAudio === a){
+      activeCorrectAudio = null;
+    }
   }catch(e){
     console.log("correct sound failed", e);
+  }
+}
+
+const CELEBRATION_LINES = [
+  { title: "Lucky Find!", sub: "The next clue is ready." },
+  { title: "Gold Stars!", sub: "You found the right spot." },
+  { title: "Brilliant!", sub: "The leprechaun is impressed." },
+  { title: "You Did It!", sub: "Onward to the next adventure." },
+  { title: "Treasure Trail!", sub: "Keep chasing the rainbow." }
+];
+let celebrationBag = [];
+
+function pickCelebrationLine(){
+  if(celebrationBag.length === 0){
+    celebrationBag = [...CELEBRATION_LINES];
+    shuffleArray(celebrationBag);
+  }
+  return celebrationBag.pop();
+}
+
+async function showCelebration(){
+  const overlay = document.getElementById("celebrateOverlay");
+  const title = document.getElementById("celebrateText");
+  const sub = document.getElementById("celebrateSub");
+  const line = pickCelebrationLine();
+  const token = ++activeCelebrationToken;
+
+  title.textContent = line.title;
+  sub.textContent = line.sub;
+  overlay.classList.add("show");
+
+  await new Promise(resolve => setTimeout(resolve, 1200));
+
+  if(token === activeCelebrationToken){
+    overlay.classList.remove("show");
   }
 }
 
@@ -1103,38 +1210,49 @@ const FX = (() => {
 })();
 
 const Scanner = (() => {
-  let reader=null;
-  let scanLock=false;
-  let wrongCooldown=false;
+  let reader = null;
+  let scanLock = false;
+  let wrongCooldown = false;
 
-  function normalize(t){ return (""+t).trim().toLowerCase(); }
+  function normalize(t){
+    return ("" + t).trim().toLowerCase();
+  }
 
   function stop(){
     try{ reader?.reset(); }catch{}
-    reader=null;
-    scanLock=false;
-    wrongCooldown=false;
+    reader = null;
+    scanLock = false;
+    wrongCooldown = false;
+
     try{
-      const v=document.getElementById("preview");
-      const s=v?.srcObject;
-      if(s?.getTracks) s.getTracks().forEach(t=>t.stop());
-      if(v) v.srcObject=null;
+      const v = document.getElementById("preview");
+      const s = v?.srcObject;
+      if(s?.getTracks) s.getTracks().forEach(t => t.stop());
+      if(v) v.srcObject = null;
     }catch{}
   }
 
   async function start(expectedId, onHit){
     stop();
+
+    scanLock = false;
+    wrongCooldown = false;
+
     const expected = normalize(expectedId);
     const videoEl = document.getElementById("preview");
+
     if(!videoEl) throw new Error("preview <video> missing");
-    if(!navigator.mediaDevices?.getUserMedia) throw new Error("Camera not available (HTTPS required).");
+    if(!navigator.mediaDevices?.getUserMedia){
+      throw new Error("Camera not available (HTTPS required).");
+    }
 
     const warm = await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode:{ ideal:"environment" } },
-      audio:false
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
     });
+
     videoEl.srcObject = warm;
-    await videoEl.play().catch(()=>{});
+    await videoEl.play().catch(() => {});
 
     let deviceId = null;
     try{
@@ -1146,24 +1264,41 @@ const Scanner = (() => {
     }catch{}
 
     reader = new ZXing.BrowserMultiFormatReader();
+
     await reader.decodeFromVideoDevice(deviceId, "preview", async (result) => {
+      if(scanLock) return;
       if(!result) return;
 
       const got = normalize(result.getText());
 
-      if(got === expected && !scanLock){
+      if(got === expected){
         scanLock = true;
+
+        try{ reader?.reset(); }catch{}
+        try{
+          const s = videoEl?.srcObject;
+          if(s?.getTracks) s.getTracks().forEach(t => t.stop());
+          if(videoEl) videoEl.srcObject = null;
+        }catch{}
+
         onHit?.(got);
         return;
       }
 
-      if(got !== expected && !wrongCooldown){
+      if(!wrongCooldown){
         wrongCooldown = true;
         Lep.pulse("lepMain", "oops", 900);
-        if(navigator.vibrate) navigator.vibrate([80,60,80]);
+
+        if(navigator.vibrate){
+          navigator.vibrate([80,60,80]);
+        }
+
         await AudioEngine.playWrong();
         toast("Oops! Try a different spot.");
-        setTimeout(()=> wrongCooldown=false, 1200);
+
+        setTimeout(() => {
+          wrongCooldown = false;
+        }, 1200);
       }
     });
   }
@@ -1359,6 +1494,8 @@ async function startScanningForNode(node){
 
       FX.rainbow();
       FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.34, 150);
+      FX.coinBurst(window.innerWidth * 0.25, window.innerHeight * 0.30, 90);
+      FX.coinBurst(window.innerWidth * 0.75, window.innerHeight * 0.30, 90);
 
       if(navigator.vibrate){
         navigator.vibrate([110,60,150]);
@@ -1366,7 +1503,10 @@ async function startScanningForNode(node){
 
       AudioEngine.playSFX(GAME.audio.sfx.coinBurst);
 
-      await playCorrectOnce();
+      await Promise.all([
+        playCorrectOnce(),
+        showCelebration()
+      ]);
 
       Scanner.stop();
 
@@ -1381,7 +1521,10 @@ async function startScanningForNode(node){
         showFinal();
 
         FX.rainbow();
-        FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.32, 230);
+        FX.rainbow();
+        FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.32, 260);
+        FX.coinBurst(window.innerWidth * 0.25, window.innerHeight * 0.24, 140);
+        FX.coinBurst(window.innerWidth * 0.75, window.innerHeight * 0.24, 140);
 
         await AudioEngine.playVO(GAME.audio.finale);
         return;
@@ -1400,6 +1543,8 @@ function wireFinalButtons(){
 
   if(replay){
     replay.onclick = async () => {
+      FX.rainbow();
+      FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.32, 180);
       await AudioEngine.playVO(GAME.audio.finale);
     };
   }
@@ -1429,7 +1574,7 @@ Lep.mount("gateLep", "idle", true);
 document.getElementById("btnStart").onclick = async () => {
   gate.style.opacity = "0";
   gate.style.transition = "opacity .28s ease";
-  setTimeout(()=>gate.remove(), 300);
+  setTimeout(() => gate.remove(), 300);
 
   await AudioEngine.unlock();
   await AudioEngine.preloadCore();
@@ -1461,6 +1606,7 @@ function escapeAttr(s){
 </script>
 </body>
 </html>
+
 
 
 
