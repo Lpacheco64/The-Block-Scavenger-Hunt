@@ -1394,14 +1394,6 @@ async function startScanningForNode(node){
   }
 }
 
-        render();
-      }, 850);
-    });
-  }catch(e){
-    toast("Camera error: " + (e?.message || e));
-  }
-}
-
 function wireFinalButtons(){
   const replay = document.getElementById("btnFinalSound");
   const done = document.getElementById("btnFinalDone");
@@ -1469,6 +1461,7 @@ function escapeAttr(s){
 </script>
 </body>
 </html>
+
 
 
 
