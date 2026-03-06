@@ -16,14 +16,12 @@
       --bg0:#0b2b16;
       --bg1:#14522a;
       --card:rgba(8,40,20,.78);
-      --card2:rgba(255,255,255,.08);
       --stroke:rgba(255,255,255,.12);
       --ink:#f7fff7;
       --muted:rgba(247,255,247,.76);
       --gold:#ffd56a;
       --gold2:#ffb84a;
       --green:#42e58f;
-      --green2:#1fbb67;
       --bubble:rgba(255,255,255,.10);
       --bubbleStroke:rgba(255,255,255,.14);
     }
@@ -136,7 +134,8 @@
       flex:0 0 auto;
     }
     .heroLep > div,
-    .lepStage > div{
+    .lepStage > div,
+    .finalLep > div{
       width:112%;
       height:112%;
     }
@@ -375,7 +374,8 @@
     }
 
     #finalOverlay{
-      position:fixed; inset:0;
+      position:fixed;
+      inset:0;
       z-index:180;
       display:none;
       background:
@@ -401,7 +401,6 @@
       align-items:center;
       justify-content:center;
     }
-    .finalLep>div{width:112%;height:112%}
 
     @media (max-width: 520px){
       .gameCard{padding:16px}
@@ -461,10 +460,8 @@
   <div id="toast"></div>
 
 <script>
-/* =========================================================
-   0) Cache-bust + Optional Reset
-   ========================================================= */
-const BUILD = "2026-03-06-02";
+const BUILD = "2026-03-06-04";
+
 const assetUrl = (p) => {
   if (!p) return p;
   const sep = p.includes("?") ? "&" : "?";
@@ -482,9 +479,6 @@ const assetUrl = (p) => {
   }
 })();
 
-/* =========================================================
-   1) Locked Game Data
-   ========================================================= */
 const EVENT_ID = "block-leprechaun-2026";
 
 const GAME = {
@@ -715,9 +709,6 @@ stands nearby!`, order:15, isFinal:true }
   }
 };
 
-/* =========================================================
-   2) Storage + State
-   ========================================================= */
 const KEY = (k) => `${EVENT_ID}:${k}`;
 const State = {
   team: localStorage.getItem(KEY("team")) || "",
@@ -738,9 +729,6 @@ function saveState(){
   localStorage.setItem(KEY("done"), State.done ? "1":"0");
 }
 
-/* =========================================================
-   3) Toast + Error hooks
-   ========================================================= */
 const toastEl = document.getElementById("toast");
 function toast(msg){
   toastEl.style.display = "block";
@@ -751,9 +739,6 @@ function toast(msg){
 window.addEventListener("error", e=> toast("Error: " + (e?.message||e)));
 window.addEventListener("unhandledrejection", e=> toast("Promise: " + (e?.reason?.message||e.reason||e)));
 
-/* =========================================================
-   4) Leprechaun Animation (Lottie)
-   ========================================================= */
 const Lep = (() => {
   const players = new Map();
 
@@ -781,10 +766,6 @@ const Lep = (() => {
     players.set(elId, player);
   }
 
-  function set(elId, mode="idle", loop=true){
-    mount(elId, mode, loop);
-  }
-
   function pulse(elId, mode, ms=900){
     mount(elId, mode, true);
     clearTimeout(pulse._t?.[elId]);
@@ -792,12 +773,9 @@ const Lep = (() => {
     pulse._t[elId] = setTimeout(()=> mount(elId, "idle", true), ms);
   }
 
-  return { mount, set, pulse };
+  return { mount, pulse };
 })();
 
-/* =========================================================
-   5) Audio Engine
-   ========================================================= */
 const AudioEngine = (() => {
   let AC=null, masterGain=null, voGain=null, sfxGain=null;
   let buffers = new Map();
@@ -882,11 +860,6 @@ const AudioEngine = (() => {
     ]);
   }
 
-  function duck(on){
-    if(!State.musicEnabled) return;
-    bg.volume = on ? LEVELS.musicDucked : LEVELS.musicNormal;
-  }
-
   async function playMusic(){
     if(!State.musicEnabled) return;
     try{
@@ -903,6 +876,11 @@ const AudioEngine = (() => {
       bg.pause();
       bg.currentTime = 0;
     }catch{}
+  }
+
+  function duck(on){
+    if(!State.musicEnabled) return;
+    bg.volume = on ? LEVELS.musicDucked : LEVELS.musicNormal;
   }
 
   function stopNode(n){
@@ -952,7 +930,7 @@ const AudioEngine = (() => {
     return c;
   }
 
-  let lastCorrect=null, lastWrong=null;
+  let lastWrong=null;
 
   async function playSFX(url){
     if(!unlocked || !State.sfxEnabled || !AC) return;
@@ -981,12 +959,6 @@ const AudioEngine = (() => {
     }, durationMs + 60);
   }
 
-  async function playCorrect(){
-    const url = pickNoRepeat(GAME.audio.correct, lastCorrect);
-    lastCorrect = url;
-    await playVO(url);
-  }
-
   async function playWrong(){
     const url = pickNoRepeat(GAME.audio.wrong, lastWrong);
     lastWrong = url;
@@ -999,7 +971,6 @@ const AudioEngine = (() => {
     playMusic,
     stopMusic,
     playVO,
-    playCorrect,
     playWrong,
     playSFX,
     setToggles,
@@ -1007,9 +978,21 @@ const AudioEngine = (() => {
   };
 })();
 
-/* =========================================================
-   6) FX Engine
-   ========================================================= */
+async function playCorrectOnce(){
+  const sounds = GAME.audio.correct;
+  if(!sounds || !sounds.length) return;
+
+  const pick = sounds[Math.floor(Math.random() * sounds.length)];
+
+  try{
+    const a = new Audio(pick);
+    a.volume = 1;
+    await a.play();
+  }catch(e){
+    console.log("correct sound failed", e);
+  }
+}
+
 const FX = (() => {
   const canvas = document.getElementById("fxCanvas");
   const ctx = canvas.getContext("2d");
@@ -1021,7 +1004,8 @@ const FX = (() => {
     DPR = Math.min(2, window.devicePixelRatio || 1);
     W = Math.floor(window.innerWidth * DPR);
     H = Math.floor(window.innerHeight * DPR);
-    canvas.width = W; canvas.height = H;
+    canvas.width = W;
+    canvas.height = H;
   }
   window.addEventListener("resize", resize, {passive:true});
   resize();
@@ -1109,9 +1093,6 @@ const FX = (() => {
   };
 })();
 
-/* =========================================================
-   7) Scanner
-   ========================================================= */
 const Scanner = (() => {
   let reader=null;
   let scanLock=false;
@@ -1181,9 +1162,6 @@ const Scanner = (() => {
   return { start, stop };
 })();
 
-/* =========================================================
-   8) UI
-   ========================================================= */
 const root = document.getElementById("appRoot");
 const finalOverlay = document.getElementById("finalOverlay");
 
@@ -1375,7 +1353,7 @@ async function startScanningForNode(node){
       if(navigator.vibrate) navigator.vibrate([110,60,150]);
 
       AudioEngine.playSFX(GAME.audio.sfx.coinBurst);
-      await AudioEngine.playCorrect();
+      await playCorrectOnce();
 
       setTimeout(async () => {
         Scanner.stop();
@@ -1402,14 +1380,29 @@ async function startScanningForNode(node){
   }
 }
 
+function wireFinalButtons(){
+  const replay = document.getElementById("btnFinalSound");
+  const done = document.getElementById("btnFinalDone");
+
+  if(replay){
+    replay.onclick = async () => {
+      await AudioEngine.playVO(GAME.audio.finale);
+    };
+  }
+
+  if(done){
+    done.onclick = () => {
+      location.reload();
+    };
+  }
+}
+
 function showFinal(){
   finalOverlay.classList.add("show");
   Lep.mount("finalLep", "happy", true);
+  wireFinalButtons();
 }
 
-/* =========================================================
-   9) Gate
-   ========================================================= */
 const gate = document.getElementById("gate");
 Lep.mount("gateLep", "idle", true);
 
@@ -1433,18 +1426,6 @@ document.getElementById("btnStart").onclick = async () => {
   render();
 };
 
-document.getElementById("btnFinalSound").onclick = async () => {
-  if(!AudioEngine.unlocked) return;
-  await AudioEngine.playVO(GAME.audio.finale);
-};
-
-document.getElementById("btnFinalDone").onclick = () => {
-  toast("Hunt complete.");
-};
-
-/* =========================================================
-   10) Helpers
-   ========================================================= */
 function escapeHTML(s){
   return String(s)
     .replaceAll("&","&amp;")
@@ -1453,12 +1434,14 @@ function escapeHTML(s){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
+
 function escapeAttr(s){
   return String(s).replaceAll('"',"&quot;");
 }
 </script>
 </body>
 </html>
+
 
 
 
