@@ -536,7 +536,7 @@
   <div id="toast"></div>
 
 <script>
-const BUILD = "2026-03-06-17";
+const BUILD = "2026-03-06-18";
 
 const assetUrl = (p) => {
   if (!p) return p;
@@ -1214,93 +1214,142 @@ const AudioEngine = (() => {
 })();
 
 const FX = (() => {
-
   const canvas = document.getElementById("fxCanvas");
   const ctx = canvas.getContext("2d");
 
-  let W,H,DPR;
+  let W = 0, H = 0, DPR = 1;
   let parts = [];
-  let running=false;
+  let running = false;
 
   function resize(){
-    DPR=Math.min(2,window.devicePixelRatio||1);
-    W=window.innerWidth*DPR;
-    H=window.innerHeight*DPR;
-    canvas.width=W;
-    canvas.height=H;
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = Math.floor(window.innerWidth * DPR);
+    H = Math.floor(window.innerHeight * DPR);
+    canvas.width = W;
+    canvas.height = H;
   }
 
-  window.addEventListener("resize",resize);
+  window.addEventListener("resize", resize, { passive:true });
   resize();
 
-  function start(){
-    if(!running){
-      running=true;
-      requestAnimationFrame(tick);
-    }
+  function ensure(){
+    if(running) return;
+    running = true;
+    requestAnimationFrame(tick);
   }
 
-  function coinBurst(x,y,count=80){
-    start();
-    for(let i=0;i<count;i++){
-      parts.push({
-        type:"coin",
-        x:x*DPR,
-        y:y*DPR,
-        vx:(Math.random()-0.5)*2,
-        vy:-Math.random()*3,
-        r:4+Math.random()*3,
-        life:140+Math.random()*60
-      });
-    }
-  }
-
-  function cloverBurst(x,y,count=25){
-    start();
-    for(let i=0;i<count;i++){
-      parts.push({
-        type:"clover",
-        x:x*DPR,
-        y:y*DPR,
-        vx:(Math.random()-0.5)*1.5,
-        vy:-Math.random()*2,
-        size:10+Math.random()*10,
-        life:160+Math.random()*80
-      });
-    }
-  }
-
-  function rainbowBurst(x,y){
-    start();
+  function rainbow(){
+    ensure();
     parts.push({
-      type:"rainbow",
-      x:x*DPR,
-      y:y*DPR,
-      r:0,
-      life:120
+      type:"rainbowSweep",
+      x:-W * 0.35,
+      life:90
     });
   }
 
-  function drawClover(p){
-    ctx.fillStyle="#42e58f";
-    ctx.beginPath();
+  function coinBurst(x, y, count = 100){
+    ensure();
+    const cx = x * DPR;
+    const cy = y * DPR;
 
-    const s=p.size*DPR;
-
-    ctx.arc(p.x-s/2,p.y,s/2,0,Math.PI*2);
-    ctx.arc(p.x+s/2,p.y,s/2,0,Math.PI*2);
-    ctx.arc(p.x-s/2,p.y-s/2,s/2,0,Math.PI*2);
-    ctx.arc(p.x+s/2,p.y-s/2,s/2,0,Math.PI*2);
-
-    ctx.fill();
+    for(let i=0;i<count;i++){
+      const a = Math.random() * Math.PI * 2;
+      const sp = (0.8 + Math.random() * 2.4) * DPR;
+      parts.push({
+        type:"coin",
+        x:cx,
+        y:cy,
+        vx:Math.cos(a) * sp,
+        vy:Math.sin(a) * sp - (0.8 * DPR),
+        life:90 + Math.random() * 45,
+        r:(3 + Math.random() * 3) * DPR,
+        spin:(Math.random() * 2 - 1) * 0.2,
+        t:Math.random() * Math.PI * 2
+      });
+    }
   }
 
-  function drawRainbow(p){
-    const r=p.r;
+  function rainbowBurst(x, y, count = 26){
+    ensure();
+    const cx = x * DPR;
+    const cy = y * DPR;
 
-    ctx.lineWidth=8*DPR;
+    const colors = [
+      "rgba(255,80,80,0.95)",
+      "rgba(255,170,60,0.95)",
+      "rgba(255,230,80,0.95)",
+      "rgba(80,255,140,0.95)",
+      "rgba(80,190,255,0.95)",
+      "rgba(170,100,255,0.95)"
+    ];
 
-    const colors=[
+    for(let i=0;i<count;i++){
+      const a = Math.random() * Math.PI * 2;
+      const sp = (1 + Math.random() * 3.2) * DPR;
+      parts.push({
+        type:"spark",
+        x:cx,
+        y:cy,
+        vx:Math.cos(a) * sp,
+        vy:Math.sin(a) * sp,
+        life:55 + Math.random() * 25,
+        r:(4 + Math.random() * 4) * DPR,
+        color:colors[i % colors.length]
+      });
+    }
+
+    parts.push({
+      type:"rainbowArc",
+      x:cx,
+      y:cy,
+      radius:8 * DPR,
+      life:55
+    });
+  }
+
+  function cloverBurst(x, y, count = 24){
+    ensure();
+    const cx = x * DPR;
+    const cy = y * DPR;
+
+    for(let i=0;i<count;i++){
+      const a = Math.random() * Math.PI * 2;
+      const sp = (0.7 + Math.random() * 1.8) * DPR;
+      parts.push({
+        type:"clover",
+        x:cx,
+        y:cy,
+        vx:Math.cos(a) * sp,
+        vy:Math.sin(a) * sp - (0.6 * DPR),
+        life:100 + Math.random() * 40,
+        size:(8 + Math.random() * 8) * DPR,
+        rot:Math.random() * Math.PI * 2,
+        vr:(Math.random() * 0.08) - 0.04
+      });
+    }
+  }
+
+  function drawClover(p){
+    const s = p.size;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = "rgba(66,229,143,0.95)";
+
+    const r = s * 0.22;
+    ctx.beginPath();
+    ctx.arc(-r, -r, r, 0, Math.PI * 2);
+    ctx.arc( r, -r, r, 0, Math.PI * 2);
+    ctx.arc(-r,  r, r, 0, Math.PI * 2);
+    ctx.arc( r,  r, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillRect(-s * 0.04, s * 0.1, s * 0.08, s * 0.42);
+    ctx.restore();
+  }
+
+  function drawRainbowArc(p){
+    const colors = [
       "#ff4c4c",
       "#ff9c33",
       "#ffd633",
@@ -1309,90 +1358,122 @@ const FX = (() => {
       "#8d6bff"
     ];
 
-    colors.forEach((c,i)=>{
-      ctx.strokeStyle=c;
+    ctx.save();
+    ctx.lineCap = "round";
+    colors.forEach((c, i) => {
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 8 * DPR;
       ctx.beginPath();
-      ctx.arc(p.x,p.y,r+(i*10*DPR),Math.PI,0);
+      ctx.arc(p.x, p.y, p.radius + (i * 10 * DPR), Math.PI, 0);
       ctx.stroke();
     });
+    ctx.restore();
   }
 
   function tick(){
-
-    ctx.clearRect(0,0,W,H);
+    ctx.clearRect(0, 0, W, H);
 
     for(let i=parts.length-1;i>=0;i--){
+      const p = parts[i];
 
-      const p=parts[i];
       p.life--;
 
-      if(p.type==="coin"){
+      if(p.type === "rainbowSweep"){
+        p.x += W * 0.025;
+        const w = W * 0.65;
+        const grad = ctx.createLinearGradient(p.x, 0, p.x + w, 0);
+        grad.addColorStop(0,    "rgba(255,0,100,0)");
+        grad.addColorStop(0.15, "rgba(255,80,0,0.22)");
+        grad.addColorStop(0.35, "rgba(255,230,0,0.20)");
+        grad.addColorStop(0.55, "rgba(0,255,140,0.18)");
+        grad.addColorStop(0.75, "rgba(0,170,255,0.16)");
+        grad.addColorStop(1,    "rgba(160,0,255,0)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(p.x, 0, w, H);
 
-        p.x+=p.vx;
-        p.y+=p.vy;
-        p.vy+=0.05;
+        if(p.life <= 0) parts.splice(i, 1);
+        continue;
+      }
 
-        ctx.fillStyle="gold";
+      if(p.type === "coin"){
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.025 * DPR;
+        p.t += p.spin;
+
+        const alpha = Math.max(0, Math.min(1, p.life / 120));
+        ctx.globalAlpha = alpha;
+
+        ctx.fillStyle = "rgba(255,213,106,0.98)";
         ctx.beginPath();
-        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        ctx.ellipse(p.x, p.y, p.r * (1.2 + 0.25 * Math.sin(p.t)), p.r, p.t, 0, Math.PI * 2);
         ctx.fill();
+
+        ctx.fillStyle = "rgba(255,255,255,0.38)";
+        ctx.beginPath();
+        ctx.ellipse(p.x - p.r * 0.25, p.y - p.r * 0.25, p.r * 0.35, p.r * 0.22, p.t, 0, Math.PI * 2);
+        ctx.fill();
+
+        if(p.life <= 0) parts.splice(i, 1);
+        continue;
       }
 
-      if(p.type==="clover"){
+      if(p.type === "spark"){
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.985;
+        p.vy *= 0.985;
 
-        p.x+=p.vx;
-        p.y+=p.vy;
-        p.vy+=0.03;
+        const alpha = Math.max(0, Math.min(1, p.life / 70));
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
 
+        if(p.life <= 0) parts.splice(i, 1);
+        continue;
+      }
+
+      if(p.type === "rainbowArc"){
+        p.radius += 5 * DPR;
+        ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 55));
+        drawRainbowArc(p);
+
+        if(p.life <= 0) parts.splice(i, 1);
+        continue;
+      }
+
+      if(p.type === "clover"){
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.015 * DPR;
+        p.rot += p.vr;
+
+        ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 130));
         drawClover(p);
-      }
 
-      if(p.type==="rainbow"){
-
-        p.r+=6*DPR;
-        drawRainbow(p);
-      }
-
-      if(p.life<=0){
-        parts.splice(i,1);
+        if(p.life <= 0) parts.splice(i, 1);
+        continue;
       }
     }
 
-    if(parts.length>0){
+    ctx.globalAlpha = 1;
+
+    if(parts.length > 0){
       requestAnimationFrame(tick);
     }else{
-      running=false;
+      running = false;
     }
   }
 
-  return{
-
-    correct(x,y){
-
-      rainbowBurst(x,y);
-
-      setTimeout(()=>coinBurst(x,y,90),200);
-
-      setTimeout(()=>cloverBurst(x,y,35),350);
-    },
-
-    finale(){
-
-      const cx=window.innerWidth/2;
-      const cy=window.innerHeight*0.35;
-
-      rainbowBurst(cx,cy);
-
-      setTimeout(()=>coinBurst(cx,cy,200),200);
-
-      setTimeout(()=>cloverBurst(cx,cy,80),400);
-
-      setTimeout(()=>rainbowBurst(cx,cy),700);
-    }
-
+  return {
+    rainbow,
+    coinBurst,
+    rainbowBurst,
+    cloverBurst
   };
-
-})();;
+})();
 
 const Scanner = (() => {
   let reader = null;
@@ -1698,12 +1779,9 @@ async function startScanningForNode(node){
       Lep.pulse("lepMain", "happy", 1100);
 
       FX.rainbow();
-      FX.rainbowBurst(window.innerWidth * 0.5, window.innerHeight * 0.32, 28);
-      FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.34, 150);
-      FX.coinBurst(window.innerWidth * 0.25, window.innerHeight * 0.30, 90);
-      FX.coinBurst(window.innerWidth * 0.75, window.innerHeight * 0.30, 90);
-      FX.rainbowBurst(window.innerWidth * 0.28, window.innerHeight * 0.28, 16);
-      FX.rainbowBurst(window.innerWidth * 0.72, window.innerHeight * 0.28, 16);
+      FX.rainbowBurst(window.innerWidth * 0.5, window.innerHeight * 0.32, 24);
+      FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.34, 90);
+      FX.cloverBurst(window.innerWidth * 0.5, window.innerHeight * 0.34, 18);
 
       if(navigator.vibrate){
         navigator.vibrate([110,60,150]);
@@ -1729,12 +1807,13 @@ async function startScanningForNode(node){
         FX.rainbow();
         FX.rainbow();
         FX.rainbow();
-        FX.rainbowBurst(window.innerWidth * 0.5, window.innerHeight * 0.24, 70);
-        FX.rainbowBurst(window.innerWidth * 0.25, window.innerHeight * 0.22, 40);
-        FX.rainbowBurst(window.innerWidth * 0.75, window.innerHeight * 0.22, 40);
-        FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.30, 420);
-        FX.coinBurst(window.innerWidth * 0.22, window.innerHeight * 0.22, 180);
-        FX.coinBurst(window.innerWidth * 0.78, window.innerHeight * 0.22, 180);
+        FX.rainbowBurst(window.innerWidth * 0.5, window.innerHeight * 0.24, 60);
+        FX.rainbowBurst(window.innerWidth * 0.25, window.innerHeight * 0.22, 26);
+        FX.rainbowBurst(window.innerWidth * 0.75, window.innerHeight * 0.22, 26);
+        FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.30, 220);
+        FX.coinBurst(window.innerWidth * 0.22, window.innerHeight * 0.22, 90);
+        FX.coinBurst(window.innerWidth * 0.78, window.innerHeight * 0.22, 90);
+        FX.cloverBurst(window.innerWidth * 0.5, window.innerHeight * 0.28, 50);
 
         await AudioEngine.playVO(GAME.audio.finale);
         return;
@@ -1757,8 +1836,9 @@ function wireFinalButtons(){
     replay.onclick = async () => {
       FX.rainbow();
       FX.rainbow();
-      FX.rainbowBurst(window.innerWidth * 0.5, window.innerHeight * 0.24, 60);
-      FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.30, 320);
+      FX.rainbowBurst(window.innerWidth * 0.5, window.innerHeight * 0.24, 40);
+      FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.30, 150);
+      FX.cloverBurst(window.innerWidth * 0.5, window.innerHeight * 0.28, 28);
       await AudioEngine.playVO(GAME.audio.finale);
     };
   }
