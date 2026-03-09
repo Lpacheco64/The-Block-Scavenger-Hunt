@@ -95,12 +95,13 @@
       line-height:1.35;
     }
 
+    /* FX must be above everything */
     #fxCanvas{
       position:fixed;
       inset:0;
       width:100%;
       height:100%;
-      z-index:30;
+      z-index:500;
       pointer-events:none;
     }
 
@@ -357,7 +358,7 @@
       position:fixed;
       inset:0;
       display:none;
-      z-index:170;
+      z-index:450;
       align-items:center;
       justify-content:center;
       background:rgba(0,0,0,.18);
@@ -397,7 +398,7 @@
       position:fixed;
       left:12px;
       bottom:12px;
-      z-index:220;
+      z-index:600;
       max-width:min(520px, 92vw);
       background:rgba(8,14,10,.88);
       border:1px solid rgba(255,255,255,.12);
@@ -412,7 +413,7 @@
     #finalOverlay{
       position:fixed;
       inset:0;
-      z-index:180;
+      z-index:300;
       display:none;
       background:
         radial-gradient(900px 520px at 50% 25%, rgba(255,213,106,.18), rgba(0,0,0,0) 70%),
@@ -505,7 +506,7 @@
   <div id="toast"></div>
 
 <script>
-const BUILD = "2026-03-06-10";
+const BUILD = "2026-03-06-12";
 
 const assetUrl = (p) => {
   if (!p) return p;
@@ -765,6 +766,11 @@ const State = {
   settingsOpen: false
 };
 
+let transitionLock = false;
+let correctBag = [];
+let activeCorrectAudio = null;
+let activeCelebrationToken = 0;
+
 function saveState(){
   localStorage.setItem(KEY("team"), State.team);
   localStorage.setItem(KEY("idx"), String(State.idx));
@@ -783,6 +789,13 @@ function toast(msg){
 }
 window.addEventListener("error", e => toast("Error: " + (e?.message || e)));
 window.addEventListener("unhandledrejection", e => toast("Promise: " + (e?.reason?.message || e.reason || e)));
+
+function shuffleArray(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
 
 const Lep = (() => {
   const players = new Map();
@@ -1023,17 +1036,6 @@ const AudioEngine = (() => {
   };
 })();
 
-let correctBag = [];
-let activeCorrectAudio = null;
-let activeCelebrationToken = 0;
-
-function shuffleArray(arr){
-  for(let i = arr.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-}
-
 async function playCorrectOnce(){
   const sounds = GAME.audio.correct;
   if(!sounds || !sounds.length) return;
@@ -1160,10 +1162,10 @@ const FX = (() => {
         const w = W*0.55;
         const grad = ctx.createLinearGradient(p.x,0,p.x+w,0);
         grad.addColorStop(0,"rgba(255,0,100,0)");
-        grad.addColorStop(0.15,"rgba(255,80,0,0.22)");
-        grad.addColorStop(0.35,"rgba(255,230,0,0.20)");
-        grad.addColorStop(0.55,"rgba(0,255,140,0.18)");
-        grad.addColorStop(0.75,"rgba(0,170,255,0.16)");
+        grad.addColorStop(0.15,"rgba(255,80,0,0.32)");
+        grad.addColorStop(0.35,"rgba(255,230,0,0.30)");
+        grad.addColorStop(0.55,"rgba(0,255,140,0.26)");
+        grad.addColorStop(0.75,"rgba(0,170,255,0.24)");
         grad.addColorStop(1,"rgba(160,0,255,0)");
         ctx.fillStyle = grad;
         ctx.fillRect(p.x, 0, w, H);
@@ -1180,12 +1182,12 @@ const FX = (() => {
       const alpha = Math.max(0, Math.min(1, p.life/70));
       ctx.globalAlpha = alpha;
 
-      ctx.fillStyle = "rgba(255,213,106,0.95)";
+      ctx.fillStyle = "rgba(255,213,106,0.98)";
       ctx.beginPath();
       ctx.ellipse(p.x, p.y, p.r*(1.2 + 0.25*Math.sin(p.t)), p.r, p.t, 0, Math.PI*2);
       ctx.fill();
 
-      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.fillStyle = "rgba(255,255,255,0.42)";
       ctx.beginPath();
       ctx.ellipse(p.x - p.r*0.25, p.y - p.r*0.25, p.r*0.35, p.r*0.22, p.t, 0, Math.PI*2);
       ctx.fill();
@@ -1211,7 +1213,6 @@ const FX = (() => {
 
 const Scanner = (() => {
   let reader = null;
-  let scanLock = false;
   let wrongCooldown = false;
   let sessionId = 0;
 
@@ -1229,21 +1230,18 @@ const Scanner = (() => {
   }
 
   function stop(){
-    sessionId += 1;          // invalidate all old callbacks
-    scanLock = true;         // keep locked until next start()
+    sessionId += 1;
     wrongCooldown = false;
 
     try{ reader?.reset(); }catch{}
     reader = null;
-
     hardStopVideo();
   }
 
   async function start(expectedId, onHit){
-    stop();                  // kill any previous scanner session first
+    stop();
 
     const mySession = sessionId;
-    scanLock = false;
     wrongCooldown = false;
 
     const expected = normalize(expectedId);
@@ -1254,18 +1252,17 @@ const Scanner = (() => {
       throw new Error("Camera not available (HTTPS required).");
     }
 
-    const warm = await navigator.mediaDevices.getUserMedia({
+    const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: "environment" } },
       audio: false
     });
 
-    // session may have changed while waiting for camera
     if(mySession !== sessionId){
-      try{ warm.getTracks().forEach(t => t.stop()); }catch{}
+      try{ stream.getTracks().forEach(t => t.stop()); }catch{}
       return;
     }
 
-    videoEl.srcObject = warm;
+    videoEl.srcObject = stream;
     await videoEl.play().catch(() => {});
 
     let deviceId = null;
@@ -1280,16 +1277,15 @@ const Scanner = (() => {
     reader = new ZXing.BrowserMultiFormatReader();
 
     await reader.decodeFromVideoDevice(deviceId, "preview", async (result) => {
-      // ignore anything from stale/closed sessions
       if(mySession !== sessionId) return;
-      if(scanLock) return;
+      if(transitionLock) return;
       if(!result) return;
 
       const got = normalize(result.getText());
 
       if(got === expected){
-        scanLock = true;
-        sessionId += 1; // immediately invalidate this callback stream too
+        transitionLock = true;
+        sessionId += 1;
 
         try{ reader?.reset(); }catch{}
         reader = null;
@@ -1312,8 +1308,7 @@ const Scanner = (() => {
         toast("Oops! Try a different spot.");
 
         setTimeout(() => {
-          // only clear if this is still the active session
-          if(mySession === sessionId){
+          if(mySession === sessionId && !transitionLock){
             wrongCooldown = false;
           }
         }, 1200);
@@ -1502,12 +1497,15 @@ function render(){
     };
   });
 
+  transitionLock = false;
   startScanningForNode(node);
 }
 
 async function startScanningForNode(node){
   try{
     await Scanner.start(node.id, async () => {
+      if(transitionLock !== true) transitionLock = true;
+
       Lep.pulse("lepMain", "happy", 1100);
 
       FX.rainbow();
@@ -1546,12 +1544,15 @@ async function startScanningForNode(node){
         return;
       }
 
+      transitionLock = false;
       render();
     });
   }catch(e){
+    transitionLock = false;
     toast("Camera error: " + (e?.message || e));
   }
 }
+
 function wireFinalButtons(){
   const replay = document.getElementById("btnFinalSound");
   const done = document.getElementById("btnFinalDone");
@@ -1621,6 +1622,7 @@ function escapeAttr(s){
 </script>
 </body>
 </html>
+
 
 
 
