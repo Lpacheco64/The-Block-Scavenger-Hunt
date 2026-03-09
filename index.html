@@ -95,7 +95,6 @@
       line-height:1.35;
     }
 
-    /* FX must be above everything */
     #fxCanvas{
       position:fixed;
       inset:0;
@@ -213,7 +212,7 @@
       box-shadow:0 0 12px rgba(255,213,106,.26);
     }
 
-    .gameCard{ padding:20px; }
+    .gameCard{padding:20px}
 
     .lepStage{
       width:150px;
@@ -345,7 +344,7 @@
       margin-top:12px;
     }
     #settingsWrap.show{display:block}
-    .settingsCard{ padding:16px; }
+    .settingsCard{padding:16px}
     .settingsRow{
       display:flex;
       flex-wrap:wrap;
@@ -365,7 +364,7 @@
       backdrop-filter:blur(4px);
       pointer-events:none;
     }
-    #celebrateOverlay.show{ display:flex; }
+    #celebrateOverlay.show{display:flex}
     .celebrateCard{
       min-width:min(420px,92vw);
       text-align:center;
@@ -506,7 +505,7 @@
   <div id="toast"></div>
 
 <script>
-const BUILD = "2026-03-06-12";
+const BUILD = "2026-03-06-14";
 
 const assetUrl = (p) => {
   if (!p) return p;
@@ -769,10 +768,15 @@ const State = {
 let transitionLock = false;
 let postSuccessIgnoreUntil = 0;
 let lastSuccessCode = "";
-let correctBag = [];
-let activeCorrectAudio = null;
 let activeCelebrationToken = 0;
-let preloadedCorrectBank = [];
+
+let correctBag = [];
+let wrongBag = [];
+let reactionBank = {
+  correct: [],
+  wrong: []
+};
+let activeReactionAudio = null;
 
 function saveState(){
   localStorage.setItem(KEY("team"), State.team);
@@ -800,13 +804,110 @@ function shuffleArray(arr){
   }
 }
 
-function preloadCorrectAudioBank(){
-  preloadedCorrectBank = GAME.audio.correct.map(src => {
+function preloadReactionBank(){
+  reactionBank.correct = GAME.audio.correct.map(src => {
     const a = new Audio(src);
     a.preload = "auto";
     try{ a.load(); }catch{}
     return a;
   });
+
+  reactionBank.wrong = GAME.audio.wrong.map(src => {
+    const a = new Audio(src);
+    a.preload = "auto";
+    try{ a.load(); }catch{}
+    return a;
+  });
+}
+
+function nextFromBag(type){
+  const sourceList = type === "correct" ? GAME.audio.correct : GAME.audio.wrong;
+
+  if(type === "correct"){
+    if(correctBag.length === 0){
+      correctBag = [...sourceList];
+      shuffleArray(correctBag);
+    }
+    return correctBag.pop();
+  } else {
+    if(wrongBag.length === 0){
+      wrongBag = [...sourceList];
+      shuffleArray(wrongBag);
+    }
+    return wrongBag.pop();
+  }
+}
+
+async function playReaction(type){
+  const pick = nextFromBag(type);
+  if(!pick) return;
+
+  try{
+    if(activeReactionAudio){
+      try{ activeReactionAudio.pause(); }catch{}
+      activeReactionAudio = null;
+    }
+
+    const bank = type === "correct" ? reactionBank.correct : reactionBank.wrong;
+    const targetUrl = new URL(pick, location.href).href;
+    const base = bank.find(a => a.src === targetUrl);
+    const a = base ? base.cloneNode(true) : new Audio(pick);
+
+    activeReactionAudio = a;
+    a.preload = "auto";
+    a.volume = 1;
+    a.currentTime = 0;
+
+    await a.play();
+
+    await new Promise(resolve => {
+      const done = () => resolve();
+      a.onended = done;
+      a.onerror = done;
+      setTimeout(done, 1800);
+    });
+
+    if(activeReactionAudio === a){
+      activeReactionAudio = null;
+    }
+  }catch(e){
+    console.log(type + " reaction failed", e, pick);
+  }
+}
+
+const CELEBRATION_LINES = [
+  { title: "Lucky Find!", sub: "The next clue is ready." },
+  { title: "Gold Stars!", sub: "You found the right spot." },
+  { title: "Brilliant!", sub: "The leprechaun is impressed." },
+  { title: "You Did It!", sub: "Onward to the next adventure." },
+  { title: "Treasure Trail!", sub: "Keep chasing the rainbow." }
+];
+let celebrationBag = [];
+
+function pickCelebrationLine(){
+  if(celebrationBag.length === 0){
+    celebrationBag = [...CELEBRATION_LINES];
+    shuffleArray(celebrationBag);
+  }
+  return celebrationBag.pop();
+}
+
+async function showCelebration(){
+  const overlay = document.getElementById("celebrateOverlay");
+  const title = document.getElementById("celebrateText");
+  const sub = document.getElementById("celebrateSub");
+  const line = pickCelebrationLine();
+  const token = ++activeCelebrationToken;
+
+  title.textContent = line.title;
+  sub.textContent = line.sub;
+  overlay.classList.add("show");
+
+  await new Promise(resolve => setTimeout(resolve, 1200));
+
+  if(token === activeCelebrationToken){
+    overlay.classList.remove("show");
+  }
 }
 
 const Lep = (() => {
@@ -923,10 +1024,8 @@ const AudioEngine = (() => {
     await Promise.all([
       load(GAME.audio.opening),
       load(GAME.audio.finale),
-      ...GAME.audio.correct.map(load),
-      ...GAME.audio.wrong.map(load),
       load(GAME.audio.sfx.coinBurst),
-      load(GAME.audio.sfx.rainbowSweep),
+      load(GAME.audio.sfx.rainbowSweep)
     ]);
   }
 
@@ -990,18 +1089,6 @@ const AudioEngine = (() => {
     saveState();
   }
 
-  function pickNoRepeat(arr, last){
-    if(!arr?.length) return null;
-    if(arr.length === 1) return arr[0];
-    let c = arr[Math.floor(Math.random() * arr.length)];
-    if(c === last){
-      c = arr[(arr.indexOf(c) + 1) % arr.length];
-    }
-    return c;
-  }
-
-  let lastWrong = null;
-
   async function playSFX(url){
     if(!unlocked || !State.sfxEnabled || !AC) return;
     await load(url);
@@ -1029,101 +1116,17 @@ const AudioEngine = (() => {
     }, durationMs + 60);
   }
 
-  async function playWrong(){
-    const url = pickNoRepeat(GAME.audio.wrong, lastWrong);
-    lastWrong = url;
-    await playVO(url);
-  }
-
   return {
     unlock,
     preloadCore,
     playMusic,
     stopMusic,
     playVO,
-    playWrong,
     playSFX,
     setToggles,
     get unlocked(){ return unlocked; }
   };
 })();
-
-async function playCorrectOnce(){
-  const sounds = GAME.audio.correct;
-  if(!sounds || !sounds.length) return;
-
-  if(correctBag.length === 0){
-    correctBag = [...sounds];
-    shuffleArray(correctBag);
-  }
-
-  const pick = correctBag.pop();
-
-  try{
-    if(activeCorrectAudio){
-      try{ activeCorrectAudio.pause(); }catch{}
-      activeCorrectAudio = null;
-    }
-
-    const base = preloadedCorrectBank.find(a => a.src === new URL(pick, location.href).href);
-    const a = base ? base.cloneNode(true) : new Audio(pick);
-
-    activeCorrectAudio = a;
-    a.preload = "auto";
-    a.volume = 1;
-    a.currentTime = 0;
-
-    await a.play();
-
-    await new Promise(resolve => {
-      const done = () => resolve();
-      a.onended = done;
-      a.onerror = done;
-      setTimeout(done, 1800);
-    });
-
-    if(activeCorrectAudio === a){
-      activeCorrectAudio = null;
-    }
-  }catch(e){
-    console.log("correct sound failed", e);
-  }
-}
-
-const CELEBRATION_LINES = [
-  { title: "Lucky Find!", sub: "The next clue is ready." },
-  { title: "Gold Stars!", sub: "You found the right spot." },
-  { title: "Brilliant!", sub: "The leprechaun is impressed." },
-  { title: "You Did It!", sub: "Onward to the next adventure." },
-  { title: "Treasure Trail!", sub: "Keep chasing the rainbow." }
-];
-let celebrationBag = [];
-
-function pickCelebrationLine(){
-  if(celebrationBag.length === 0){
-    celebrationBag = [...CELEBRATION_LINES];
-    shuffleArray(celebrationBag);
-  }
-  return celebrationBag.pop();
-}
-
-async function showCelebration(){
-  const overlay = document.getElementById("celebrateOverlay");
-  const title = document.getElementById("celebrateText");
-  const sub = document.getElementById("celebrateSub");
-  const line = pickCelebrationLine();
-  const token = ++activeCelebrationToken;
-
-  title.textContent = line.title;
-  sub.textContent = line.sub;
-  overlay.classList.add("show");
-
-  await new Promise(resolve => setTimeout(resolve, 1200));
-
-  if(token === activeCelebrationToken){
-    overlay.classList.remove("show");
-  }
-}
 
 const FX = (() => {
   const canvas = document.getElementById("fxCanvas");
@@ -1342,8 +1345,6 @@ const Scanner = (() => {
 
       const got = normalize(result.getText());
 
-      // Ignore the last successful QR briefly so keeping camera on it
-      // doesn't immediately trigger a wrong scan for the next clue.
       if(got === lastSuccessCode && Date.now() < postSuccessIgnoreUntil){
         return;
       }
@@ -1371,7 +1372,7 @@ const Scanner = (() => {
           navigator.vibrate([80,60,80]);
         }
 
-        await AudioEngine.playWrong();
+        await playReaction("wrong");
         toast("Oops! Try a different spot.");
 
         setTimeout(() => {
@@ -1571,7 +1572,7 @@ function render(){
 async function startScanningForNode(node){
   try{
     await Scanner.start(node.id, async () => {
-      if(transitionLock !== true) transitionLock = true;
+      transitionLock = true;
 
       Lep.pulse("lepMain", "happy", 1100);
 
@@ -1590,7 +1591,7 @@ async function startScanningForNode(node){
       AudioEngine.playSFX(GAME.audio.sfx.coinBurst);
 
       await Promise.all([
-        playCorrectOnce(),
+        playReaction("correct"),
         showCelebration()
       ]);
 
@@ -1666,7 +1667,7 @@ document.getElementById("btnStart").onclick = async () => {
 
   await AudioEngine.unlock();
   await AudioEngine.preloadCore();
-  preloadCorrectAudioBank();
+  preloadReactionBank();
 
   AudioEngine.setToggles({
     music: State.musicEnabled,
@@ -1695,6 +1696,7 @@ function escapeAttr(s){
 </script>
 </body>
 </html>
+
 
 
 
