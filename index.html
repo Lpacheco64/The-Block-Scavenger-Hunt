@@ -767,9 +767,12 @@ const State = {
 };
 
 let transitionLock = false;
+let postSuccessIgnoreUntil = 0;
+let lastSuccessCode = "";
 let correctBag = [];
 let activeCorrectAudio = null;
 let activeCelebrationToken = 0;
+let preloadedCorrectBank = [];
 
 function saveState(){
   localStorage.setItem(KEY("team"), State.team);
@@ -795,6 +798,15 @@ function shuffleArray(arr){
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
+}
+
+function preloadCorrectAudioBank(){
+  preloadedCorrectBank = GAME.audio.correct.map(src => {
+    const a = new Audio(src);
+    a.preload = "auto";
+    try{ a.load(); }catch{}
+    return a;
+  });
 }
 
 const Lep = (() => {
@@ -1053,7 +1065,9 @@ async function playCorrectOnce(){
       activeCorrectAudio = null;
     }
 
-    const a = new Audio(pick);
+    const base = preloadedCorrectBank.find(a => a.src === new URL(pick, location.href).href);
+    const a = base ? base.cloneNode(true) : new Audio(pick);
+
     activeCorrectAudio = a;
     a.preload = "auto";
     a.volume = 1;
@@ -1065,7 +1079,7 @@ async function playCorrectOnce(){
       const done = () => resolve();
       a.onended = done;
       a.onerror = done;
-      setTimeout(done, 1600);
+      setTimeout(done, 1800);
     });
 
     if(activeCorrectAudio === a){
@@ -1134,6 +1148,7 @@ const FX = (() => {
       const a = Math.random()*Math.PI*2;
       const sp = (1 + Math.random()*3.5) * DPR;
       parts.push({
+        type:"coin",
         x:cx,y:cy,
         vx:Math.cos(a)*sp,
         vy:Math.sin(a)*sp - (1.2*DPR),
@@ -1141,6 +1156,33 @@ const FX = (() => {
         r:(2.2 + Math.random()*2.8)*DPR,
         spin:(Math.random()*2-1)*0.25,
         t:Math.random()*Math.PI*2
+      });
+    }
+  }
+
+  function addRainbowBurst(x,y,count=22){
+    const cx=x*DPR, cy=y*DPR;
+    const colors = [
+      "rgba(255,80,80,0.95)",
+      "rgba(255,170,60,0.95)",
+      "rgba(255,230,80,0.95)",
+      "rgba(80,255,140,0.95)",
+      "rgba(80,190,255,0.95)",
+      "rgba(170,100,255,0.95)"
+    ];
+
+    for(let i=0;i<count;i++){
+      const a = Math.random() * Math.PI * 2;
+      const sp = (1.2 + Math.random() * 4.5) * DPR;
+      parts.push({
+        type:"spark",
+        color: colors[i % colors.length],
+        x:cx,
+        y:cy,
+        vx:Math.cos(a) * sp,
+        vy:Math.sin(a) * sp,
+        life:38 + Math.random() * 20,
+        r:(3 + Math.random()*4) * DPR
       });
     }
   }
@@ -1169,6 +1211,22 @@ const FX = (() => {
         grad.addColorStop(1,"rgba(160,0,255,0)");
         ctx.fillStyle = grad;
         ctx.fillRect(p.x, 0, w, H);
+        if(p.life<=0) parts.splice(i,1);
+        continue;
+      }
+
+      if(p.type==="spark"){
+        p.life--;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.98;
+        p.vy *= 0.98;
+        const alpha = Math.max(0, Math.min(1, p.life / 45));
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
         if(p.life<=0) parts.splice(i,1);
         continue;
       }
@@ -1207,7 +1265,8 @@ const FX = (() => {
 
   return {
     rainbow(){ ensure(); rainbowSweep(); },
-    coinBurst(x,y,count){ ensure(); addCoinBurst(x,y,count); }
+    coinBurst(x,y,count){ ensure(); addCoinBurst(x,y,count); },
+    rainbowBurst(x,y,count){ ensure(); addRainbowBurst(x,y,count); }
   };
 })();
 
@@ -1232,7 +1291,6 @@ const Scanner = (() => {
   function stop(){
     sessionId += 1;
     wrongCooldown = false;
-
     try{ reader?.reset(); }catch{}
     reader = null;
     hardStopVideo();
@@ -1279,12 +1337,21 @@ const Scanner = (() => {
     await reader.decodeFromVideoDevice(deviceId, "preview", async (result) => {
       if(mySession !== sessionId) return;
       if(transitionLock) return;
+      if(Date.now() < postSuccessIgnoreUntil) return;
       if(!result) return;
 
       const got = normalize(result.getText());
 
+      // Ignore the last successful QR briefly so keeping camera on it
+      // doesn't immediately trigger a wrong scan for the next clue.
+      if(got === lastSuccessCode && Date.now() < postSuccessIgnoreUntil){
+        return;
+      }
+
       if(got === expected){
         transitionLock = true;
+        lastSuccessCode = got;
+        postSuccessIgnoreUntil = Date.now() + 3500;
         sessionId += 1;
 
         try{ reader?.reset(); }catch{}
@@ -1509,9 +1576,12 @@ async function startScanningForNode(node){
       Lep.pulse("lepMain", "happy", 1100);
 
       FX.rainbow();
+      FX.rainbowBurst(window.innerWidth * 0.5, window.innerHeight * 0.32, 28);
       FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.34, 150);
       FX.coinBurst(window.innerWidth * 0.25, window.innerHeight * 0.30, 90);
       FX.coinBurst(window.innerWidth * 0.75, window.innerHeight * 0.30, 90);
+      FX.rainbowBurst(window.innerWidth * 0.28, window.innerHeight * 0.28, 16);
+      FX.rainbowBurst(window.innerWidth * 0.72, window.innerHeight * 0.28, 16);
 
       if(navigator.vibrate){
         navigator.vibrate([110,60,150]);
@@ -1536,6 +1606,7 @@ async function startScanningForNode(node){
 
         FX.rainbow();
         FX.rainbow();
+        FX.rainbowBurst(window.innerWidth * 0.5, window.innerHeight * 0.28, 40);
         FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.32, 260);
         FX.coinBurst(window.innerWidth * 0.25, window.innerHeight * 0.24, 140);
         FX.coinBurst(window.innerWidth * 0.75, window.innerHeight * 0.24, 140);
@@ -1560,6 +1631,7 @@ function wireFinalButtons(){
   if(replay){
     replay.onclick = async () => {
       FX.rainbow();
+      FX.rainbowBurst(window.innerWidth * 0.5, window.innerHeight * 0.28, 34);
       FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.32, 180);
       await AudioEngine.playVO(GAME.audio.finale);
     };
@@ -1594,6 +1666,7 @@ document.getElementById("btnStart").onclick = async () => {
 
   await AudioEngine.unlock();
   await AudioEngine.preloadCore();
+  preloadCorrectAudioBank();
 
   AudioEngine.setToggles({
     music: State.musicEnabled,
@@ -1622,6 +1695,7 @@ function escapeAttr(s){
 </script>
 </body>
 </html>
+
 
 
 
