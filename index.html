@@ -15,7 +15,7 @@
     :root{
       --bg0:#0b2b16;
       --bg1:#14522a;
-      --card:rgba(8,40,20,.78);
+      --card:rgba(8,40,20,.80);
       --stroke:rgba(255,255,255,.12);
       --ink:#f7fff7;
       --muted:rgba(247,255,247,.76);
@@ -28,6 +28,7 @@
 
     *{box-sizing:border-box}
     html,body{height:100%}
+
     body{
       margin:0;
       font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
@@ -133,6 +134,7 @@
       overflow:hidden;
       flex:0 0 auto;
     }
+
     .heroLep > div,
     .lepStage > div,
     .finalLep > div{
@@ -388,6 +390,7 @@
       font-size:18px;
       color:rgba(247,255,247,.92);
     }
+
     @keyframes popIn{
       from{transform:scale(.92);opacity:.2}
       to{transform:scale(1);opacity:1}
@@ -417,16 +420,16 @@
       background:
         radial-gradient(900px 520px at 50% 25%, rgba(255,213,106,.18), rgba(0,0,0,0) 70%),
         radial-gradient(1000px 700px at 50% 65%, rgba(66,229,143,.14), rgba(0,0,0,0) 65%),
-        rgba(0,0,0,.72);
+        rgba(0,0,0,.78);
       backdrop-filter: blur(10px);
     }
     #finalOverlay.show{display:flex}
 
     .finalLep{
-      width:170px;
-      height:170px;
-      margin:0 auto 14px;
-      border-radius:30px;
+      width:190px;
+      height:190px;
+      margin:0 auto 16px;
+      border-radius:34px;
       border:1px solid rgba(255,255,255,.12);
       background:
         radial-gradient(60px 60px at 30% 30%, rgba(255,213,106,.28), rgba(0,0,0,0) 60%),
@@ -436,6 +439,21 @@
       display:flex;
       align-items:center;
       justify-content:center;
+    }
+
+    #finalCard{
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.10),
+        0 0 40px rgba(255,213,106,.16),
+        0 0 80px rgba(66,229,143,.14),
+        0 24px 60px rgba(0,0,0,.38);
+      transform:scale(1);
+      animation:finalPop .28s ease;
+    }
+
+    @keyframes finalPop{
+      from{transform:scale(.92);opacity:.2}
+      to{transform:scale(1);opacity:1}
     }
 
     @media (max-width: 520px){
@@ -489,13 +507,26 @@
   </div>
 
   <div id="finalOverlay" class="items-center justify-center p-5">
-    <div class="max-w-md w-full card p-6 text-center">
+    <div class="max-w-lg w-full card p-8 text-center" id="finalCard">
       <div class="finalLep"><div id="finalLep"></div></div>
-      <div class="text-4xl font-extrabold" style="color:var(--gold)">You found the gold!</div>
-      <div class="mt-3 text-base" style="color:rgba(247,255,247,.84)">
-        Show this screen at the prize location to claim your treasure.
+
+      <div style="font-size:14px; letter-spacing:3px; text-transform:uppercase; color:rgba(247,255,247,.72);">
+        Treasure Found
       </div>
-      <div class="mt-5 flex gap-2">
+
+      <div class="text-5xl font-extrabold mt-2" style="color:var(--gold); line-height:1.0;">
+        You Found<br>The Gold!
+      </div>
+
+      <div class="mt-4 text-lg" style="color:rgba(247,255,247,.90)">
+        Show this screen at the prize location<br>to claim your treasure.
+      </div>
+
+      <div class="mt-5 text-base font-bold" style="color:#fff3bf">
+        🌈 ☘️ 🌈
+      </div>
+
+      <div class="mt-6 flex gap-2">
         <button class="btn btnGhost w-full" id="btnFinalSound">Replay Finale</button>
         <button class="btn btnPrimary w-full" id="btnFinalDone">Done</button>
       </div>
@@ -505,7 +536,7 @@
   <div id="toast"></div>
 
 <script>
-const BUILD = "2026-03-06-14";
+const BUILD = "2026-03-06-15";
 
 const assetUrl = (p) => {
   if (!p) return p;
@@ -530,8 +561,11 @@ const GAME = {
   title: "The Block — Leprechaun Gold Hunt",
   finalId: "tavern_on_the_green",
   nodes: [
-    { id:"benny_sausage_company", business:"Benny Sausage Company", stopTitle:"Pot O’ Sausages", clueText:
-`A leprechaun danced and dropped his gold,
+    {
+      id:"benny_sausage_company",
+      business:"Benny Sausage Company",
+      stopTitle:"Pot O’ Sausages",
+      clueText:`A leprechaun danced and dropped his gold,
 
 But stopped for sausages hot and bold.
 
@@ -539,10 +573,14 @@ If your nose says “YUM”
 and tummy says “GO,”
 
 You found the place
-where sausages glow!`, order:1 },
-
-    { id:"birria_estilo_zacatecas", business:"Birria Estilo Zacatecas", stopTitle:"Rainbow Taco Trail", clueText:
-`At the end of the rainbow,
+where sausages glow!`,
+      order:1
+    },
+    {
+      id:"birria_estilo_zacatecas",
+      business:"Birria Estilo Zacatecas",
+      stopTitle:"Rainbow Taco Trail",
+      clueText:`At the end of the rainbow,
 tacos await,
 
 Dripping with magic
@@ -552,10 +590,14 @@ Follow the smell,
 don’t be slow,
 
 The leprechaun whispers,
-“Tacos below!”`, order:2 },
-
-    { id:"bubble_bliss", business:"Bubble Bliss", stopTitle:"Lucky Bubble Lab", clueText:
-`No eating here,
+“Tacos below!”`,
+      order:2
+    },
+    {
+      id:"bubble_bliss",
+      business:"Bubble Bliss",
+      stopTitle:"Lucky Bubble Lab",
+      clueText:`No eating here,
 don’t take a bite,
 
 These fizzy treasures
@@ -565,10 +607,14 @@ Potions that bubble,
 sparkle, and hiss,
 
 Find the leprechaun’s
-bubbly bliss!`, order:3 },
-
-    { id:"busy_bee_frozen_custard", business:"Busy Bee Frozen Custard", stopTitle:"Frozen Clover Cream", clueText:
-`Buzz buzz buzz
+bubbly bliss!`,
+      order:3
+    },
+    {
+      id:"busy_bee_frozen_custard",
+      business:"Busy Bee Frozen Custard",
+      stopTitle:"Frozen Clover Cream",
+      clueText:`Buzz buzz buzz
 goes the clover bee,
 
 Guarding cold gold
@@ -578,10 +624,14 @@ Swirls of magic,
 creamy and bright,
 
 Find the frozen rainbow
-delight!`, order:4 },
-
-    { id:"chickys_coffee", business:"Chicky’s Coffee", stopTitle:"Leprechaun Energy Brew", clueText:
-`A sleepy leprechaun
+delight!`,
+      order:4
+    },
+    {
+      id:"chickys_coffee",
+      business:"Chicky’s Coffee",
+      stopTitle:"Leprechaun Energy Brew",
+      clueText:`A sleepy leprechaun
 needed a sip,
 
 Now he dances
@@ -591,10 +641,14 @@ Follow the smell
 of warm magic brew,
 
 The lucky cup
-is waiting for you.`, order:5 },
-
-    { id:"dim_sum_dynasty", business:"Dim Sum Dynasty", stopTitle:"Fortune of Gold Dumplings", clueText:
-`Tiny gold pillows,
+is waiting for you.`,
+      order:5
+    },
+    {
+      id:"dim_sum_dynasty",
+      business:"Dim Sum Dynasty",
+      stopTitle:"Fortune of Gold Dumplings",
+      clueText:`Tiny gold pillows,
 steamy and round,
 
 A leprechaun’s treasure
@@ -604,10 +658,14 @@ Lift the lid
 and follow the steam,
 
 Dumpling magic
-like a dream!`, order:6 },
-
-    { id:"el_chamo", business:"El Chamo", stopTitle:"Golden Pocket Feast", clueText:
-`The leprechaun stuffed
+like a dream!`,
+      order:6
+    },
+    {
+      id:"el_chamo",
+      business:"El Chamo",
+      stopTitle:"Golden Pocket Feast",
+      clueText:`The leprechaun stuffed
 his lucky gold,
 
 Into warm pockets
@@ -617,10 +675,14 @@ If your nose starts
 dancing too,
 
 The golden pocket
-waits for you!`, order:7 },
-
-    { id:"enchanted_books", business:"Enchanted Books", stopTitle:"Spellbook of Shamrocks", clueText:
-`A magical book
+waits for you!`,
+      order:7
+    },
+    {
+      id:"enchanted_books",
+      business:"Enchanted Books",
+      stopTitle:"Spellbook of Shamrocks",
+      clueText:`A magical book
 with clovers inside,
 
 Hides secrets
@@ -630,10 +692,14 @@ Turn the pages,
 take a look,
 
 Find the lucky
-storybook!`, order:8 },
-
-    { id:"link_link", business:"Link Link", stopTitle:"Golden Charm Forge", clueText:
-`Clink clink clink
+storybook!`,
+      order:8
+    },
+    {
+      id:"link_link",
+      business:"Link Link",
+      stopTitle:"Golden Charm Forge",
+      clueText:`Clink clink clink
 goes the gold,
 
 Tiny treasures
@@ -643,10 +709,14 @@ Chains of luck
 the leprechauns bring,
 
 Find the place
-where charms cling!`, order:9 },
-
-    { id:"stackers_burgers", business:"Stackers Burgers", stopTitle:"Tower of Lucky Bites", clueText:
-`High as a rainbow,
+where charms cling!`,
+      order:9
+    },
+    {
+      id:"stackers_burgers",
+      business:"Stackers Burgers",
+      stopTitle:"Tower of Lucky Bites",
+      clueText:`High as a rainbow,
 burgers stack,
 
 A leprechaun
@@ -656,10 +726,14 @@ Follow the tower,
 don’t delay,
 
 Lucky burgers
-lead the way!`, order:10 },
-
-    { id:"thats_my_rez_sandwich", business:"That’s My Rez Sandwich", stopTitle:"Lucky Sandwich Stop", clueText:
-`Bread and magic
+lead the way!`,
+      order:10
+    },
+    {
+      id:"thats_my_rez_sandwich",
+      business:"That’s My Rez Sandwich",
+      stopTitle:"Lucky Sandwich Stop",
+      clueText:`Bread and magic
 stacked just right,
 
 A leprechaun built
@@ -669,10 +743,14 @@ If your belly says “YES!”
 and feet say “GO,”
 
 The lucky sandwich shop
-you now know!`, order:11 },
-
-    { id:"the_boba_lounge", business:"The Boba Lounge", stopTitle:"Rainbow Bubble Brew", clueText:
-`Floating pearls
+you now know!`,
+      order:11
+    },
+    {
+      id:"the_boba_lounge",
+      business:"The Boba Lounge",
+      stopTitle:"Rainbow Bubble Brew",
+      clueText:`Floating pearls
 in a magical cup,
 
 The leprechaun
@@ -682,10 +760,14 @@ Sip the rainbow,
 follow the glow,
 
 Find the bubbles
-that dance below!`, order:12 },
-
-    { id:"the_candy_bar", business:"The Candy Bar", stopTitle:"Treasure of Sweet Gold", clueText:
-`Candy coins
+that dance below!`,
+      order:12
+    },
+    {
+      id:"the_candy_bar",
+      business:"The Candy Bar",
+      stopTitle:"Treasure of Sweet Gold",
+      clueText:`Candy coins
 and sugar delight,
 
 Guarded by leprechauns
@@ -695,10 +777,14 @@ Sweetest treasure,
 shiny and bright,
 
 Find the gold
-of sugary light!`, order:13 },
-
-    { id:"thicc_pizza", business:"Thicc Pizza", stopTitle:"Rectangle Gold Slice", clueText:
-`Not round,
+of sugary light!`,
+      order:13
+    },
+    {
+      id:"thicc_pizza",
+      business:"Thicc Pizza",
+      stopTitle:"Rectangle Gold Slice",
+      clueText:`Not round,
 not square,
 
 But long and bold,
@@ -708,10 +794,14 @@ Follow the smell
 of pizza delight,
 
 The rectangle treasure
-is in sight!`, order:14 },
-
-    { id:"tavern_on_the_green", business:"Tavern on the Green", stopTitle:"Lucky Clover Tavern", clueText:
-`Green lights glow
+is in sight!`,
+      order:14
+    },
+    {
+      id:"tavern_on_the_green",
+      business:"Tavern on the Green",
+      stopTitle:"Lucky Clover Tavern",
+      clueText:`Green lights glow
 where stories are told,
 
 Of clovers, rainbows,
@@ -721,7 +811,10 @@ Follow the glow,
 don’t be shy,
 
 The lucky tavern
-stands nearby!`, order:15, isFinal:true }
+stands nearby!`,
+      order:15,
+      isFinal:true
+    }
   ],
   audio: {
     opening: assetUrl("assets/audio/opening.mp3"),
@@ -770,8 +863,8 @@ let postSuccessIgnoreUntil = 0;
 let lastSuccessCode = "";
 let activeCelebrationToken = 0;
 
-let correctBag = [];
-let wrongBag = [];
+let correctIndex = 0;
+let wrongIndex = 0;
 let reactionBank = {
   correct: [],
   wrong: []
@@ -797,13 +890,6 @@ function toast(msg){
 window.addEventListener("error", e => toast("Error: " + (e?.message || e)));
 window.addEventListener("unhandledrejection", e => toast("Promise: " + (e?.reason?.message || e.reason || e)));
 
-function shuffleArray(arr){
-  for(let i = arr.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-}
-
 function preloadReactionBank(){
   reactionBank.correct = GAME.audio.correct.map(src => {
     const a = new Audio(src);
@@ -820,27 +906,20 @@ function preloadReactionBank(){
   });
 }
 
-function nextFromBag(type){
-  const sourceList = type === "correct" ? GAME.audio.correct : GAME.audio.wrong;
-
-  if(type === "correct"){
-    if(correctBag.length === 0){
-      correctBag = [...sourceList];
-      shuffleArray(correctBag);
-    }
-    return correctBag.pop();
-  } else {
-    if(wrongBag.length === 0){
-      wrongBag = [...sourceList];
-      shuffleArray(wrongBag);
-    }
-    return wrongBag.pop();
-  }
-}
-
 async function playReaction(type){
-  const pick = nextFromBag(type);
-  if(!pick) return;
+  const list = type === "correct" ? GAME.audio.correct : GAME.audio.wrong;
+  const bank = type === "correct" ? reactionBank.correct : reactionBank.wrong;
+
+  if(!list || !list.length) return;
+
+  let pick;
+  if(type === "correct"){
+    pick = list[correctIndex % list.length];
+    correctIndex++;
+  }else{
+    pick = list[wrongIndex % list.length];
+    wrongIndex++;
+  }
 
   try{
     if(activeReactionAudio){
@@ -848,7 +927,6 @@ async function playReaction(type){
       activeReactionAudio = null;
     }
 
-    const bank = type === "correct" ? reactionBank.correct : reactionBank.wrong;
     const targetUrl = new URL(pick, location.href).href;
     const base = bank.find(a => a.src === targetUrl);
     const a = base ? base.cloneNode(true) : new Audio(pick);
@@ -864,7 +942,7 @@ async function playReaction(type){
       const done = () => resolve();
       a.onended = done;
       a.onerror = done;
-      setTimeout(done, 1800);
+      setTimeout(done, 2200);
     });
 
     if(activeReactionAudio === a){
@@ -883,6 +961,13 @@ const CELEBRATION_LINES = [
   { title: "Treasure Trail!", sub: "Keep chasing the rainbow." }
 ];
 let celebrationBag = [];
+
+function shuffleArray(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
 
 function pickCelebrationLine(){
   if(celebrationBag.length === 0){
@@ -1607,10 +1692,13 @@ async function startScanningForNode(node){
 
         FX.rainbow();
         FX.rainbow();
-        FX.rainbowBurst(window.innerWidth * 0.5, window.innerHeight * 0.28, 40);
-        FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.32, 260);
-        FX.coinBurst(window.innerWidth * 0.25, window.innerHeight * 0.24, 140);
-        FX.coinBurst(window.innerWidth * 0.75, window.innerHeight * 0.24, 140);
+        FX.rainbow();
+        FX.rainbowBurst(window.innerWidth * 0.5, window.innerHeight * 0.24, 70);
+        FX.rainbowBurst(window.innerWidth * 0.25, window.innerHeight * 0.22, 40);
+        FX.rainbowBurst(window.innerWidth * 0.75, window.innerHeight * 0.22, 40);
+        FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.30, 420);
+        FX.coinBurst(window.innerWidth * 0.22, window.innerHeight * 0.22, 180);
+        FX.coinBurst(window.innerWidth * 0.78, window.innerHeight * 0.22, 180);
 
         await AudioEngine.playVO(GAME.audio.finale);
         return;
@@ -1632,8 +1720,9 @@ function wireFinalButtons(){
   if(replay){
     replay.onclick = async () => {
       FX.rainbow();
-      FX.rainbowBurst(window.innerWidth * 0.5, window.innerHeight * 0.28, 34);
-      FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.32, 180);
+      FX.rainbow();
+      FX.rainbowBurst(window.innerWidth * 0.5, window.innerHeight * 0.24, 60);
+      FX.coinBurst(window.innerWidth * 0.5, window.innerHeight * 0.30, 320);
       await AudioEngine.playVO(GAME.audio.finale);
     };
   }
