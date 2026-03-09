@@ -536,7 +536,7 @@
   <div id="toast"></div>
 
 <script>
-const BUILD = "2026-03-06-18";
+const BUILD = "2026-03-06-19";
 
 const assetUrl = (p) => {
   if (!p) return p;
@@ -894,47 +894,68 @@ function preloadReactionBank(){
   reactionBank.correct = GAME.audio.correct.map(src => {
     const a = new Audio(src);
     a.preload = "auto";
-    try{ a.load(); }catch{}
+    a.playsInline = true;
+    a.setAttribute("playsinline", "");
+    a.load();
     return a;
   });
 
   reactionBank.wrong = GAME.audio.wrong.map(src => {
     const a = new Audio(src);
     a.preload = "auto";
-    try{ a.load(); }catch{}
+    a.playsInline = true;
+    a.setAttribute("playsinline", "");
+    a.load();
     return a;
   });
 }
 
+async function unlockReactionBank(){
+  const all = [...reactionBank.correct, ...reactionBank.wrong];
+
+  for(const a of all){
+    try{
+      a.muted = true;
+      a.currentTime = 0;
+      await a.play();
+      a.pause();
+      a.currentTime = 0;
+      a.muted = false;
+    }catch(e){
+      // ignore partial unlock failures
+    }
+  }
+}
+
 async function playReaction(type){
-  const list = type === "correct" ? GAME.audio.correct : GAME.audio.wrong;
   const bank = type === "correct" ? reactionBank.correct : reactionBank.wrong;
+  if(!bank.length) return;
 
-  if(!list || !list.length) return;
-
-  let pick;
+  let index;
   if(type === "correct"){
-    pick = list[correctIndex % list.length];
+    index = correctIndex % bank.length;
     correctIndex++;
   }else{
-    pick = list[wrongIndex % list.length];
+    index = wrongIndex % bank.length;
     wrongIndex++;
   }
 
+  const a = bank[index];
+  if(!a) return;
+
   try{
-    if(activeReactionAudio){
-      try{ activeReactionAudio.pause(); }catch{}
-      activeReactionAudio = null;
+    if(activeReactionAudio && activeReactionAudio !== a){
+      try{
+        activeReactionAudio.pause();
+        activeReactionAudio.currentTime = 0;
+      }catch{}
     }
 
-    const targetUrl = new URL(pick, location.href).href;
-    const base = bank.find(a => a.src === targetUrl);
-    const a = base ? base.cloneNode(true) : new Audio(pick);
-
     activeReactionAudio = a;
-    a.preload = "auto";
-    a.volume = 1;
+    a.pause();
     a.currentTime = 0;
+    a.volume = 1;
+    a.muted = false;
 
     await a.play();
 
@@ -949,7 +970,7 @@ async function playReaction(type){
       activeReactionAudio = null;
     }
   }catch(e){
-    console.log(type + " reaction failed", e, pick);
+    console.log(type + " reaction failed", e, a?.src);
   }
 }
 
@@ -1873,6 +1894,7 @@ document.getElementById("btnStart").onclick = async () => {
   await AudioEngine.unlock();
   await AudioEngine.preloadCore();
   preloadReactionBank();
+  await unlockReactionBank();
 
   AudioEngine.setToggles({
     music: State.musicEnabled,
@@ -1901,6 +1923,7 @@ function escapeAttr(s){
 </script>
 </body>
 </html>
+
 
 
 
