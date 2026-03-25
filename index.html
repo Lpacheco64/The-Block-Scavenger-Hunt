@@ -143,8 +143,8 @@
 
     #bunny {
       position: relative;
-      width: 160px;
-      height: 190px;
+      width: 170px;
+      height: 200px;
       margin: 0 auto;
       transform-origin: center bottom;
       animation: bunnyBreath 3.2s ease-in-out infinite;
@@ -155,7 +155,7 @@
       position: absolute;
       bottom: -8px;
       left: 50%;
-      width: 70px;
+      width: 74px;
       height: 12px;
       background: rgba(0,0,0,0.12);
       border-radius: 50%;
@@ -171,8 +171,8 @@
     .ear {
       position: absolute;
       top: 0;
-      width: 30px;
-      height: 86px;
+      width: 32px;
+      height: 92px;
       background: #fff;
       border: 3px solid #d8d8d8;
       border-radius: 28px;
@@ -183,12 +183,12 @@
     }
 
     .ear.left {
-      left: 34px;
+      left: 36px;
       transform: rotate(-10deg);
     }
 
     .ear.right {
-      right: 34px;
+      right: 36px;
       transform: rotate(10deg);
     }
 
@@ -204,10 +204,10 @@
 
     .head {
       position: absolute;
-      left: 25px;
-      top: 40px;
-      width: 110px;
-      height: 110px;
+      left: 26px;
+      top: 42px;
+      width: 118px;
+      height: 118px;
       background: radial-gradient(circle at 35% 30%, #ffffff 0%, #f3f3f3 60%, #e6e6e6 100%);
       border: 3px solid #d8d8d8;
       border-radius: 55% 55% 50% 50%;
@@ -217,16 +217,16 @@
 
     .eye {
       position: absolute;
-      top: 34px;
-      width: 16px;
-      height: 20px;
+      top: 32px;
+      width: 20px;
+      height: 26px;
       background: #222;
       border-radius: 50%;
       transform-origin: center;
     }
 
-    .eye.left { left: 24px; }
-    .eye.right { right: 24px; }
+    .eye.left { left: 22px; }
+    .eye.right { right: 22px; }
 
     .eye.blinking {
       animation: blink 0.32s ease;
@@ -234,10 +234,10 @@
 
     .eye-shine {
       position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 5px;
-      height: 5px;
+      top: 3px;
+      left: 3px;
+      width: 6px;
+      height: 6px;
       background: #fff;
       border-radius: 50%;
     }
@@ -262,11 +262,11 @@
 
     .cheek {
       position: absolute;
-      width: 16px;
-      height: 12px;
+      width: 18px;
+      height: 13px;
       background: #ffd6de;
       border-radius: 50%;
-      top: 50px;
+      top: 52px;
       opacity: 0.8;
     }
 
@@ -275,10 +275,10 @@
 
     .nose {
       position: absolute;
-      top: 52px;
+      top: 56px;
       left: 50%;
-      width: 13px;
-      height: 9px;
+      width: 14px;
+      height: 10px;
       background: #ff9cbc;
       border-radius: 50%;
       transform: translateX(-50%);
@@ -297,7 +297,7 @@
 
     .whiskers {
       position: absolute;
-      top: 52px;
+      top: 56px;
       width: 24px;
       height: 20px;
     }
@@ -325,7 +325,7 @@
     .mouthWrap {
       position: absolute;
       left: 50%;
-      top: 68px;
+      top: 74px;
       width: 30px;
       height: 22px;
       transform: translateX(-50%);
@@ -368,13 +368,13 @@
 
     .body {
       position: absolute;
-      left: 40px;
+      left: 42px;
       bottom: 8px;
-      width: 80px;
-      height: 65px;
+      width: 84px;
+      height: 68px;
       background: radial-gradient(circle at 50% 30%, #ffffff 0%, #f2f2f2 60%, #e4e4e4 100%);
       border: 3px solid #d8d8d8;
-      border-radius: 45px;
+      border-radius: 46px;
       z-index: 1;
     }
 
@@ -382,8 +382,8 @@
       position: absolute;
       left: 50%;
       top: 14px;
-      width: 34px;
-      height: 30px;
+      width: 36px;
+      height: 32px;
       background: radial-gradient(circle, #ffffff, #efefef);
       border-radius: 50%;
       transform: translateX(-50%);
@@ -392,8 +392,8 @@
     .paw {
       position: absolute;
       bottom: 8px;
-      width: 26px;
-      height: 26px;
+      width: 28px;
+      height: 28px;
       background: #ffffff;
       border: 3px solid #d8d8d8;
       border-radius: 50%;
@@ -1008,9 +1008,7 @@
     }
 
     @media (max-width: 768px) {
-      #message {
-        display: none;
-      }
+      #message { display: none; }
     }
 
     @media (max-width: 420px) {
@@ -1191,10 +1189,11 @@
     let activeCelebrationToken = 0;
 
     const audioPlayer = new Audio();
-    const bgMusic = new Audio(AUDIO.background);
+    const bgMusic = new Audio();
 
     audioPlayer.preload = "auto";
     audioPlayer.playsInline = true;
+
     bgMusic.preload = "auto";
     bgMusic.loop = true;
     bgMusic.volume = 0.35;
@@ -1293,7 +1292,6 @@
 
     function startBlinkLoop() {
       if (blinkTimer) clearInterval(blinkTimer);
-
       blinkTimer = setInterval(() => {
         eyes.forEach(eye => {
           eye.classList.add("blinking");
@@ -1304,7 +1302,6 @@
 
     function startEarTwitchLoop() {
       if (earTwitchTimer) clearInterval(earTwitchTimer);
-
       earTwitchTimer = setInterval(() => {
         bunny.classList.add("idle-twitch");
         setTimeout(() => bunny.classList.remove("idle-twitch"), 700);
@@ -1321,6 +1318,18 @@
       mouth.classList.remove("talking");
       bunny.classList.remove("talking-body");
       nose.classList.remove("wiggle");
+    }
+
+    function ensureBgMusicRunning() {
+      if (!gameStarted) return;
+      if (bgMusic.src !== new URL(AUDIO.background, window.location.href).href) {
+        bgMusic.src = AUDIO.background;
+        bgMusic.load();
+      }
+      if (bgMusic.paused) {
+        bgMusic.volume = Math.max(bgMusic.volume, 0.35);
+        bgMusic.play().catch(() => {});
+      }
     }
 
     function fadeBgTo(target, duration = 180) {
@@ -1348,6 +1357,10 @@
 
     function playAudio(src, onEnd, options = {}) {
       const keepDucked = Boolean(options.keepDucked);
+
+      if (bgMusic.paused && gameStarted) {
+        ensureBgMusicRunning();
+      }
 
       fadeBgTo(0.08, 140);
 
@@ -1587,18 +1600,10 @@
       try {
         audioPlayer.src = AUDIO.opening;
         audioPlayer.load();
-        bgMusic.currentTime = 0;
-
         const p1 = audioPlayer.play().catch(() => {});
-        const p2 = bgMusic.play().catch(() => {});
-
-        await Promise.allSettled([p1, p2]);
-
+        await Promise.allSettled([p1]);
         audioPlayer.pause();
         audioPlayer.currentTime = 0;
-        bgMusic.pause();
-        bgMusic.currentTime = 0;
-        bgMusic.volume = 0.35;
       } catch (err) {
         console.warn("Audio unlock issue:", err);
       }
@@ -1638,12 +1643,13 @@
       await unlockAudio();
 
       try {
+        bgMusic.src = AUDIO.background;
+        bgMusic.load();
+        bgMusic.volume = 0.35;
         await bgMusic.play();
       } catch (err) {
         console.warn("Background music did not start:", err);
       }
-
-      bgMusic.volume = 0.35;
 
       await startScanner();
 
@@ -1666,6 +1672,7 @@
       audioPlayer.currentTime = 0;
       bgMusic.pause();
       bgMusic.currentTime = 0;
+      bgMusic.src = "";
       bgMusic.volume = 0.35;
       stopTalking();
 
