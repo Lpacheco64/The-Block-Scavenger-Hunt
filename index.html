@@ -1,1 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Block Easter Bunny Hunt</title>
+  <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
+  <style>
+    :root {
+      --sky-top: #b9ecff;
+      --sky-bottom: #f6fff1;
+      --grass: #dff8cf;
+      --panel: #ffffff;
+      --panel-border: #3f3f3f;
+      --text: #23323b;
+      --pink: #ffb7da;
+      --blue: #a1dfff;
+      --yellow: #ffe58d;
+      --green: #baf0ad;
+      --shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
 
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      text-align: center;
+      background:
+        radial-gradient(circle at top, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 42%),
+        linear-gradient(to bottom, var(--sky-top), var(--sky-bottom) 62%, var(--grass) 100%);
+    }
+
+    #app {
+      width: 100%;
+      max-width: 470px;
+      margin: 0 auto;
+      padding: 14px 12px 28px;
+    }
+
+    h1 {
+      margin: 6px 0 4px;
+      font-size: 30px;
+      line-height: 1.05;
+    }
+
+    #subText {
+      margin: 0 0 12px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #4d6675;
+    }
+
+    #progressEggs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin: 0 auto 14px;
+      min-height: 38px;
+      max-width: 360px;
+    }
+
+    .egg {
+      width: 20px;
+      height: 27px;
+      border-radius: 50% 50% 45% 45%;
+      border: 2px solid #686868;
+      background: #fff9dd;
+      position: relative;
+      transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+    }
+
+    .egg::before,
+    .egg::after {
+      content: "";
+      position: absolute;
+      left: 3px;
+      right: 3px;
+      height: 3px;
+      border-radius: 3px;
+    }
+
+    .egg::before {
+      top: 7px;
+      background: var(--pink);
+    }
+
+    .egg::after {
+      top: 14px;
+      background: var(--blue);
+    }
+
+    .egg.done {
+      background: var(--green);
+      border-color: #3b8d42;
+      transform: scale(1.08);
+    }
+
+    .egg.done::before {
+      background: var(--yellow);
+    }
+
+    .egg.done::after {
+      background: #7fd08c;
+    }
+
+    .egg.pop {
+      animation: eggPop 0.42s ease;
+    }
+
+    @keyframes eggPop {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.28); }
+      100% { transform: scale(1.08); }
+    }
+
+    #speechBubble {
+      position: relative;
+      width: 100%;
+      max-width: 325px;
+      min-height: 68px;
+      margin: 0 auto 14px;
+      padding: 14px 16px;
+      background: var(--panel);
+      border: 3px solid var(--panel-border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      font-size: 22px;
+      line-height: 1.15;
+      font-weight: bold;
+    }
+
+    #speechBubble::after {
+      content: "";
+      position: absolute;
+      left: 46px;
+      bottom: -12px;
+      width: 18px;
+      height: 18px;
+      background: var(--panel);
+      border-right: 3px solid var(--panel-border);
+      border-bottom: 3px solid var(--panel-border);
+      transform: rotate(45deg);
+    }
+
+    #bunnyWrap {
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    #bunny {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      margin: 0 auto;
+      transform-origin: center bottom;
+      animation: idleFloat 3s ease-in-out infinite;
+    }
+
+    .ear {
+      position: absolute;
+      top: 0;
+      width: 24px;
+      height: 72px;
+      background: #fff;
+      border: 3px solid #dadada;
+      border-radius: 22px;
+    }
+
+    .ear::after {
+      content: "";
+      position: absolute;
+      left: 5px;
+      right: 5px;
+      top: 10px;
+      bottom: 8px;
+      background: #ffd8ea;
+      border-radius: 18px;
+    }
+
+    .ear.left {
+      left: 36px;
+      transform: rotate(-7deg);
+    }
+
+    .ear.right {
+      right: 36px;
+      transform: rotate(7deg);
+    }
+
+    .face {
+      position: absolute;
+      left: 25px;
+      bottom: 0;
+      width: 100px;
+      height: 102px;
+      background: #fff;
+      border: 3px solid #dadada;
+      border-radius: 50%;
+      box-shadow: var(--shadow);
+    }
+
+    .eye {
+      position: absolute;
+      top: 34px;
+      width: 12px;
+      height: 12px;
+      background: #222;
+      border-radius: 50%;
+      transform-origin: center;
+    }
+
+    .eye.left {
+      left: 24px;
+    }
+
+    .eye.right {
+      right: 24px;
+    }
+
+    .eye.blinking {
+      animation: blink 0.18s ease;
+    }
+
+    @keyframes blink {
+      0% { transform: scaleY(1); }
+      50% { transform: scaleY(0.12); }
+      100% { transform: scaleY(1); }
+    }
+
+    .nose {
+      position: absolute;
+      top: 48px;
+      left: 50%;
+      width: 12px;
+      height: 10px;
+      background: #ff9cbc;
+      border-radius: 50%;
+      transform: translateX(-50%);
+    }
+
+    .cheek {
+      position: absolute;
+      top: 52px;
+      width: 14px;
+      height: 10px;
+      background: rgba(255, 182, 217, 0.55);
+      border-radius: 50%;
+    }
+
+    .cheek.left {
+      left: 11px;
+    }
+
+    .cheek.right {
+      right: 11px;
+    }
+
+    .mouth {
+      position: absolute;
+      left: 50%;
+      bottom: 24px;
+      width: 22px;
+      height: 8px;
+      border-bottom: 3px solid #333;
+      border-radius: 0 0 14px 14px;
+      transform: translateX(-50%);
+      transform-origin: center top;
+    }
+
+    .mouth.talking {
+      animation: talk 0.16s linear infinite;
+    }
+
+    @keyframes talk {
+      0% { height: 6px; }
+      50% { height: 14px; }
+      100% { height: 6px; }
+    }
+
+    @keyframes idleFloat {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+      100% { transform: translateY(0); }
+    }
+
+    .happy {
+      animation: bunnyBounce 0.45s ease;
+    }
+
+    @keyframes bunnyBounce {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-18px); }
+      100% { transform: translateY(0); }
+    }
+
+    .happy .ear.left {
+      animation: earWiggleL 0.45s ease;
+    }
+
+    .happy .ear.right {
+      animation: earWiggleR 0.45s ease;
+    }
+
+    @keyframes earWiggleL {
+      0% { transform: rotate(-7deg); }
+      50% { transform: rotate(-18deg); }
+      100% { transform: rotate(-7deg); }
+    }
+
+    @keyframes earWiggleR {
+      0% { transform: rotate(7deg); }
+      50% { transform: rotate(18deg); }
+      100% { transform: rotate(7deg); }
+    }
+
+    .confused {
+      animation: bunnyShake 0.38s ease;
+    }
+
+    @keyframes bunnyShake {
+      0% { transform: rotate(0); }
+      25% { transform: rotate(5deg); }
+      50% { transform: rotate(-5deg); }
+      75% { transform: rotate(4deg); }
+      100% { transform: rotate(0); }
+    }
+
+    #footsteps {
+      position: relative;
+      width: 100%;
+      max-width: 340px;
+      height: 72px;
+      margin: 0 auto 6px;
+      overflow: hidden;
+    }
+
+    .footstep {
+      position: absolute;
+      width: 18px;
+      height: 26px;
+      border-radius: 55% 55% 45% 45%;
+      background: rgba(255,255,255,0.92);
+      border: 2px solid rgba(80,80,80,0.16);
+      animation: footFade 1.6s ease forwards;
+    }
+
+    .footstep.left {
+      transform: rotate(-18deg);
+    }
+
+    .footstep.right {
+      transform: rotate(18deg);
+    }
+
+    @keyframes footFade {
+      0% { opacity: 0; }
+      15% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(-4px) scale(0.96); }
+    }
+
+    #message {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 8px 0 12px;
+      min-height: 30px;
+    }
+
+    #scannerWrap {
+      position: relative;
+      width: 100%;
+      max-width: 360px;
+      margin: 0 auto 12px;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      border: 4px solid rgba(255,255,255,0.84);
+      background: rgba(255,255,255,0.3);
+    }
+
+    #scanner {
+      display: block;
+      width: 100%;
+      max-width: 360px;
+      min-height: 250px;
+      background: rgba(255,255,255,0.18);
+    }
+
+    #controls {
+      margin-top: 4px;
+    }
+
+    #startBtn, #resetBtn {
+      appearance: none;
+      border: none;
+      border-radius: 18px;
+      padding: 14px 22px;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+    }
+
+    #startBtn {
+      background: #ffd75d;
+      color: #2f2f2f;
+    }
+
+    #startBtn:disabled {
+      opacity: 0.68;
+      cursor: default;
+    }
+
+    #resetBtn {
+      background: #fff;
+      color: #2f2f2f;
+      margin-left: 8px;
+      display: none;
+    }
+
+    #finalBurst,
+    #finalCelebration {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .burstEgg {
+      position: absolute;
+      width: 14px;
+      height: 20px;
+      border-radius: 50% 50% 45% 45%;
+      opacity: 0;
+      animation: burstFly 1.7s ease-out forwards;
+    }
+
+    @keyframes burstFly {
+      0% {
+        opacity: 0;
+        transform: translate(0, 0) scale(0.7);
+      }
+      10% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(1.1);
+      }
+    }
+
+    #finalGlow {
+      position: absolute;
+      left: 50%;
+      top: 58%;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,180,0.9) 0%, rgba(255,255,180,0.2) 45%, rgba(255,255,180,0) 70%);
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0;
+    }
+
+    #finalGlow.show {
+      animation: glowPulse 1.3s ease-out 2;
+    }
+
+    @keyframes glowPulse {
+      0% {
+        transform: translate(-50%, -50%) scale(0.2);
+        opacity: 0;
+      }
+      20% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(10);
+        opacity: 0;
+      }
+    }
+
+    #rainbowBanner {
+      position: absolute;
+      left: 50%;
+      top: 12%;
+      transform: translateX(-50%) translateY(-40px);
+      min-width: 280px;
+      max-width: 88vw;
+      padding: 16px 22px;
+      border-radius: 24px;
+      border: 3px solid #fff;
+      color: #2f2f2f;
+      font-size: 26px;
+      font-weight: bold;
+      text-align: center;
+      background: linear-gradient(90deg, #ffb6d9, #ffe48e, #baf0ad, #9fdfff, #ffb6d9);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.16);
+      opacity: 0;
+    }
+
+    #rainbowBanner.show {
+      animation: bannerDrop 3.2s ease forwards;
+    }
+
+    @keyframes bannerDrop {
+      0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-40px);
+      }
+      10% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      85% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+      }
+    }
+
+    #celebrationField {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .celeEgg {
+      position: absolute;
+      width: 16px;
+      height: 22px;
+      border-radius: 50% 50% 45% 45%;
+      opacity: 0;
+      animation: eggFloat 3.2s ease-out forwards;
+    }
+
+    @keyframes eggFloat {
+      0% {
+        opacity: 0;
+        transform: translateY(0) scale(0.8) rotate(0deg);
+      }
+      10% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-260px) scale(1.15) rotate(var(--rot));
+      }
+    }
+
+    @media (max-width: 420px) {
+      h1 {
+        font-size: 26px;
+      }
+
+      #speechBubble {
+        font-size: 20px;
+      }
+
+      #message {
+        font-size: 22px;
+      }
+
+      #startBtn, #resetBtn {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>🐰 Easter Bunny Hunt</h1>
+    <div id="subText">Scan the next bunny QR to keep going.</div>
+
+    <div id="progressEggs" aria-label="Progress tracker"></div>
+
+    <div id="speechBubble">Tap Start to begin!</div>
+
+    <div id="bunnyWrap">
+      <div id="bunny" aria-hidden="true">
+        <div class="ear left"></div>
+        <div class="ear right"></div>
+        <div class="face">
+          <div class="eye left"></div>
+          <div class="eye right"></div>
+          <div class="cheek left"></div>
+          <div class="cheek right"></div>
+          <div class="nose"></div>
+          <div class="mouth" id="mouth"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="footsteps" aria-hidden="true"></div>
+
+    <div id="message">Ready to play!</div>
+
+    <div id="scannerWrap">
+      <video id="scanner" muted playsinline></video>
+    </div>
+
+    <div id="controls">
+      <button id="startBtn" type="button">Start Hunt</button>
+      <button id="resetBtn" type="button">Replay</button>
+    </div>
+  </div>
+
+  <div id="finalBurst" aria-hidden="true"></div>
+
+  <div id="finalCelebration" aria-hidden="true">
+    <div id="finalGlow"></div>
+    <div id="rainbowBanner">You Found All the Bunny Clues!</div>
+    <div id="celebrationField"></div>
+  </div>
+
+  <script>
+    const sequence = [
+      "sausage",
+      "birria",
+      "bubbles",
+      "custard",
+      "coffee",
+      "chamo",
+      "books",
+      "link",
+      "stackers",
+      "rez",
+      "boba",
+      "pizza",
+      "tavern"
+    ];
+
+    const AUDIO = {
+      background: "assets/audio/background.mp3",
+      opening: "assets/audio/opening.mp3",
+      sausage: "assets/audio/sausage.mp3",
+      birria: "assets/audio/birria.mp3",
+      bubbles: "assets/audio/bubbles.mp3",
+      custard: "assets/audio/custard.mp3",
+      coffee: "assets/audio/coffee.mp3",
+      chamo: "assets/audio/chamo.mp3",
+      books: "assets/audio/books.mp3",
+      link: "assets/audio/link.mp3",
+      stackers: "assets/audio/stackers.mp3",
+      rez: "assets/audio/rez.mp3",
+      boba: "assets/audio/boba.mp3",
+      pizza: "assets/audio/pizza.mp3",
+      tavern: "assets/audio/tavern.mp3",
+      final: "assets/audio/final.mp3"
+    };
+
+    const DISPLAY_NAMES = {
+      sausage: "Benny Sausage",
+      birria: "Birria",
+      bubbles: "Bubble Bliss",
+      custard: "Busy Bee Custard",
+      coffee: "Chicky's Coffee",
+      chamo: "El Chamo",
+      books: "Enchanted Books",
+      link: "Link Link",
+      stackers: "Stackers",
+      rez: "That's My Rez Sandwich",
+      boba: "The Boba Lounge",
+      pizza: "Thicc Pizza",
+      tavern: "Tavern on the Green"
+    };
+
+    const BUBBLE_TEXT = {
+      start: "Tap Start, then scan the first bunny spot!",
+      first: "Find the first bunny spot and scan it!",
+      wrong: [
+        "Oops! Try a different spot!",
+        "Not this one. Keep looking!",
+        "Almost! Try another QR!",
+        "Hmm... that's not the next one!",
+        "Boing! Try again!"
+      ],
+      correct: [
+        "Yes! Great job!",
+        "You found it!",
+        "Hop hop hooray!",
+        "That was right!",
+        "Awesome scanning!"
+      ],
+      next: [
+        "Next stop:",
+        "Hop to:",
+        "Now find:",
+        "Keep going to:",
+        "Look for:"
+      ],
+      final: "You did it! Go to Manager's Office on the north side!"
+    };
+
+    let currentIndex = 0;
+    let correctIndex = 0;
+    let wrongIndex = 0;
+    let scanLock = false;
+    let gameStarted = false;
+    let blinkTimer = null;
+    let volumeFadeTimer = null;
+    let autoStartedFromUrl = false;
+    let reader = null;
+
+    const audioPlayer = new Audio();
+    const bgMusic = new Audio(AUDIO.background);
+
+    audioPlayer.preload = "auto";
+    audioPlayer.playsInline = true;
+    bgMusic.preload = "auto";
+    bgMusic.loop = true;
+    bgMusic.volume = 0.35;
+    bgMusic.playsInline = true;
+
+    const progressEggs = document.getElementById("progressEggs");
+    const speechBubble = document.getElementById("speechBubble");
+    const footsteps = document.getElementById("footsteps");
+    const messageEl = document.getElementById("message");
+    const bunny = document.getElementById("bunny");
+    const mouth = document.getElementById("mouth");
+    const eyes = document.querySelectorAll(".eye");
+    const scannerVideo = document.getElementById("scanner");
+    const startBtn = document.getElementById("startBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const finalBurst = document.getElementById("finalBurst");
+    const finalGlow = document.getElementById("finalGlow");
+    const rainbowBanner = document.getElementById("rainbowBanner");
+    const celebrationField = document.getElementById("celebrationField");
+
+    function randomFrom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function setBubble(text) {
+      speechBubble.textContent = text;
+    }
+
+    function setMessage(text) {
+      messageEl.textContent = text;
+    }
+
+    function renderEggs() {
+      progressEggs.innerHTML = "";
+      for (let i = 0; i < sequence.length; i++) {
+        const egg = document.createElement("div");
+        egg.className = "egg";
+        egg.setAttribute("aria-label", `Stop ${i + 1}`);
+        if (i < currentIndex) egg.classList.add("done");
+        progressEggs.appendChild(egg);
+      }
+    }
+
+    function popLatestEgg() {
+      const eggs = progressEggs.querySelectorAll(".egg");
+      const idx = currentIndex - 1;
+      if (eggs[idx]) {
+        eggs[idx].classList.add("pop");
+        setTimeout(() => eggs[idx].classList.remove("pop"), 420);
+      }
+    }
+
+    function makeFootsteps() {
+      footsteps.innerHTML = "";
+      const count = 6;
+      for (let i = 0; i < count; i++) {
+        const step = document.createElement("div");
+        step.className = `footstep ${i % 2 === 0 ? "left" : "right"}`;
+        step.style.left = `${40 + i * 42}px`;
+        step.style.top = `${18 + (i % 2 === 0 ? 10 : 0)}px`;
+        step.style.animationDelay = `${i * 0.12}s`;
+        footsteps.appendChild(step);
+      }
+      setTimeout(() => {
+        footsteps.innerHTML = "";
+      }, 1800);
+    }
+
+    function bunnyHappy() {
+      bunny.classList.remove("confused");
+      bunny.classList.add("happy");
+      setTimeout(() => bunny.classList.remove("happy"), 450);
+    }
+
+    function bunnyConfused() {
+      bunny.classList.remove("happy");
+      bunny.classList.add("confused");
+      setTimeout(() => bunny.classList.remove("confused"), 380);
+    }
+
+    function startBlinkLoop() {
+      if (blinkTimer) clearInterval(blinkTimer);
+      blinkTimer = setInterval(() => {
+        eyes.forEach(eye => {
+          eye.classList.add("blinking");
+          setTimeout(() => eye.classList.remove("blinking"), 180);
+        });
+      }, 3500);
+    }
+
+    function startTalking() {
+      mouth.classList.add("talking");
+    }
+
+    function stopTalking() {
+      mouth.classList.remove("talking");
+    }
+
+    function fadeBgTo(target, duration = 180) {
+      if (volumeFadeTimer) {
+        clearInterval(volumeFadeTimer);
+        volumeFadeTimer = null;
+      }
+
+      const start = bgMusic.volume;
+      const change = target - start;
+      const steps = Math.max(1, Math.round(duration / 30));
+      let step = 0;
+
+      volumeFadeTimer = setInterval(() => {
+        step++;
+        const progress = step / steps;
+        bgMusic.volume = Math.max(0, Math.min(1, start + change * progress));
+        if (step >= steps) {
+          clearInterval(volumeFadeTimer);
+          volumeFadeTimer = null;
+          bgMusic.volume = Math.max(0, Math.min(1, target));
+        }
+      }, 30);
+    }
+
+    function playAudio(src, onEnd, options = {}) {
+      const keepDucked = Boolean(options.keepDucked);
+
+      fadeBgTo(0.08, 140);
+
+      audioPlayer.pause();
+      audioPlayer.currentTime = 0;
+      audioPlayer.src = src;
+      audioPlayer.onended = null;
+      audioPlayer.onerror = null;
+
+      startTalking();
+
+      const finish = () => {
+        stopTalking();
+        if (!keepDucked) {
+          fadeBgTo(0.35, 220);
+        }
+        if (typeof onEnd === "function") onEnd();
+      };
+
+      audioPlayer.onended = finish;
+      audioPlayer.onerror = () => {
+        console.error("Audio failed to load:", src);
+        finish();
+      };
+
+      audioPlayer.play().catch(err => {
+        console.error("Audio playback failed:", src, err);
+        finish();
+      });
+    }
+
+    function playCorrectWithBubble(callback, options = {}) {
+      correctIndex = (correctIndex % 5) + 1;
+      setBubble(randomFrom(BUBBLE_TEXT.correct));
+      playAudio(`assets/audio/correct_0${correctIndex}.mp3`, callback, options);
+    }
+
+    function playWrongWithBubble() {
+      wrongIndex = (wrongIndex % 5) + 1;
+      setBubble(randomFrom(BUBBLE_TEXT.wrong));
+      playAudio(`assets/audio/wrong_0${wrongIndex}.mp3`);
+    }
+
+    function triggerFinalBurst() {
+      finalBurst.innerHTML = "";
+      const colors = ["#ffb6d9", "#9fdfff", "#ffe48e", "#baf0ad", "#ffffff"];
+
+      for (let i = 0; i < 28; i++) {
+        const piece = document.createElement("div");
+        piece.className = "burstEgg";
+        piece.style.left = "50%";
+        piece.style.top = "55%";
+        piece.style.background = colors[i % colors.length];
+        piece.style.setProperty("--tx", `${(Math.random() - 0.5) * 420}px`);
+        piece.style.setProperty("--ty", `${-80 - Math.random() * 260}px`);
+        piece.style.setProperty("--rot", `${-180 + Math.random() * 360}deg`);
+        piece.style.animationDelay = `${Math.random() * 0.08}s`;
+        finalBurst.appendChild(piece);
+      }
+
+      setTimeout(() => {
+        finalBurst.innerHTML = "";
+      }, 1900);
+    }
+
+    function triggerBigFinalCelebration() {
+      finalGlow.classList.remove("show");
+      rainbowBanner.classList.remove("show");
+      celebrationField.innerHTML = "";
+
+      void finalGlow.offsetWidth;
+      void rainbowBanner.offsetWidth;
+
+      finalGlow.classList.add("show");
+      rainbowBanner.classList.add("show");
+
+      const colors = ["#ffb6d9", "#9fdfff", "#ffe48e", "#baf0ad", "#ffffff"];
+
+      for (let i = 0; i < 42; i++) {
+        const egg = document.createElement("div");
+        egg.className = "celeEgg";
+        egg.style.left = `${10 + Math.random() * 80}%`;
+        egg.style.bottom = `${-10 + Math.random() * 12}px`;
+        egg.style.background = colors[i % colors.length];
+        egg.style.border = "2px solid rgba(80,80,80,0.12)";
+        egg.style.animationDelay = `${Math.random() * 0.5}s`;
+        egg.style.setProperty("--rot", `${-180 + Math.random() * 360}deg`);
+        celebrationField.appendChild(egg);
+      }
+
+      setTimeout(() => {
+        celebrationField.innerHTML = "";
+        finalGlow.classList.remove("show");
+        rainbowBanner.classList.remove("show");
+      }, 3600);
+    }
+
+    function showFinalMessage() {
+      setMessage("🎉 Go to Manager's Office (north side)!");
+      setBubble(BUBBLE_TEXT.final);
+      triggerFinalBurst();
+      triggerBigFinalCelebration();
+      fadeBgTo(0.5, 280);
+    }
+
+    function handleScan(id) {
+      if (!gameStarted || scanLock) return;
+
+      scanLock = true;
+      const expected = sequence[currentIndex];
+
+      if (id === expected) {
+        bunnyHappy();
+        makeFootsteps();
+
+        const isLastStop = currentIndex === sequence.length - 1;
+        currentIndex++;
+        renderEggs();
+        popLatestEgg();
+
+        if (isLastStop) {
+          setMessage("🎉 You found the last stop!");
+          playCorrectWithBubble(() => {
+            setTimeout(() => {
+              setBubble(BUBBLE_TEXT.final);
+              playAudio(AUDIO.final, () => {
+                showFinalMessage();
+              });
+            }, 260);
+          }, { keepDucked: true });
+
+          setTimeout(() => {
+            scanLock = false;
+          }, 2600);
+          return;
+        }
+
+        const nextId = sequence[currentIndex];
+        setMessage("✅ Great job!");
+
+        playCorrectWithBubble(() => {
+          setTimeout(() => {
+            setBubble(`${randomFrom(BUBBLE_TEXT.next)} ${DISPLAY_NAMES[nextId]}!`);
+            playAudio(AUDIO[nextId], () => {
+              setMessage("Scan the next bunny QR!");
+            });
+          }, 260);
+        }, { keepDucked: true });
+
+      } else {
+        bunnyConfused();
+        setMessage("❌ Try again!");
+        playWrongWithBubble();
+      }
+
+      setTimeout(() => {
+        scanLock = false;
+      }, 2000);
+    }
+
+    async function unlockAudio() {
+      try {
+        audioPlayer.src = AUDIO.opening;
+        bgMusic.currentTime = 0;
+
+        const p1 = audioPlayer.play().catch(() => {});
+        const p2 = bgMusic.play().catch(() => {});
+
+        await Promise.allSettled([p1, p2]);
+
+        audioPlayer.pause();
+        audioPlayer.currentTime = 0;
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+        bgMusic.volume = 0.35;
+      } catch (err) {
+        console.warn("Audio unlock issue:", err);
+      }
+    }
+
+    async function startScanner() {
+      if (reader) return;
+
+      reader = new ZXing.BrowserMultiFormatReader();
+
+      try {
+        await reader.decodeFromVideoDevice(null, scannerVideo, (result, err) => {
+          if (result) {
+            handleScan(result.text.trim().toLowerCase());
+          }
+        });
+      } catch (err) {
+        console.error("Scanner start failed:", err);
+        setMessage("Camera error. Please allow camera access.");
+        setBubble("Please allow camera access and try again.");
+      }
+    }
+
+    async function startGame() {
+      if (gameStarted) return;
+      gameStarted = true;
+
+      startBtn.disabled = true;
+      resetBtn.style.display = "inline-block";
+
+      setMessage("🐣 Starting hunt...");
+      setBubble(BUBBLE_TEXT.start);
+      renderEggs();
+      startBlinkLoop();
+
+      await unlockAudio();
+
+      try {
+        await bgMusic.play();
+      } catch (err) {
+        console.warn("Background music did not start:", err);
+      }
+
+      bgMusic.volume = 0.35;
+
+      playAudio(AUDIO.opening, () => {
+        setBubble("First stop!");
+        playAudio(AUDIO[sequence[0]], () => {
+          setMessage("Scan the first bunny QR!");
+          setBubble(BUBBLE_TEXT.first);
+        });
+      }, { keepDucked: true });
+
+      startScanner();
+    }
+
+    function resetGame() {
+      currentIndex = 0;
+      correctIndex = 0;
+      wrongIndex = 0;
+      scanLock = false;
+      gameStarted = false;
+      autoStartedFromUrl = false;
+
+      audioPlayer.pause();
+      audioPlayer.currentTime = 0;
+      bgMusic.pause();
+      bgMusic.currentTime = 0;
+      bgMusic.volume = 0.35;
+      stopTalking();
+
+      if (reader) {
+        try {
+          reader.reset();
+        } catch (err) {
+          console.warn("Reader reset issue:", err);
+        }
+        reader = null;
+      }
+
+      if (volumeFadeTimer) {
+        clearInterval(volumeFadeTimer);
+        volumeFadeTimer = null;
+      }
+
+      finalBurst.innerHTML = "";
+      celebrationField.innerHTML = "";
+      finalGlow.classList.remove("show");
+      rainbowBanner.classList.remove("show");
+      footsteps.innerHTML = "";
+      bunny.classList.remove("happy", "confused");
+
+      renderEggs();
+      setBubble("Tap Start to begin!");
+      setMessage("Ready to play!");
+
+      startBtn.disabled = false;
+      resetBtn.style.display = "none";
+    }
+
+    function maybeAutoStartFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("start") === "1" && !autoStartedFromUrl) {
+        autoStartedFromUrl = true;
+        startGame();
+      }
+    }
+
+    document.body.addEventListener("click", () => {
+      unlockAudio();
+    }, { once: true });
+
+    document.body.addEventListener("touchend", () => {
+      unlockAudio();
+    }, { once: true });
+
+    startBtn.addEventListener("click", startGame);
+    resetBtn.addEventListener("click", resetGame);
+
+    window.addEventListener("beforeunload", () => {
+      if (reader) {
+        try {
+          reader.reset();
+        } catch (err) {}
+      }
+    });
+
+    renderEggs();
+    setBubble("Tap Start to begin!");
+    setMessage("Ready to play!");
+    startBlinkLoop();
+    maybeAutoStartFromUrl();
+  </script>
+</body>
+</html>
