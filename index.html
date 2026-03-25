@@ -143,140 +143,244 @@
 
     #bunny {
       position: relative;
-      width: 150px;
-      height: 150px;
+      width: 190px;
+      height: 220px;
       margin: 0 auto;
       transform-origin: center bottom;
-      animation: idleFloat 3s ease-in-out infinite;
+      animation: bunnyBreath 3s ease-in-out infinite;
+    }
+
+    @keyframes bunnyBreath {
+      0% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-4px) scale(1.015); }
+      100% { transform: translateY(0) scale(1); }
     }
 
     .ear {
       position: absolute;
       top: 0;
-      width: 24px;
-      height: 72px;
+      width: 34px;
+      height: 96px;
       background: #fff;
-      border: 3px solid #dadada;
-      border-radius: 22px;
+      border: 3px solid #d8d8d8;
+      border-radius: 28px;
+      z-index: 1;
+      overflow: hidden;
     }
 
-    .ear::after {
-      content: "";
-      position: absolute;
-      left: 5px;
-      right: 5px;
-      top: 10px;
-      bottom: 8px;
-      background: #ffd8ea;
-      border-radius: 18px;
+    .ear.left {
+      left: 42px;
+      transform: rotate(-10deg);
     }
 
-    .ear.left { left: 36px; transform: rotate(-7deg); }
-    .ear.right { right: 36px; transform: rotate(7deg); }
+    .ear.right {
+      right: 42px;
+      transform: rotate(10deg);
+    }
 
-    .face {
+    .inner-ear {
       position: absolute;
-      left: 25px;
-      bottom: 0;
-      width: 100px;
-      height: 102px;
+      left: 6px;
+      right: 6px;
+      top: 12px;
+      bottom: 10px;
+      background: #ffd6e8;
+      border-radius: 20px;
+    }
+
+    .head {
+      position: absolute;
+      left: 35px;
+      top: 48px;
+      width: 120px;
+      height: 118px;
       background: #fff;
-      border: 3px solid #dadada;
+      border: 3px solid #d8d8d8;
       border-radius: 50%;
-      box-shadow: var(--shadow);
+      box-shadow: 0 10px 18px rgba(0,0,0,0.08);
+      z-index: 2;
     }
 
     .eye {
       position: absolute;
-      top: 34px;
-      width: 12px;
-      height: 12px;
+      top: 36px;
+      width: 16px;
+      height: 20px;
       background: #222;
       border-radius: 50%;
       transform-origin: center;
     }
 
-    .eye.left { left: 24px; }
-    .eye.right { right: 24px; }
+    .eye.left { left: 28px; }
+    .eye.right { right: 28px; }
 
     .eye.blinking { animation: blink 0.18s ease; }
 
+    .eye-shine {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 5px;
+      height: 5px;
+      background: #fff;
+      border-radius: 50%;
+    }
+
     @keyframes blink {
       0% { transform: scaleY(1); }
-      50% { transform: scaleY(0.12); }
+      50% { transform: scaleY(0.08); }
       100% { transform: scaleY(1); }
     }
 
+    .cheek {
+      position: absolute;
+      top: 55px;
+      width: 18px;
+      height: 12px;
+      background: rgba(255, 183, 218, 0.7);
+      border-radius: 50%;
+    }
+
+    .cheek.left { left: 10px; }
+    .cheek.right { right: 10px; }
+
     .nose {
       position: absolute;
-      top: 48px;
+      top: 57px;
       left: 50%;
-      width: 12px;
+      width: 14px;
       height: 10px;
       background: #ff9cbc;
       border-radius: 50%;
       transform: translateX(-50%);
     }
 
-    .cheek {
+    .whiskers {
       position: absolute;
-      top: 52px;
-      width: 14px;
-      height: 10px;
-      background: rgba(255, 182, 217, 0.55);
-      border-radius: 50%;
+      top: 58px;
+      width: 28px;
+      height: 22px;
     }
 
-    .cheek.left { left: 11px; }
-    .cheek.right { right: 11px; }
+    .whiskers.left { left: -10px; }
+    .whiskers.right { right: -10px; }
+
+    .whiskers span {
+      position: absolute;
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: #9b9b9b;
+      border-radius: 2px;
+    }
+
+    .whiskers.left span:nth-child(1) { top: 0; transform: rotate(-12deg); }
+    .whiskers.left span:nth-child(2) { top: 8px; }
+    .whiskers.left span:nth-child(3) { top: 16px; transform: rotate(12deg); }
+
+    .whiskers.right span:nth-child(1) { top: 0; transform: rotate(12deg); }
+    .whiskers.right span:nth-child(2) { top: 8px; }
+    .whiskers.right span:nth-child(3) { top: 16px; transform: rotate(-12deg); }
+
+    .mouthWrap {
+      position: absolute;
+      left: 50%;
+      top: 72px;
+      width: 34px;
+      height: 26px;
+      transform: translateX(-50%);
+    }
 
     .mouth {
       position: absolute;
       left: 50%;
-      bottom: 24px;
-      width: 22px;
-      height: 8px;
+      top: 0;
+      width: 24px;
+      height: 10px;
       border-bottom: 3px solid #333;
-      border-radius: 0 0 14px 14px;
+      border-radius: 0 0 16px 16px;
       transform: translateX(-50%);
       transform-origin: center top;
     }
 
-    .mouth.talking { animation: talk 0.16s linear infinite; }
+    .mouth.talking { animation: talk 0.14s linear infinite; }
 
     @keyframes talk {
-      0% { height: 6px; }
-      50% { height: 14px; }
-      100% { height: 6px; }
+      0% { height: 8px; }
+      50% { height: 18px; }
+      100% { height: 8px; }
     }
 
-    @keyframes idleFloat {
-      0% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
-      100% { transform: translateY(0); }
+    .tooth {
+      position: absolute;
+      top: 12px;
+      width: 6px;
+      height: 9px;
+      background: #fff;
+      border: 1px solid #d8d8d8;
+      border-radius: 0 0 4px 4px;
     }
+
+    .tooth.left { left: 11px; }
+    .tooth.right { right: 11px; }
+
+    .body {
+      position: absolute;
+      left: 48px;
+      bottom: 0;
+      width: 94px;
+      height: 82px;
+      background: #fff;
+      border: 3px solid #d8d8d8;
+      border-radius: 48px 48px 38px 38px;
+      z-index: 1;
+    }
+
+    .belly {
+      position: absolute;
+      left: 50%;
+      top: 18px;
+      width: 44px;
+      height: 42px;
+      background: #f9f9f9;
+      border-radius: 50%;
+      transform: translateX(-50%);
+    }
+
+    .paw {
+      position: absolute;
+      bottom: -4px;
+      width: 26px;
+      height: 18px;
+      background: #fff;
+      border: 3px solid #d8d8d8;
+      border-radius: 16px;
+    }
+
+    .paw.left { left: 10px; }
+    .paw.right { right: 10px; }
 
     .happy { animation: bunnyBounce 0.45s ease; }
 
     @keyframes bunnyBounce {
-      0% { transform: translateY(0); }
-      50% { transform: translateY(-18px); }
-      100% { transform: translateY(0); }
+      0% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-18px) scale(1.03); }
+      100% { transform: translateY(0) scale(1); }
     }
 
     .happy .ear.left { animation: earWiggleL 0.45s ease; }
     .happy .ear.right { animation: earWiggleR 0.45s ease; }
 
     @keyframes earWiggleL {
-      0% { transform: rotate(-7deg); }
-      50% { transform: rotate(-18deg); }
-      100% { transform: rotate(-7deg); }
+      0% { transform: rotate(-10deg); }
+      50% { transform: rotate(-22deg); }
+      100% { transform: rotate(-10deg); }
     }
 
     @keyframes earWiggleR {
-      0% { transform: rotate(7deg); }
-      50% { transform: rotate(18deg); }
-      100% { transform: rotate(7deg); }
+      0% { transform: rotate(10deg); }
+      50% { transform: rotate(22deg); }
+      100% { transform: rotate(10deg); }
     }
 
     .confused { animation: bunnyShake 0.38s ease; }
@@ -372,6 +476,54 @@
       color: #2f2f2f;
       margin-left: 8px;
       display: none;
+    }
+
+    #celebrateOverlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.18s ease;
+      z-index: 9998;
+    }
+
+    #celebrateOverlay.show { opacity: 1; }
+
+    #celebrateCard {
+      width: min(90vw, 360px);
+      padding: 22px 18px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.96);
+      border: 3px solid #ffffff;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.18);
+      transform: scale(0.92);
+      animation: celebratePop 0.22s ease forwards;
+    }
+
+    @keyframes celebratePop {
+      to { transform: scale(1); }
+    }
+
+    #celebrateEmoji {
+      font-size: 34px;
+      margin-bottom: 6px;
+    }
+
+    #celebrateText {
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1;
+      color: #2f2f2f;
+    }
+
+    #celebrateSub {
+      margin-top: 8px;
+      font-size: 17px;
+      font-weight: 700;
+      color: #567;
     }
 
     #finalBurst,
@@ -497,11 +649,91 @@
       }
     }
 
+    #finalOverlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(25, 35, 40, 0.42);
+      z-index: 10000;
+    }
+
+    #finalOverlay.show { display: flex; }
+
+    #finalCard {
+      width: min(92vw, 520px);
+      background: linear-gradient(180deg, #fffef6, #fff9ea);
+      border: 4px solid #ffffff;
+      border-radius: 28px;
+      box-shadow: 0 22px 48px rgba(0,0,0,0.24);
+      padding: 28px 22px 22px;
+      text-align: center;
+    }
+
+    .finalTop {
+      font-size: 13px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 800;
+      color: #7f7f7f;
+    }
+
+    .finalTitle {
+      margin-top: 10px;
+      font-size: 44px;
+      line-height: 0.95;
+      font-weight: 900;
+      color: #2f2f2f;
+    }
+
+    .finalBody {
+      margin-top: 16px;
+      font-size: 18px;
+      line-height: 1.45;
+      color: #46525b;
+    }
+
+    .finalIcons {
+      margin-top: 18px;
+      font-size: 28px;
+    }
+
+    .finalBtns {
+      display: flex;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .finalBtn {
+      appearance: none;
+      border: none;
+      border-radius: 18px;
+      padding: 14px 16px;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .finalBtn.primary {
+      background: #ffd75d;
+      color: #2f2f2f;
+    }
+
+    .finalBtn.ghost {
+      background: #ffffff;
+      color: #2f2f2f;
+      border: 2px solid #d9d9d9;
+    }
+
     @media (max-width: 420px) {
       h1 { font-size: 26px; }
       #speechBubble { font-size: 20px; }
       #message { font-size: 22px; }
       #startBtn, #resetBtn { font-size: 20px; }
+      .finalTitle { font-size: 36px; }
     }
   </style>
 </head>
@@ -516,15 +748,36 @@
 
     <div id="bunnyWrap">
       <div id="bunny" aria-hidden="true">
-        <div class="ear left"></div>
-        <div class="ear right"></div>
-        <div class="face">
-          <div class="eye left"></div>
-          <div class="eye right"></div>
+        <div class="ear left"><div class="inner-ear"></div></div>
+        <div class="ear right"><div class="inner-ear"></div></div>
+
+        <div class="head">
+          <div class="eye left"><span class="eye-shine"></span></div>
+          <div class="eye right"><span class="eye-shine"></span></div>
+
           <div class="cheek left"></div>
           <div class="cheek right"></div>
+
           <div class="nose"></div>
-          <div class="mouth" id="mouth"></div>
+
+          <div class="whiskers left">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="whiskers right">
+            <span></span><span></span><span></span>
+          </div>
+
+          <div class="mouthWrap">
+            <div class="mouth" id="mouth"></div>
+            <div class="tooth left"></div>
+            <div class="tooth right"></div>
+          </div>
+        </div>
+
+        <div class="body">
+          <div class="paw left"></div>
+          <div class="paw right"></div>
+          <div class="belly"></div>
         </div>
       </div>
     </div>
@@ -543,12 +796,37 @@
     </div>
   </div>
 
+  <div id="celebrateOverlay" aria-hidden="true">
+    <div id="celebrateCard">
+      <div id="celebrateEmoji">🐰✨</div>
+      <div id="celebrateText">Great job!</div>
+      <div id="celebrateSub">The next clue is ready.</div>
+    </div>
+  </div>
+
   <div id="finalBurst" aria-hidden="true"></div>
 
   <div id="finalCelebration" aria-hidden="true">
     <div id="finalGlow"></div>
     <div id="rainbowBanner">You Found All the Bunny Clues!</div>
     <div id="celebrationField"></div>
+  </div>
+
+  <div id="finalOverlay" aria-hidden="true">
+    <div id="finalCard">
+      <div class="finalTop">Easter Treasure Found</div>
+      <div class="finalTitle">You Found<br>The Prize!</div>
+      <div class="finalBody">
+        You completed the Easter Bunny Hunt!<br><br>
+        Take this screen to the <strong>Manager’s Office on the north side of the park</strong>
+        to claim your prize.
+      </div>
+      <div class="finalIcons">🐰 🥚 🌈</div>
+      <div class="finalBtns">
+        <button class="finalBtn ghost" id="btnFinalSound" type="button">Replay Finale</button>
+        <button class="finalBtn primary" id="btnFinalDone" type="button">Done</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -591,12 +869,12 @@
       sausage: "Benny Sausage",
       birria: "Birria",
       bubbles: "Bubble Bliss",
-      custard: "Busy Bee Custard",
+      custard: "Busy Bee Frozen Custard",
       coffee: "Chicky's Coffee",
       chamo: "El Chamo",
       books: "Enchanted Books",
       link: "Link Link",
-      stackers: "Stackers",
+      stackers: "Stackers Burgers",
       rez: "That's My Rez Sandwich",
       boba: "The Boba Lounge",
       pizza: "Thicc Pizza",
@@ -604,7 +882,6 @@
     };
 
     const BUBBLE_TEXT = {
-      start: "Tap Start to begin the bunny hunt!",
       opening: "Listen for your first clue!",
       wrong: [
         "Oops! Try a different spot!",
@@ -623,6 +900,14 @@
       final: "You did it! Go to Manager's Office on the north side!"
     };
 
+    const CELEBRATION_LINES = [
+      { title: "Bunny Bonus!", sub: "The next clue is ready." },
+      { title: "Egg-cellent!", sub: "You found the right spot." },
+      { title: "Hop Hooray!", sub: "The bunny is impressed." },
+      { title: "You Did It!", sub: "Onward to the next adventure." },
+      { title: "Treasure Trail!", sub: "Keep following the clues." }
+    ];
+
     let currentIndex = 0;
     let correctIndex = 0;
     let wrongIndex = 0;
@@ -632,6 +917,8 @@
     let blinkTimer = null;
     let volumeFadeTimer = null;
     let reader = null;
+    let celebrationBag = [];
+    let activeCelebrationToken = 0;
 
     const audioPlayer = new Audio();
     const bgMusic = new Audio(AUDIO.background);
@@ -657,9 +944,43 @@
     const finalGlow = document.getElementById("finalGlow");
     const rainbowBanner = document.getElementById("rainbowBanner");
     const celebrationField = document.getElementById("celebrationField");
+    const celebrateOverlay = document.getElementById("celebrateOverlay");
+    const celebrateText = document.getElementById("celebrateText");
+    const celebrateSub = document.getElementById("celebrateSub");
+    const finalOverlay = document.getElementById("finalOverlay");
 
     function randomFrom(arr) {
       return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+
+    function pickCelebrationLine() {
+      if (celebrationBag.length === 0) {
+        celebrationBag = [...CELEBRATION_LINES];
+        shuffleArray(celebrationBag);
+      }
+      return celebrationBag.pop();
+    }
+
+    async function showCelebration() {
+      const line = pickCelebrationLine();
+      const token = ++activeCelebrationToken;
+
+      celebrateText.textContent = line.title;
+      celebrateSub.textContent = line.sub;
+      celebrateOverlay.classList.add("show");
+
+      await new Promise(resolve => setTimeout(resolve, 1100));
+
+      if (token === activeCelebrationToken) {
+        celebrateOverlay.classList.remove("show");
+      }
     }
 
     function setBubble(text) {
@@ -882,6 +1203,7 @@
       triggerFinalBurst();
       triggerBigFinalCelebration();
       fadeBgTo(0.5, 280);
+      finalOverlay.classList.add("show");
     }
 
     function handleScan(id) {
@@ -905,13 +1227,14 @@
         if (isLastStop) {
           setMessage("🎉 You found the last stop!");
 
-          playCorrectWithBubble(() => {
+          playCorrectWithBubble(async () => {
+            await showCelebration();
             setTimeout(() => {
               setBubble(BUBBLE_TEXT.final);
               playAudio(AUDIO.final, () => {
                 showFinalMessage();
               });
-            }, 180);
+            }, 140);
           }, { keepDucked: true });
 
           setTimeout(() => {
@@ -922,10 +1245,11 @@
 
         setMessage("✅ Great job!");
 
-        playCorrectWithBubble(() => {
+        playCorrectWithBubble(async () => {
+          await showCelebration();
           setTimeout(() => {
             playCurrentClue();
-          }, 180);
+          }, 140);
         }, { keepDucked: true });
 
       } else {
@@ -1044,10 +1368,12 @@
         volumeFadeTimer = null;
       }
 
+      celebrateOverlay.classList.remove("show");
       finalBurst.innerHTML = "";
       celebrationField.innerHTML = "";
       finalGlow.classList.remove("show");
       rainbowBanner.classList.remove("show");
+      finalOverlay.classList.remove("show");
       footsteps.innerHTML = "";
       bunny.classList.remove("happy", "confused");
 
@@ -1069,6 +1395,14 @@
 
     startBtn.addEventListener("click", startGame);
     resetBtn.addEventListener("click", resetGame);
+
+    document.getElementById("btnFinalSound").addEventListener("click", () => {
+      playAudio(AUDIO.final);
+    });
+
+    document.getElementById("btnFinalDone").addEventListener("click", () => {
+      finalOverlay.classList.remove("show");
+    });
 
     window.addEventListener("beforeunload", () => {
       if (reader) {
