@@ -20,9 +20,7 @@
       --shadow: 0 8px 20px rgba(0,0,0,0.08);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     html, body {
       margin: 0;
@@ -89,15 +87,8 @@
       border-radius: 3px;
     }
 
-    .egg::before {
-      top: 7px;
-      background: var(--pink);
-    }
-
-    .egg::after {
-      top: 14px;
-      background: var(--blue);
-    }
+    .egg::before { top: 7px; background: var(--pink); }
+    .egg::after { top: 14px; background: var(--blue); }
 
     .egg.done {
       background: var(--green);
@@ -105,17 +96,10 @@
       transform: scale(1.08);
     }
 
-    .egg.done::before {
-      background: var(--yellow);
-    }
+    .egg.done::before { background: var(--yellow); }
+    .egg.done::after { background: #7fd08c; }
 
-    .egg.done::after {
-      background: #7fd08c;
-    }
-
-    .egg.pop {
-      animation: eggPop 0.42s ease;
-    }
+    .egg.pop { animation: eggPop 0.42s ease; }
 
     @keyframes eggPop {
       0% { transform: scale(1); }
@@ -187,15 +171,8 @@
       border-radius: 18px;
     }
 
-    .ear.left {
-      left: 36px;
-      transform: rotate(-7deg);
-    }
-
-    .ear.right {
-      right: 36px;
-      transform: rotate(7deg);
-    }
+    .ear.left { left: 36px; transform: rotate(-7deg); }
+    .ear.right { right: 36px; transform: rotate(7deg); }
 
     .face {
       position: absolute;
@@ -219,17 +196,10 @@
       transform-origin: center;
     }
 
-    .eye.left {
-      left: 24px;
-    }
+    .eye.left { left: 24px; }
+    .eye.right { right: 24px; }
 
-    .eye.right {
-      right: 24px;
-    }
-
-    .eye.blinking {
-      animation: blink 0.18s ease;
-    }
+    .eye.blinking { animation: blink 0.18s ease; }
 
     @keyframes blink {
       0% { transform: scaleY(1); }
@@ -257,13 +227,8 @@
       border-radius: 50%;
     }
 
-    .cheek.left {
-      left: 11px;
-    }
-
-    .cheek.right {
-      right: 11px;
-    }
+    .cheek.left { left: 11px; }
+    .cheek.right { right: 11px; }
 
     .mouth {
       position: absolute;
@@ -277,9 +242,7 @@
       transform-origin: center top;
     }
 
-    .mouth.talking {
-      animation: talk 0.16s linear infinite;
-    }
+    .mouth.talking { animation: talk 0.16s linear infinite; }
 
     @keyframes talk {
       0% { height: 6px; }
@@ -293,9 +256,7 @@
       100% { transform: translateY(0); }
     }
 
-    .happy {
-      animation: bunnyBounce 0.45s ease;
-    }
+    .happy { animation: bunnyBounce 0.45s ease; }
 
     @keyframes bunnyBounce {
       0% { transform: translateY(0); }
@@ -303,13 +264,8 @@
       100% { transform: translateY(0); }
     }
 
-    .happy .ear.left {
-      animation: earWiggleL 0.45s ease;
-    }
-
-    .happy .ear.right {
-      animation: earWiggleR 0.45s ease;
-    }
+    .happy .ear.left { animation: earWiggleL 0.45s ease; }
+    .happy .ear.right { animation: earWiggleR 0.45s ease; }
 
     @keyframes earWiggleL {
       0% { transform: rotate(-7deg); }
@@ -323,9 +279,7 @@
       100% { transform: rotate(7deg); }
     }
 
-    .confused {
-      animation: bunnyShake 0.38s ease;
-    }
+    .confused { animation: bunnyShake 0.38s ease; }
 
     @keyframes bunnyShake {
       0% { transform: rotate(0); }
@@ -354,13 +308,8 @@
       animation: footFade 1.6s ease forwards;
     }
 
-    .footstep.left {
-      transform: rotate(-18deg);
-    }
-
-    .footstep.right {
-      transform: rotate(18deg);
-    }
+    .footstep.left { transform: rotate(-18deg); }
+    .footstep.right { transform: rotate(18deg); }
 
     @keyframes footFade {
       0% { opacity: 0; }
@@ -395,9 +344,7 @@
       background: rgba(255,255,255,0.18);
     }
 
-    #controls {
-      margin-top: 4px;
-    }
+    #controls { margin-top: 4px; }
 
     #startBtn, #resetBtn {
       appearance: none;
@@ -450,9 +397,7 @@
         opacity: 0;
         transform: translate(0, 0) scale(0.7);
       }
-      10% {
-        opacity: 1;
-      }
+      10% { opacity: 1; }
       100% {
         opacity: 0;
         transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(1.1);
@@ -471,18 +416,14 @@
       opacity: 0;
     }
 
-    #finalGlow.show {
-      animation: glowPulse 1.3s ease-out 2;
-    }
+    #finalGlow.show { animation: glowPulse 1.3s ease-out 2; }
 
     @keyframes glowPulse {
       0% {
         transform: translate(-50%, -50%) scale(0.2);
         opacity: 0;
       }
-      20% {
-        opacity: 1;
-      }
+      20% { opacity: 1; }
       100% {
         transform: translate(-50%, -50%) scale(10);
         opacity: 0;
@@ -508,9 +449,7 @@
       opacity: 0;
     }
 
-    #rainbowBanner.show {
-      animation: bannerDrop 3.2s ease forwards;
-    }
+    #rainbowBanner.show { animation: bannerDrop 3.2s ease forwards; }
 
     @keyframes bannerDrop {
       0% {
@@ -551,9 +490,7 @@
         opacity: 0;
         transform: translateY(0) scale(0.8) rotate(0deg);
       }
-      10% {
-        opacity: 1;
-      }
+      10% { opacity: 1; }
       100% {
         opacity: 0;
         transform: translateY(-260px) scale(1.15) rotate(var(--rot));
@@ -561,21 +498,10 @@
     }
 
     @media (max-width: 420px) {
-      h1 {
-        font-size: 26px;
-      }
-
-      #speechBubble {
-        font-size: 20px;
-      }
-
-      #message {
-        font-size: 22px;
-      }
-
-      #startBtn, #resetBtn {
-        font-size: 20px;
-      }
+      h1 { font-size: 26px; }
+      #speechBubble { font-size: 20px; }
+      #message { font-size: 22px; }
+      #startBtn, #resetBtn { font-size: 20px; }
     }
   </style>
 </head>
@@ -680,7 +606,6 @@
     const BUBBLE_TEXT = {
       start: "Tap Start to begin the bunny hunt!",
       opening: "Listen for your first clue!",
-      first: "First clue: go find Benny Sausage!",
       wrong: [
         "Oops! Try a different spot!",
         "Not this one. Keep looking!",
@@ -694,13 +619,6 @@
         "Hop hop hooray!",
         "That was right!",
         "Awesome scanning!"
-      ],
-      next: [
-        "Next stop:",
-        "Hop to:",
-        "Now find:",
-        "Keep going to:",
-        "Look for:"
       ],
       final: "You did it! Go to Manager's Office on the north side!"
     };
@@ -849,6 +767,7 @@
       audioPlayer.pause();
       audioPlayer.currentTime = 0;
       audioPlayer.src = src;
+      audioPlayer.load();
       audioPlayer.onended = null;
       audioPlayer.onerror = null;
 
@@ -868,10 +787,13 @@
         finish();
       };
 
-      audioPlayer.play().catch(err => {
-        console.error("Audio playback failed:", src, err);
-        finish();
-      });
+      const playPromise = audioPlayer.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(err => {
+          console.error("Audio playback failed:", src, err);
+          finish();
+        });
+      }
     }
 
     function playCorrectWithBubble(callback, options = {}) {
@@ -884,6 +806,20 @@
       wrongIndex = (wrongIndex % 5) + 1;
       setBubble(randomFrom(BUBBLE_TEXT.wrong));
       playAudio(`assets/audio/wrong_0${wrongIndex}.mp3`);
+    }
+
+    function playCurrentClue() {
+      const currentId = sequence[currentIndex];
+      if (!currentId) return;
+
+      setBubble(`Go find ${DISPLAY_NAMES[currentId]}!`);
+      setMessage(`Find ${DISPLAY_NAMES[currentId]} and scan the QR!`);
+
+      playAudio(AUDIO[currentId], () => {
+        setBubble(`Go find ${DISPLAY_NAMES[currentId]}!`);
+        setMessage(`Find ${DISPLAY_NAMES[currentId]} and scan the QR!`);
+        scannerActive = true;
+      }, { keepDucked: true });
     }
 
     function triggerFinalBurst() {
@@ -952,6 +888,8 @@
       if (!gameStarted || !scannerActive || scanLock) return;
 
       scanLock = true;
+      scannerActive = false;
+
       const expected = sequence[currentIndex];
 
       if (id === expected) {
@@ -959,13 +897,13 @@
         makeFootsteps();
 
         const isLastStop = currentIndex === sequence.length - 1;
+
         currentIndex++;
         renderEggs();
         popLatestEgg();
 
         if (isLastStop) {
           setMessage("🎉 You found the last stop!");
-          scannerActive = false;
 
           playCorrectWithBubble(() => {
             setTimeout(() => {
@@ -973,7 +911,7 @@
               playAudio(AUDIO.final, () => {
                 showFinalMessage();
               });
-            }, 260);
+            }, 180);
           }, { keepDucked: true });
 
           setTimeout(() => {
@@ -982,22 +920,22 @@
           return;
         }
 
-        const nextId = sequence[currentIndex];
         setMessage("✅ Great job!");
 
         playCorrectWithBubble(() => {
           setTimeout(() => {
-            setBubble(`${randomFrom(BUBBLE_TEXT.next)} ${DISPLAY_NAMES[nextId]}!`);
-            playAudio(AUDIO[nextId], () => {
-              setMessage("Scan the next bunny QR!");
-            });
-          }, 260);
+            playCurrentClue();
+          }, 180);
         }, { keepDucked: true });
 
       } else {
         bunnyConfused();
         setMessage("❌ Try again!");
         playWrongWithBubble();
+
+        setTimeout(() => {
+          scannerActive = true;
+        }, 300);
       }
 
       setTimeout(() => {
@@ -1008,6 +946,7 @@
     async function unlockAudio() {
       try {
         audioPlayer.src = AUDIO.opening;
+        audioPlayer.load();
         bgMusic.currentTime = 0;
 
         const p1 = audioPlayer.play().catch(() => {});
@@ -1047,12 +986,13 @@
       if (gameStarted) return;
       gameStarted = true;
       scannerActive = false;
+      currentIndex = 0;
 
       startBtn.disabled = true;
       resetBtn.style.display = "inline-block";
 
       setMessage("🐣 Starting hunt...");
-      setBubble(BUBBLE_TEXT.start);
+      setBubble(BUBBLE_TEXT.opening);
       renderEggs();
       startBlinkLoop();
 
@@ -1066,17 +1006,12 @@
 
       bgMusic.volume = 0.35;
 
+      await startScanner();
+
       playAudio(AUDIO.opening, () => {
-        setBubble(BUBBLE_TEXT.first);
-        setMessage("Find Benny Sausage and scan the QR!");
-
-        playAudio(AUDIO.sausage, () => {
-          setBubble("Go find Benny Sausage!");
-          setMessage("Find Benny Sausage and scan the QR!");
-          scannerActive = true;
-          startScanner();
-        }, { keepDucked: true });
-
+        setTimeout(() => {
+          playCurrentClue();
+        }, 180);
       }, { keepDucked: true });
     }
 
