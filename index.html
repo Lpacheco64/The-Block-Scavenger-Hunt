@@ -662,57 +662,57 @@
     };
 
     const DISPLAY_NAMES = {
-  sausage: "Benny Sausage",
-  birria: "Birria",
-  bubbles: "Bubble Bliss",
-  custard: "Busy Bee Custard",
-  coffee: "Chicky's Coffee",
-  chamo: "El Chamo",
-  books: "Enchanted Books",
-  link: "Link Link",
-  stackers: "Stackers",
-  rez: "That's My Rez Sandwich",
-  boba: "The Boba Lounge",
-  pizza: "Thicc Pizza",
-  tavern: "Tavern on the Green"
-};
+      sausage: "Benny Sausage",
+      birria: "Birria",
+      bubbles: "Bubble Bliss",
+      custard: "Busy Bee Custard",
+      coffee: "Chicky's Coffee",
+      chamo: "El Chamo",
+      books: "Enchanted Books",
+      link: "Link Link",
+      stackers: "Stackers",
+      rez: "That's My Rez Sandwich",
+      boba: "The Boba Lounge",
+      pizza: "Thicc Pizza",
+      tavern: "Tavern on the Green"
+    };
 
-const BUBBLE_TEXT = {
-  start: "Tap Start to begin the bunny hunt!",
-  opening: "Listen for your first clue!",
-  first: "First clue: go find Benny Sausage!",
-  wrong: [
-    "Oops! Try a different spot!",
-    "Not this one. Keep looking!",
-    "Almost! Try another QR!",
-    "Hmm... that's not the next one!",
-    "Boing! Try again!"
-  ],
-  correct: [
-    "Yes! Great job!",
-    "You found it!",
-    "Hop hop hooray!",
-    "That was right!",
-    "Awesome scanning!"
-  ],
-  next: [
-    "Next stop:",
-    "Hop to:",
-    "Now find:",
-    "Keep going to:",
-    "Look for:"
-  ],
-  final: "You did it! Go to Manager's Office on the north side!"
-};
+    const BUBBLE_TEXT = {
+      start: "Tap Start to begin the bunny hunt!",
+      opening: "Listen for your first clue!",
+      first: "First clue: go find Benny Sausage!",
+      wrong: [
+        "Oops! Try a different spot!",
+        "Not this one. Keep looking!",
+        "Almost! Try another QR!",
+        "Hmm... that's not the next one!",
+        "Boing! Try again!"
+      ],
+      correct: [
+        "Yes! Great job!",
+        "You found it!",
+        "Hop hop hooray!",
+        "That was right!",
+        "Awesome scanning!"
+      ],
+      next: [
+        "Next stop:",
+        "Hop to:",
+        "Now find:",
+        "Keep going to:",
+        "Look for:"
+      ],
+      final: "You did it! Go to Manager's Office on the north side!"
+    };
 
     let currentIndex = 0;
     let correctIndex = 0;
     let wrongIndex = 0;
     let scanLock = false;
     let gameStarted = false;
+    let scannerActive = false;
     let blinkTimer = null;
     let volumeFadeTimer = null;
-    let autoStartedFromUrl = false;
     let reader = null;
 
     const audioPlayer = new Audio();
@@ -949,7 +949,7 @@ const BUBBLE_TEXT = {
     }
 
     function handleScan(id) {
-      if (!gameStarted || scanLock) return;
+      if (!gameStarted || !scannerActive || scanLock) return;
 
       scanLock = true;
       const expected = sequence[currentIndex];
@@ -965,6 +965,8 @@ const BUBBLE_TEXT = {
 
         if (isLastStop) {
           setMessage("🎉 You found the last stop!");
+          scannerActive = false;
+
           playCorrectWithBubble(() => {
             setTimeout(() => {
               setBubble(BUBBLE_TEXT.final);
@@ -1029,7 +1031,7 @@ const BUBBLE_TEXT = {
       reader = new ZXing.BrowserMultiFormatReader();
 
       try {
-        await reader.decodeFromVideoDevice(null, scannerVideo, (result, err) => {
+        await reader.decodeFromVideoDevice(null, scannerVideo, (result) => {
           if (result) {
             handleScan(result.text.trim().toLowerCase());
           }
@@ -1042,48 +1044,49 @@ const BUBBLE_TEXT = {
     }
 
     async function startGame() {
-  if (gameStarted) return;
-  gameStarted = true;
+      if (gameStarted) return;
+      gameStarted = true;
+      scannerActive = false;
 
-  startBtn.disabled = true;
-  resetBtn.style.display = "inline-block";
+      startBtn.disabled = true;
+      resetBtn.style.display = "inline-block";
 
-  setMessage("🐣 Starting hunt...");
-  setBubble(BUBBLE_TEXT.start);
-  renderEggs();
-  startBlinkLoop();
+      setMessage("🐣 Starting hunt...");
+      setBubble(BUBBLE_TEXT.start);
+      renderEggs();
+      startBlinkLoop();
 
-  await unlockAudio();
+      await unlockAudio();
 
-  try {
-    await bgMusic.play();
-  } catch (err) {
-    console.warn("Background music did not start:", err);
-  }
+      try {
+        await bgMusic.play();
+      } catch (err) {
+        console.warn("Background music did not start:", err);
+      }
 
-  bgMusic.volume = 0.35;
+      bgMusic.volume = 0.35;
 
-  setBubble(BUBBLE_TEXT.opening);
+      playAudio(AUDIO.opening, () => {
+        setBubble(BUBBLE_TEXT.first);
+        setMessage("Find Benny Sausage and scan the QR!");
 
-  playAudio(AUDIO.opening, () => {
-    setBubble(BUBBLE_TEXT.first);
-    setMessage("Find Benny Sausage and scan the QR!");
+        playAudio(AUDIO.sausage, () => {
+          setBubble("Go find Benny Sausage!");
+          setMessage("Find Benny Sausage and scan the QR!");
+          scannerActive = true;
+          startScanner();
+        }, { keepDucked: true });
 
-    playAudio(AUDIO.sausage, () => {
-      setBubble(BUBBLE_TEXT.first);
-      setMessage("Find Benny Sausage and scan the QR!");
-    });
-  }, { keepDucked: true });
+      }, { keepDucked: true });
+    }
 
-  startScanner();
-}
     function resetGame() {
       currentIndex = 0;
       correctIndex = 0;
       wrongIndex = 0;
       scanLock = false;
       gameStarted = false;
-      autoStartedFromUrl = false;
+      scannerActive = false;
 
       audioPlayer.pause();
       audioPlayer.currentTime = 0;
@@ -1121,14 +1124,6 @@ const BUBBLE_TEXT = {
       resetBtn.style.display = "none";
     }
 
-    function maybeAutoStartFromUrl() {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("start") === "1" && !autoStartedFromUrl) {
-        autoStartedFromUrl = true;
-        startGame();
-      }
-    }
-
     document.body.addEventListener("click", () => {
       unlockAudio();
     }, { once: true });
@@ -1152,7 +1147,6 @@ const BUBBLE_TEXT = {
     setBubble("Tap Start to begin!");
     setMessage("Ready to play!");
     startBlinkLoop();
-    maybeAutoStartFromUrl();
   </script>
 </body>
 </html>
