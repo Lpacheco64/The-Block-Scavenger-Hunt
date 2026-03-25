@@ -143,11 +143,23 @@
 
     #bunny {
       position: relative;
-      width: 140px;
-      height: 165px;
+      width: 160px;
+      height: 190px;
       margin: 0 auto;
       transform-origin: center bottom;
-      animation: bunnyBreath 3s ease-in-out infinite;
+      animation: bunnyBreath 3.2s ease-in-out infinite;
+    }
+
+    #bunny::after {
+      content: "";
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      width: 70px;
+      height: 12px;
+      background: rgba(0,0,0,0.12);
+      border-radius: 50%;
+      transform: translateX(-50%);
     }
 
     @keyframes bunnyBreath {
@@ -159,22 +171,24 @@
     .ear {
       position: absolute;
       top: 0;
-      width: 28px;
-      height: 78px;
+      width: 30px;
+      height: 86px;
       background: #fff;
       border: 3px solid #d8d8d8;
       border-radius: 28px;
       z-index: 1;
       overflow: hidden;
+      transform-origin: bottom center;
+      box-shadow: inset -1px -3px 5px rgba(0,0,0,0.04);
     }
 
     .ear.left {
-      left: 32px;
+      left: 34px;
       transform: rotate(-10deg);
     }
 
     .ear.right {
-      right: 32px;
+      right: 34px;
       transform: rotate(10deg);
     }
 
@@ -184,81 +198,107 @@
       right: 5px;
       top: 10px;
       bottom: 8px;
-      background: #ffd6e8;
+      background: linear-gradient(180deg, #ffe3ef, #ffd2e6);
       border-radius: 20px;
     }
 
     .head {
       position: absolute;
-      left: 28px;
-      top: 38px;
-      width: 88px;
-      height: 88px;
-      background: #fff;
+      left: 25px;
+      top: 40px;
+      width: 110px;
+      height: 110px;
+      background: radial-gradient(circle at 35% 30%, #ffffff 0%, #f3f3f3 60%, #e6e6e6 100%);
       border: 3px solid #d8d8d8;
-      border-radius: 50%;
+      border-radius: 55% 55% 50% 50%;
       box-shadow: 0 10px 18px rgba(0,0,0,0.08);
       z-index: 2;
     }
 
     .eye {
       position: absolute;
-      top: 28px;
-      width: 13px;
-      height: 16px;
+      top: 34px;
+      width: 16px;
+      height: 20px;
       background: #222;
       border-radius: 50%;
       transform-origin: center;
     }
 
-    .eye.left { left: 20px; }
-    .eye.right { right: 20px; }
+    .eye.left { left: 24px; }
+    .eye.right { right: 24px; }
 
-    .eye.blinking { animation: blink 0.18s ease; }
+    .eye.blinking {
+      animation: blink 0.32s ease;
+    }
 
     .eye-shine {
       position: absolute;
       top: 2px;
       left: 2px;
-      width: 4px;
-      height: 4px;
+      width: 5px;
+      height: 5px;
       background: #fff;
       border-radius: 50%;
     }
 
     @keyframes blink {
-      0% { transform: scaleY(1); }
-      50% { transform: scaleY(0.08); }
+      0%   { transform: scaleY(1); }
+      35%  { transform: scaleY(0.05); }
+      65%  { transform: scaleY(0.05); }
       100% { transform: scaleY(1); }
+    }
+
+    .surprised .eye {
+      animation: eyeBulge 0.65s ease;
+    }
+
+    @keyframes eyeBulge {
+      0%   { transform: scale(1); }
+      35%  { transform: scale(1.7); }
+      65%  { transform: scale(1.7); }
+      100% { transform: scale(1); }
     }
 
     .cheek {
       position: absolute;
-      top: 42px;
-      width: 14px;
-      height: 10px;
-      background: rgba(255, 183, 218, 0.7);
+      width: 16px;
+      height: 12px;
+      background: #ffd6de;
       border-radius: 50%;
+      top: 50px;
+      opacity: 0.8;
     }
 
-    .cheek.left { left: 7px; }
-    .cheek.right { right: 7px; }
+    .cheek.left { left: 18px; }
+    .cheek.right { right: 18px; }
 
     .nose {
       position: absolute;
-      top: 44px;
+      top: 52px;
       left: 50%;
-      width: 12px;
-      height: 8px;
+      width: 13px;
+      height: 9px;
       background: #ff9cbc;
       border-radius: 50%;
       transform: translateX(-50%);
     }
 
+    .nose.wiggle {
+      animation: noseWiggle 0.35s ease 2;
+    }
+
+    @keyframes noseWiggle {
+      0% { transform: translateX(-50%) scale(1); }
+      25% { transform: translateX(-50%) scale(1.15, 0.9); }
+      50% { transform: translateX(-50%) scale(0.9, 1.15); }
+      100% { transform: translateX(-50%) scale(1); }
+    }
+
     .whiskers {
       position: absolute;
-      top: 44px;
-      width: 22px;
+      top: 52px;
+      width: 24px;
       height: 20px;
     }
 
@@ -285,8 +325,8 @@
     .mouthWrap {
       position: absolute;
       left: 50%;
-      top: 57px;
-      width: 28px;
+      top: 68px;
+      width: 30px;
       height: 22px;
       transform: translateX(-50%);
     }
@@ -303,12 +343,14 @@
       transform-origin: center top;
     }
 
-    .mouth.talking { animation: talk 0.14s linear infinite; }
+    .mouth.talking {
+      animation: talk 0.24s ease-in-out infinite;
+    }
 
     @keyframes talk {
-      0% { height: 8px; }
-      50% { height: 15px; }
-      100% { height: 8px; }
+      0%   { height: 8px; transform: translateX(-50%) scaleY(1); }
+      50%  { height: 18px; transform: translateX(-50%) scaleY(1.2); }
+      100% { height: 8px; transform: translateX(-50%) scaleY(1); }
     }
 
     .tooth {
@@ -321,86 +363,284 @@
       border-radius: 0 0 4px 4px;
     }
 
-    .tooth.left { left: 9px; }
-    .tooth.right { right: 9px; }
+    .tooth.left { left: 10px; }
+    .tooth.right { right: 10px; }
 
     .body {
       position: absolute;
-      left: 38px;
-      bottom: 0;
-      width: 66px;
-      height: 58px;
-      background: #fff;
+      left: 40px;
+      bottom: 8px;
+      width: 80px;
+      height: 65px;
+      background: radial-gradient(circle at 50% 30%, #ffffff 0%, #f2f2f2 60%, #e4e4e4 100%);
       border: 3px solid #d8d8d8;
-      border-radius: 40px 40px 28px 28px;
+      border-radius: 45px;
       z-index: 1;
     }
 
     .belly {
       position: absolute;
       left: 50%;
-      top: 12px;
-      width: 30px;
-      height: 28px;
-      background: #f9f9f9;
+      top: 14px;
+      width: 34px;
+      height: 30px;
+      background: radial-gradient(circle, #ffffff, #efefef);
       border-radius: 50%;
       transform: translateX(-50%);
     }
 
     .paw {
       position: absolute;
-      bottom: -4px;
-      width: 20px;
-      height: 14px;
-      background: #fff;
+      bottom: 8px;
+      width: 26px;
+      height: 26px;
+      background: #ffffff;
       border: 3px solid #d8d8d8;
-      border-radius: 16px;
+      border-radius: 50%;
     }
 
-    .paw.left { left: 8px; }
-    .paw.right { right: 8px; }
+    .paw.left {
+      left: -6px;
+      transform-origin: top center;
+    }
 
-    .happy { animation: bunnyBounce 0.45s ease; }
+    .paw.right {
+      right: -6px;
+    }
+
+    .tail {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      bottom: 14px;
+      right: -8px;
+      box-shadow: inset -2px -2px 4px rgba(0,0,0,0.08);
+    }
+
+    .talking-body .head {
+      animation: headTalkBob 0.32s ease-in-out infinite;
+    }
+
+    .talking-body .body {
+      animation: bodyTalkBob 0.32s ease-in-out infinite;
+    }
+
+    .talking-body .paw.left,
+    .talking-body .paw.right {
+      animation: pawTalkBob 0.32s ease-in-out infinite;
+    }
+
+    @keyframes headTalkBob {
+      0%   { transform: rotate(0deg) translateY(0); }
+      25%  { transform: rotate(-3deg) translateY(-2px); }
+      50%  { transform: rotate(0deg) translateY(-3px); }
+      75%  { transform: rotate(3deg) translateY(-2px); }
+      100% { transform: rotate(0deg) translateY(0); }
+    }
+
+    @keyframes bodyTalkBob {
+      0%   { transform: scale(1,1) translateY(0); }
+      50%  { transform: scale(1.05,0.95) translateY(2px); }
+      100% { transform: scale(1,1) translateY(0); }
+    }
+
+    @keyframes pawTalkBob {
+      0%   { transform: translateY(0); }
+      50%  { transform: translateY(-2px); }
+      100% { transform: translateY(0); }
+    }
+
+    .happy {
+      animation: bunnyBounce 0.8s ease;
+    }
 
     @keyframes bunnyBounce {
       0%   { transform: scale(1, 1) translateY(0); }
-      10%  { transform: scale(1.1, 0.8) translateY(0); }
-      40%  { transform: scale(0.9, 1.2) translateY(-25px); }
+      12%  { transform: scale(1.12, 0.82) translateY(0); }
+      45%  { transform: scale(0.9, 1.22) translateY(-28px); }
+      65%  { transform: scale(0.9, 1.22) translateY(-28px); }
       100% { transform: scale(1, 1) translateY(0); }
     }
 
-    .happy .ear.left { animation: earSnapL 0.5s ease; }
-    .happy .ear.right { animation: earSnapR 0.5s ease 0.1s; }
+    .happy .ear.left {
+      animation: earSnapL 0.8s ease;
+    }
+
+    .happy .ear.right {
+      animation: earSnapR 0.8s ease 0.14s;
+    }
+
+    .happy .paw.left,
+    .happy .paw.right {
+      animation: pawPop 0.6s ease;
+    }
+
+    .happy .body {
+      animation: bellyBounce 0.6s ease;
+    }
 
     @keyframes earSnapL {
       0%   { transform: rotate(-10deg); }
-      20%  { transform: rotate(15deg); }
+      20%  { transform: rotate(16deg); }
+      55%  { transform: rotate(16deg); }
       100% { transform: rotate(-10deg); }
     }
 
     @keyframes earSnapR {
       0%   { transform: rotate(10deg); }
-      20%  { transform: rotate(-15deg); }
+      20%  { transform: rotate(-16deg); }
+      55%  { transform: rotate(-16deg); }
       100% { transform: rotate(10deg); }
     }
 
-    .confused { animation: bunnyShake 0.38s ease; }
+    @keyframes pawPop {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-6px) scale(1.1); }
+      100% { transform: translateY(0); }
+    }
+
+    @keyframes bellyBounce {
+      0% { transform: scale(1,1); }
+      50% { transform: scale(1.1,0.9); }
+      100% { transform: scale(1,1); }
+    }
+
+    .confused {
+      animation: bunnyShake 0.8s ease;
+    }
 
     @keyframes bunnyShake {
       0%, 100% { transform: translateX(0) rotate(0); }
-      10%, 30%, 50% { transform: translateX(-8px) rotate(-5deg); }
-      20%, 40%, 60% { transform: translateX(8px) rotate(5deg); }
-      80% { transform: scale(1.1, 0.9); }
+      12%, 32%, 52% { transform: translateX(-10px) rotate(-7deg); }
+      22%, 42%, 62% { transform: translateX(10px) rotate(7deg); }
+      78% { transform: scale(1.12, 0.88); }
     }
 
-    .surprised .eye {
-      animation: eyeBulge 0.4s ease;
+    .idle-twitch .ear.left {
+      animation: idleEarLeft 0.7s ease;
     }
 
-    @keyframes eyeBulge {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.5); }
-      100% { transform: scale(1); }
+    .idle-twitch .ear.right {
+      animation: idleEarRight 0.7s ease;
+    }
+
+    @keyframes idleEarLeft {
+      0%   { transform: rotate(-10deg); }
+      50%  { transform: rotate(-2deg); }
+      100% { transform: rotate(-10deg); }
+    }
+
+    @keyframes idleEarRight {
+      0%   { transform: rotate(10deg); }
+      50%  { transform: rotate(2deg); }
+      100% { transform: rotate(10deg); }
+    }
+
+    .wave .paw.left {
+      animation: pawWave 0.9s ease;
+    }
+
+    @keyframes pawWave {
+      0%   { transform: rotate(0deg); }
+      30%  { transform: rotate(-30deg); }
+      60%  { transform: rotate(18deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    .announce-hop {
+      animation: announceHop 0.7s ease;
+    }
+
+    @keyframes announceHop {
+      0%   { transform: scale(1,1) translateY(0); }
+      12%  { transform: scale(1.12,0.84) translateY(0); }
+      40%  { transform: scale(0.92,1.18) translateY(-22px); }
+      60%  { transform: scale(0.92,1.18) translateY(-22px); }
+      100% { transform: scale(1,1) translateY(0); }
+    }
+
+    .announce-hop .ear.left {
+      animation: announceEarL 0.7s ease;
+    }
+
+    .announce-hop .ear.right {
+      animation: announceEarR 0.7s ease;
+    }
+
+    .announce-hop .paw.left,
+    .announce-hop .paw.right {
+      animation: announcePaw 0.7s ease;
+    }
+
+    @keyframes announceEarL {
+      0%   { transform: rotate(-10deg); }
+      35%  { transform: rotate(-24deg); }
+      60%  { transform: rotate(-24deg); }
+      100% { transform: rotate(-10deg); }
+    }
+
+    @keyframes announceEarR {
+      0%   { transform: rotate(10deg); }
+      35%  { transform: rotate(24deg); }
+      60%  { transform: rotate(24deg); }
+      100% { transform: rotate(10deg); }
+    }
+
+    @keyframes announcePaw {
+      0%   { transform: translateY(0); }
+      40%  { transform: translateY(-5px) scale(1.08); }
+      60%  { transform: translateY(-5px) scale(1.08); }
+      100% { transform: translateY(0); }
+    }
+
+    .final-hop {
+      animation: finalHop 1s ease;
+    }
+
+    .final-hop .ear.left {
+      animation: finalEarL 1s ease;
+    }
+
+    .final-hop .ear.right {
+      animation: finalEarR 1s ease;
+    }
+
+    .final-hop .paw.left,
+    .final-hop .paw.right {
+      animation: finalPaw 1s ease;
+    }
+
+    @keyframes finalHop {
+      0%   { transform: scale(1,1) translateY(0); }
+      10%  { transform: scale(1.12,0.84) translateY(0); }
+      30%  { transform: scale(0.9,1.2) translateY(-26px); }
+      45%  { transform: scale(0.9,1.2) translateY(-26px); }
+      60%  { transform: scale(1.08,0.9) translateY(0); }
+      75%  { transform: scale(0.94,1.1) translateY(-12px); }
+      100% { transform: scale(1,1) translateY(0); }
+    }
+
+    @keyframes finalEarL {
+      0%   { transform: rotate(-10deg); }
+      30%  { transform: rotate(-28deg); }
+      45%  { transform: rotate(-28deg); }
+      100% { transform: rotate(-10deg); }
+    }
+
+    @keyframes finalEarR {
+      0%   { transform: rotate(10deg); }
+      30%  { transform: rotate(28deg); }
+      45%  { transform: rotate(28deg); }
+      100% { transform: rotate(10deg); }
+    }
+
+    @keyframes finalPaw {
+      0%   { transform: translateY(0) scale(1); }
+      30%  { transform: translateY(-7px) scale(1.12); }
+      45%  { transform: translateY(-7px) scale(1.12); }
+      100% { transform: translateY(0) scale(1); }
     }
 
     #footsteps {
@@ -800,7 +1040,7 @@
           <div class="eye right"><span class="eye-shine"></span></div>
           <div class="cheek left"></div>
           <div class="cheek right"></div>
-          <div class="nose"></div>
+          <div class="nose" id="nose"></div>
 
           <div class="whiskers left">
             <span></span><span></span><span></span>
@@ -820,6 +1060,7 @@
           <div class="paw left"></div>
           <div class="paw right"></div>
           <div class="belly"></div>
+          <div class="tail"></div>
         </div>
       </div>
     </div>
@@ -944,6 +1185,7 @@
     let gameStarted = false;
     let scannerActive = false;
     let blinkTimer = null;
+    let earTwitchTimer = null;
     let volumeFadeTimer = null;
     let reader = null;
     let activeCelebrationToken = 0;
@@ -964,6 +1206,7 @@
     const messageEl = document.getElementById("message");
     const bunny = document.getElementById("bunny");
     const mouth = document.getElementById("mouth");
+    const nose = document.getElementById("nose");
     const eyes = document.querySelectorAll(".eye");
     const scannerVideo = document.getElementById("scanner");
     const startBtn = document.getElementById("startBtn");
@@ -1023,31 +1266,61 @@
     function bunnyHappy() {
       bunny.classList.remove("confused");
       bunny.classList.add("happy");
-      setTimeout(() => bunny.classList.remove("happy"), 500);
+      setTimeout(() => bunny.classList.remove("happy"), 800);
     }
 
     function bunnyConfused() {
       bunny.classList.remove("happy");
       bunny.classList.add("confused");
-      setTimeout(() => bunny.classList.remove("confused"), 420);
+      setTimeout(() => bunny.classList.remove("confused"), 800);
+    }
+
+    function bunnyAnnounceHop(callback) {
+      bunny.classList.add("announce-hop");
+      setTimeout(() => {
+        bunny.classList.remove("announce-hop");
+        if (typeof callback === "function") callback();
+      }, 700);
+    }
+
+    function bunnyFinalHop(callback) {
+      bunny.classList.add("final-hop");
+      setTimeout(() => {
+        bunny.classList.remove("final-hop");
+        if (typeof callback === "function") callback();
+      }, 1000);
     }
 
     function startBlinkLoop() {
       if (blinkTimer) clearInterval(blinkTimer);
+
       blinkTimer = setInterval(() => {
         eyes.forEach(eye => {
           eye.classList.add("blinking");
-          setTimeout(() => eye.classList.remove("blinking"), 180);
+          setTimeout(() => eye.classList.remove("blinking"), 320);
         });
-      }, 3500);
+      }, 4200);
+    }
+
+    function startEarTwitchLoop() {
+      if (earTwitchTimer) clearInterval(earTwitchTimer);
+
+      earTwitchTimer = setInterval(() => {
+        bunny.classList.add("idle-twitch");
+        setTimeout(() => bunny.classList.remove("idle-twitch"), 700);
+      }, 5000);
     }
 
     function startTalking() {
       mouth.classList.add("talking");
+      bunny.classList.add("talking-body");
+      nose.classList.add("wiggle");
     }
 
     function stopTalking() {
       mouth.classList.remove("talking");
+      bunny.classList.remove("talking-body");
+      nose.classList.remove("wiggle");
     }
 
     function fadeBgTo(target, duration = 180) {
@@ -1126,14 +1399,18 @@
       const currentId = sequence[currentIndex];
       if (!currentId) return;
 
+      scannerActive = false;
+
       setBubble(`Go find ${DISPLAY_NAMES[currentId]}!`);
       setMessage(`Find ${DISPLAY_NAMES[currentId]} and scan the QR!`);
 
-      playAudio(AUDIO[currentId], () => {
-        setBubble(`Go find ${DISPLAY_NAMES[currentId]}!`);
-        setMessage(`Find ${DISPLAY_NAMES[currentId]} and scan the QR!`);
-        scannerActive = true;
-      }, { keepDucked: true });
+      bunnyAnnounceHop(() => {
+        playAudio(AUDIO[currentId], () => {
+          setBubble(`Go find ${DISPLAY_NAMES[currentId]}!`);
+          setMessage(`Find ${DISPLAY_NAMES[currentId]} and scan the QR!`);
+          scannerActive = true;
+        }, { keepDucked: true });
+      });
     }
 
     async function showCelebration() {
@@ -1234,12 +1511,14 @@
     }
 
     function showFinalMessage() {
-      setMessage("🎉 Go to Manager's Office (north side)!");
-      setBubble(BUBBLE_TEXT.final);
-      triggerFinalBurst();
-      triggerBigFinalCelebration();
-      fadeBgTo(0.5, 280);
-      finalOverlay.classList.add("show");
+      bunnyFinalHop(() => {
+        setMessage("🎉 Go to Manager's Office (north side)!");
+        setBubble(BUBBLE_TEXT.final);
+        triggerFinalBurst();
+        triggerBigFinalCelebration();
+        fadeBgTo(0.5, 280);
+        finalOverlay.classList.add("show");
+      });
     }
 
     function handleScan(id) {
@@ -1252,7 +1531,10 @@
 
       if (id === expected) {
         bunny.classList.add("surprised");
-        setTimeout(() => bunny.classList.remove("surprised"), 400);
+        setTimeout(() => bunny.classList.remove("surprised"), 650);
+
+        bunny.classList.add("wave");
+        setTimeout(() => bunny.classList.remove("wave"), 900);
 
         bunnyHappy();
         makeFootsteps();
@@ -1351,6 +1633,7 @@
       setBubble(BUBBLE_TEXT.opening);
       renderEggs();
       startBlinkLoop();
+      startEarTwitchLoop();
 
       await unlockAudio();
 
@@ -1387,15 +1670,18 @@
       stopTalking();
 
       if (reader) {
-        try {
-          reader.reset();
-        } catch (err) {}
+        try { reader.reset(); } catch (err) {}
         reader = null;
       }
 
       if (volumeFadeTimer) {
         clearInterval(volumeFadeTimer);
         volumeFadeTimer = null;
+      }
+
+      if (earTwitchTimer) {
+        clearInterval(earTwitchTimer);
+        earTwitchTimer = null;
       }
 
       celebrateOverlay.classList.remove("show");
@@ -1406,7 +1692,7 @@
       rainbowBanner.classList.remove("show");
       finalOverlay.classList.remove("show");
       footsteps.innerHTML = "";
-      bunny.classList.remove("happy", "confused", "surprised");
+      bunny.classList.remove("happy", "confused", "surprised", "wave", "announce-hop", "final-hop", "idle-twitch", "talking-body");
 
       renderEggs();
       setBubble("Tap Start to begin!");
@@ -1414,6 +1700,7 @@
 
       startBtn.disabled = false;
       resetBtn.style.display = "none";
+      startEarTwitchLoop();
     }
 
     document.body.addEventListener("click", () => {
@@ -1437,9 +1724,7 @@
 
     window.addEventListener("beforeunload", () => {
       if (reader) {
-        try {
-          reader.reset();
-        } catch (err) {}
+        try { reader.reset(); } catch (err) {}
       }
     });
 
@@ -1447,6 +1732,7 @@
     setBubble("Tap Start to begin!");
     setMessage("Ready to play!");
     startBlinkLoop();
+    startEarTwitchLoop();
   </script>
 </body>
 </html>
