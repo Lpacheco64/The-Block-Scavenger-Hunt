@@ -7,9 +7,6 @@
   <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
   <style>
     :root {
-      --sky-top: #b9ecff;
-      --sky-bottom: #f6fff1;
-      --grass: #dff8cf;
       --panel: #ffffff;
       --panel-border: #3f3f3f;
       --text: #23323b;
@@ -32,12 +29,30 @@
       font-family: Arial, Helvetica, sans-serif;
       color: var(--text);
       text-align: center;
+      position: relative;
       background:
-        radial-gradient(circle at top, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 42%),
-        linear-gradient(to bottom, var(--sky-top), var(--sky-bottom) 62%, var(--grass) 100%);
+        radial-gradient(circle at top, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 45%),
+        linear-gradient(
+          to bottom,
+          #7fd3e6 0%,
+          #a7e3d1 45%,
+          #bfeec2 75%,
+          #a8e39f 100%
+        );
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.12) 100%);
+      z-index: 0;
     }
 
     #app {
+      position: relative;
+      z-index: 1;
       width: 100%;
       max-width: 430px;
       margin: 0 auto;
@@ -54,7 +69,7 @@
       margin: 0 0 8px;
       font-size: 14px;
       font-weight: bold;
-      color: #4d6675;
+      color: #3f5d66;
     }
 
     #progressEggs {
@@ -112,7 +127,7 @@
       width: 100%;
       max-width: 310px;
       min-height: 54px;
-      margin: 0 auto 10px;
+      margin: 0 auto 4px;
       padding: 10px 12px;
       background: var(--panel);
       border: 3px solid var(--panel-border);
@@ -138,13 +153,27 @@
 
     #bunnyWrap {
       position: relative;
-      height: 320px;
-      margin-bottom: 0;
+      height: 345px;
+      margin-bottom: -22px;
+    }
+
+    #bunnyWrap::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 52%;
+      width: 260px;
+      height: 260px;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 70%);
+      pointer-events: none;
     }
 
     #bunny {
-      width: 250px;
-      height: 292px;
+      position: relative;
+      z-index: 1;
+      width: 275px;
+      height: 320px;
       margin: 0 auto;
     }
 
@@ -582,19 +611,19 @@
       font-weight: 700;
       margin: 2px 0 6px;
       min-height: 18px;
-      color: #4d6675;
+      color: #3f5d66;
     }
 
     #scannerWrap {
       position: relative;
       width: 100%;
       max-width: 240px;
-      margin: 2px auto 8px;
+      margin: -8px auto 8px;
       border-radius: 16px;
       overflow: hidden;
       box-shadow: var(--shadow);
       border: 3px solid rgba(255,255,255,0.84);
-      background: rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.28);
     }
 
     #scanner {
@@ -950,12 +979,12 @@
 
           <ellipse cx="130" cy="280" rx="48" ry="10" fill="rgba(0,0,0,0.12)"/>
 
-          <g id="earLeft" class="earPart">
+          <g id="earLeft">
             <ellipse cx="82" cy="58" rx="22" ry="58" fill="url(#furGrad)" stroke="#d7d7d7" stroke-width="3"/>
             <ellipse cx="82" cy="62" rx="11" ry="38" fill="url(#earPink)"/>
           </g>
 
-          <g id="earRight" class="earPart">
+          <g id="earRight">
             <ellipse cx="178" cy="58" rx="22" ry="58" fill="url(#furGrad)" stroke="#d7d7d7" stroke-width="3"/>
             <ellipse cx="178" cy="62" rx="11" ry="38" fill="url(#earPink)"/>
           </g>
@@ -998,13 +1027,13 @@
             <ellipse cx="168" cy="158" rx="12" ry="8" fill="#ffd6de" opacity="0.8"/>
 
             <g id="eyeLeft" class="eyeGroup">
-              <ellipse class="eyeShape" cx="98" cy="126" rx="19" ry="23" fill="url(#eyeGrad)" stroke="#ffffff" stroke-width="2.5"/>
+              <ellipse cx="98" cy="126" rx="19" ry="23" fill="url(#eyeGrad)" stroke="#ffffff" stroke-width="2.5"/>
               <circle cx="93" cy="119" r="5.8" fill="#fff"/>
               <circle cx="106" cy="134" r="2.8" fill="rgba(255,255,255,0.75)"/>
             </g>
 
             <g id="eyeRight" class="eyeGroup">
-              <ellipse class="eyeShape" cx="162" cy="126" rx="19" ry="23" fill="url(#eyeGrad)" stroke="#ffffff" stroke-width="2.5"/>
+              <ellipse cx="162" cy="126" rx="19" ry="23" fill="url(#eyeGrad)" stroke="#ffffff" stroke-width="2.5"/>
               <circle cx="157" cy="119" r="5.8" fill="#fff"/>
               <circle cx="170" cy="134" r="2.8" fill="rgba(255,255,255,0.75)"/>
             </g>
@@ -1068,19 +1097,8 @@
 
   <script>
     const sequence = [
-      "sausage",
-      "birria",
-      "bubbles",
-      "custard",
-      "coffee",
-      "chamo",
-      "books",
-      "link",
-      "stackers",
-      "rez",
-      "boba",
-      "pizza",
-      "tavern"
+      "sausage","birria","bubbles","custard","coffee","chamo","books",
+      "link","stackers","rez","boba","pizza","tavern"
     ];
 
     const AUDIO = {
@@ -1157,7 +1175,6 @@
 
     audioPlayer.preload = "auto";
     audioPlayer.playsInline = true;
-
     bgMusic.preload = "auto";
     bgMusic.loop = true;
     bgMusic.volume = 0.68;
@@ -1179,20 +1196,14 @@
     const celebrateField = document.getElementById("celebrateField");
     const finalOverlay = document.getElementById("finalOverlay");
 
-    function setBubble(text) {
-      speechBubble.textContent = text;
-    }
-
-    function setMessage(text) {
-      messageEl.textContent = text;
-    }
+    function setBubble(text) { speechBubble.textContent = text; }
+    function setMessage(text) { messageEl.textContent = text; }
 
     function renderEggs() {
       progressEggs.innerHTML = "";
       for (let i = 0; i < sequence.length; i++) {
         const egg = document.createElement("div");
         egg.className = "egg";
-        egg.setAttribute("aria-label", `Stop ${i + 1}`);
         if (i < currentIndex) egg.classList.add("done");
         progressEggs.appendChild(egg);
       }
@@ -1209,8 +1220,7 @@
 
     function makeFootsteps() {
       footsteps.innerHTML = "";
-      const count = 6;
-      for (let i = 0; i < count; i++) {
+      for (let i = 0; i < 6; i++) {
         const step = document.createElement("div");
         step.className = `footstep ${i % 2 === 0 ? "left" : "right"}`;
         step.style.left = `${30 + i * 36}px`;
@@ -1218,9 +1228,7 @@
         step.style.animationDelay = `${i * 0.1}s`;
         footsteps.appendChild(step);
       }
-      setTimeout(() => {
-        footsteps.innerHTML = "";
-      }, 1400);
+      setTimeout(() => footsteps.innerHTML = "", 1400);
     }
 
     function bunnyHappy() {
@@ -1239,7 +1247,7 @@
       bunny.classList.add("announce-hop");
       setTimeout(() => {
         bunny.classList.remove("announce-hop");
-        if (typeof callback === "function") callback();
+        if (callback) callback();
       }, 700);
     }
 
@@ -1247,7 +1255,7 @@
       bunny.classList.add("final-hop");
       setTimeout(() => {
         bunny.classList.remove("final-hop");
-        if (typeof callback === "function") callback();
+        if (callback) callback();
       }, 1000);
     }
 
@@ -1271,18 +1279,14 @@
 
     function setRandomMouthMode() {
       bunny.classList.remove("talking-small", "talking-wide", "talking-tall");
-      const mode = mouthModes[Math.floor(Math.random() * mouthModes.length)];
-      bunny.classList.add(mode);
+      bunny.classList.add(mouthModes[Math.floor(Math.random() * mouthModes.length)]);
     }
 
     function startTalking() {
       bunny.classList.add("talking");
       setRandomMouthMode();
-
       if (mouthModeTimer) clearInterval(mouthModeTimer);
-      mouthModeTimer = setInterval(() => {
-        setRandomMouthMode();
-      }, 180);
+      mouthModeTimer = setInterval(setRandomMouthMode, 180);
     }
 
     function stopTalking() {
@@ -1307,11 +1311,7 @@
     }
 
     function fadeBgTo(target, duration = 180) {
-      if (volumeFadeTimer) {
-        clearInterval(volumeFadeTimer);
-        volumeFadeTimer = null;
-      }
-
+      if (volumeFadeTimer) clearInterval(volumeFadeTimer);
       const start = bgMusic.volume;
       const change = target - start;
       const steps = Math.max(1, Math.round(duration / 30));
@@ -1319,8 +1319,7 @@
 
       volumeFadeTimer = setInterval(() => {
         step++;
-        const progress = step / steps;
-        bgMusic.volume = Math.max(0, Math.min(1, start + change * progress));
+        bgMusic.volume = Math.max(0, Math.min(1, start + change * (step / steps)));
         if (step >= steps) {
           clearInterval(volumeFadeTimer);
           volumeFadeTimer = null;
@@ -1332,10 +1331,7 @@
     function playAudio(src, onEnd, options = {}) {
       const keepDucked = Boolean(options.keepDucked);
 
-      if (bgMusic.paused && gameStarted) {
-        ensureBgMusicRunning();
-      }
-
+      if (bgMusic.paused && gameStarted) ensureBgMusicRunning();
       fadeBgTo(0.22, 140);
 
       audioPlayer.pause();
@@ -1349,25 +1345,15 @@
 
       const finish = () => {
         stopTalking();
-        if (!keepDucked) {
-          fadeBgTo(0.68, 220);
-        }
-        if (typeof onEnd === "function") onEnd();
+        if (!keepDucked) fadeBgTo(0.68, 220);
+        if (onEnd) onEnd();
       };
 
       audioPlayer.onended = finish;
-      audioPlayer.onerror = () => {
-        console.error("Audio failed to load:", src);
-        finish();
-      };
+      audioPlayer.onerror = finish;
 
-      const playPromise = audioPlayer.play();
-      if (playPromise && typeof playPromise.catch === "function") {
-        playPromise.catch(err => {
-          console.error("Audio playback failed:", src, err);
-          finish();
-        });
-      }
+      const p = audioPlayer.play();
+      if (p && typeof p.catch === "function") p.catch(finish);
     }
 
     function playCorrectWithBubble(callback, options = {}) {
@@ -1387,7 +1373,6 @@
       if (!currentId) return;
 
       scannerActive = false;
-
       setBubble(`Go find ${DISPLAY_NAMES[currentId]}!`);
       setMessage(`Find ${DISPLAY_NAMES[currentId]} and scan the QR!`);
 
@@ -1402,7 +1387,6 @@
 
     async function showCelebration() {
       const token = ++activeCelebrationToken;
-
       celebrateField.innerHTML = "";
       celebrateOverlay.classList.add("show");
 
@@ -1423,20 +1407,19 @@
       }
 
       for (let i = 0; i < 14; i++) {
-        const bunnyPiece = document.createElement("div");
-        bunnyPiece.className = "celeBurstBunny";
-        bunnyPiece.textContent = bunnyIcons[i % bunnyIcons.length];
-        bunnyPiece.style.left = "50%";
-        bunnyPiece.style.top = "56%";
-        bunnyPiece.style.setProperty("--tx", `${(Math.random() - 0.5) * 460}px`);
-        bunnyPiece.style.setProperty("--ty", `${-90 - Math.random() * 280}px`);
-        bunnyPiece.style.setProperty("--rot", `${-180 + Math.random() * 360}deg`);
-        bunnyPiece.style.animationDelay = `${Math.random() * 0.08}s`;
-        celebrateField.appendChild(bunnyPiece);
+        const piece = document.createElement("div");
+        piece.className = "celeBurstBunny";
+        piece.textContent = bunnyIcons[i % bunnyIcons.length];
+        piece.style.left = "50%";
+        piece.style.top = "56%";
+        piece.style.setProperty("--tx", `${(Math.random() - 0.5) * 460}px`);
+        piece.style.setProperty("--ty", `${-90 - Math.random() * 280}px`);
+        piece.style.setProperty("--rot", `${-180 + Math.random() * 360}deg`);
+        piece.style.animationDelay = `${Math.random() * 0.08}s`;
+        celebrateField.appendChild(piece);
       }
 
       await new Promise(resolve => setTimeout(resolve, 1650));
-
       if (token === activeCelebrationToken) {
         celebrateOverlay.classList.remove("show");
         celebrateField.innerHTML = "";
@@ -1460,9 +1443,7 @@
         finalBurst.appendChild(piece);
       }
 
-      setTimeout(() => {
-        finalBurst.innerHTML = "";
-      }, 3600);
+      setTimeout(() => finalBurst.innerHTML = "", 3600);
     }
 
     function triggerBigFinalCelebration() {
@@ -1504,7 +1485,6 @@
       triggerFinalBurst();
       triggerBigFinalCelebration();
       fadeBgTo(0.75, 320);
-
       bunnyFinalHop();
 
       setTimeout(() => {
@@ -1541,65 +1521,47 @@
             await showCelebration();
             setTimeout(() => {
               setBubble(BUBBLE_TEXT.final);
-              playAudio(AUDIO.final, () => {
-                showFinalMessage();
-              });
+              playAudio(AUDIO.final, () => showFinalMessage());
             }, 140);
           }, { keepDucked: true });
 
-          setTimeout(() => {
-            scanLock = false;
-          }, 2600);
+          setTimeout(() => { scanLock = false; }, 2600);
           return;
         }
 
         playCorrectWithBubble(async () => {
           await showCelebration();
-          setTimeout(() => {
-            playCurrentClue();
-          }, 140);
+          setTimeout(() => playCurrentClue(), 140);
         }, { keepDucked: true });
-
       } else {
         bunnyConfused();
         playWrongWithBubble();
-
-        setTimeout(() => {
-          scannerActive = true;
-        }, 300);
+        setTimeout(() => { scannerActive = true; }, 300);
       }
 
-      setTimeout(() => {
-        scanLock = false;
-      }, 2000);
+      setTimeout(() => { scanLock = false; }, 2000);
     }
 
     async function unlockAudio() {
       try {
         audioPlayer.src = AUDIO.opening;
         audioPlayer.load();
-        const p1 = audioPlayer.play().catch(() => {});
-        await Promise.allSettled([p1]);
+        const p = audioPlayer.play().catch(() => {});
+        await Promise.allSettled([p]);
         audioPlayer.pause();
         audioPlayer.currentTime = 0;
-      } catch (err) {
-        console.warn("Audio unlock issue:", err);
-      }
+      } catch {}
     }
 
     async function startScanner() {
       if (reader) return;
-
       reader = new ZXing.BrowserMultiFormatReader();
 
       try {
         await reader.decodeFromVideoDevice(null, scannerVideo, (result) => {
-          if (result) {
-            handleScan(result.text.trim().toLowerCase());
-          }
+          if (result) handleScan(result.text.trim().toLowerCase());
         });
-      } catch (err) {
-        console.error("Scanner start failed:", err);
+      } catch {
         setBubble("Please allow camera access and try again.");
       }
     }
@@ -1625,16 +1587,12 @@
         bgMusic.load();
         bgMusic.volume = 0.68;
         await bgMusic.play();
-      } catch (err) {
-        console.warn("Background music did not start:", err);
-      }
+      } catch {}
 
       await startScanner();
 
       playAudio(AUDIO.opening, () => {
-        setTimeout(() => {
-          playCurrentClue();
-        }, 180);
+        setTimeout(() => playCurrentClue(), 180);
       }, { keepDucked: true });
     }
 
@@ -1656,24 +1614,17 @@
       stopTalking();
 
       if (reader) {
-        try { reader.reset(); } catch (err) {}
+        try { reader.reset(); } catch {}
         reader = null;
       }
 
-      if (volumeFadeTimer) {
-        clearInterval(volumeFadeTimer);
-        volumeFadeTimer = null;
-      }
+      if (volumeFadeTimer) clearInterval(volumeFadeTimer);
+      if (earTwitchTimer) clearInterval(earTwitchTimer);
+      if (mouthModeTimer) clearInterval(mouthModeTimer);
 
-      if (earTwitchTimer) {
-        clearInterval(earTwitchTimer);
-        earTwitchTimer = null;
-      }
-
-      if (mouthModeTimer) {
-        clearInterval(mouthModeTimer);
-        mouthModeTimer = null;
-      }
+      volumeFadeTimer = null;
+      earTwitchTimer = null;
+      mouthModeTimer = null;
 
       celebrateOverlay.classList.remove("show");
       celebrateField.innerHTML = "";
@@ -1694,13 +1645,8 @@
       startEarTwitchLoop();
     }
 
-    document.body.addEventListener("click", () => {
-      unlockAudio();
-    }, { once: true });
-
-    document.body.addEventListener("touchend", () => {
-      unlockAudio();
-    }, { once: true });
+    document.body.addEventListener("click", () => unlockAudio(), { once: true });
+    document.body.addEventListener("touchend", () => unlockAudio(), { once: true });
 
     startBtn.addEventListener("click", startGame);
     resetBtn.addEventListener("click", resetGame);
@@ -1715,7 +1661,7 @@
 
     window.addEventListener("beforeunload", () => {
       if (reader) {
-        try { reader.reset(); } catch (err) {}
+        try { reader.reset(); } catch {}
       }
     });
 
