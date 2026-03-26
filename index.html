@@ -265,24 +265,24 @@
     }
 
     #bunny.talking-small #mouthOpen {
-      opacity: 0.65;
+      opacity: 0.5;
       animation: mouthSmall 0.22s ease-in-out infinite;
     }
 
     #bunny.talking-wide #mouthOpen {
-      opacity: 0.85;
+      opacity: 0.7;
       animation: mouthWide 0.18s ease-in-out infinite;
     }
 
     #bunny.talking-tall #mouthOpen {
-      opacity: 1;
+      opacity: 0.82;
       animation: mouthTall 0.2s ease-in-out infinite;
     }
 
     #bunny.talking-small #mouthSmile,
     #bunny.talking-wide #mouthSmile,
     #bunny.talking-tall #mouthSmile {
-      opacity: 0.15;
+      opacity: 0.55;
     }
 
     @keyframes mouthSmall {
@@ -709,7 +709,7 @@
       height: 20px;
       border-radius: 50% 50% 45% 45%;
       opacity: 0;
-      animation: burstFly 1.9s ease-out forwards;
+      animation: burstFly 3.1s ease-out forwards;
     }
 
     @keyframes burstFly {
@@ -736,7 +736,7 @@
       opacity: 0;
     }
 
-    #finalGlow.show { animation: glowPulse 1.3s ease-out 2; }
+    #finalGlow.show { animation: glowPulse 1.8s ease-out 3; }
 
     @keyframes glowPulse {
       0% {
@@ -745,7 +745,7 @@
       }
       20% { opacity: 1; }
       100% {
-        transform: translate(-50%, -50%) scale(10);
+        transform: translate(-50%, -50%) scale(12);
         opacity: 0;
       }
     }
@@ -769,7 +769,7 @@
       opacity: 0;
     }
 
-    #rainbowBanner.show { animation: bannerDrop 3.2s ease forwards; }
+    #rainbowBanner.show { animation: bannerDrop 4.8s ease forwards; }
 
     @keyframes bannerDrop {
       0% {
@@ -802,7 +802,7 @@
       height: 22px;
       border-radius: 50% 50% 45% 45%;
       opacity: 0;
-      animation: eggFloat 3.4s ease-out forwards;
+      animation: eggFloat 5.2s ease-out forwards;
     }
 
     @keyframes eggFloat {
@@ -938,9 +938,9 @@
             </linearGradient>
 
             <radialGradient id="eyeGrad" cx="40%" cy="35%" r="75%">
-              <stop offset="0%" stop-color="#6b4535"/>
-              <stop offset="75%" stop-color="#3a241c"/>
-              <stop offset="100%" stop-color="#24130f"/>
+              <stop offset="0%" stop-color="#8a5f4c"/>
+              <stop offset="70%" stop-color="#5a3a2e"/>
+              <stop offset="100%" stop-color="#352019"/>
             </radialGradient>
 
             <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -1010,7 +1010,7 @@
             </g>
 
             <g id="noseGroup">
-              <ellipse cx="130" cy="152" rx="9" ry="6.5" fill="#ff9cbc"/>
+              <ellipse cx="130" cy="152" rx="11" ry="8" fill="#ff9cbc"/>
             </g>
 
             <ellipse cx="130" cy="170" rx="22" ry="16" fill="rgba(255,255,255,0.55)"/>
@@ -1160,7 +1160,7 @@
 
     bgMusic.preload = "auto";
     bgMusic.loop = true;
-    bgMusic.volume = 0.5;
+    bgMusic.volume = 0.68;
     bgMusic.playsInline = true;
 
     const progressEggs = document.getElementById("progressEggs");
@@ -1301,7 +1301,7 @@
         bgMusic.load();
       }
       if (bgMusic.paused) {
-        bgMusic.volume = Math.max(bgMusic.volume, 0.5);
+        bgMusic.volume = Math.max(bgMusic.volume, 0.68);
         bgMusic.play().catch(() => {});
       }
     }
@@ -1336,7 +1336,7 @@
         ensureBgMusicRunning();
       }
 
-      fadeBgTo(0.15, 140);
+      fadeBgTo(0.22, 140);
 
       audioPlayer.pause();
       audioPlayer.currentTime = 0;
@@ -1350,7 +1350,7 @@
       const finish = () => {
         stopTalking();
         if (!keepDucked) {
-          fadeBgTo(0.5, 220);
+          fadeBgTo(0.68, 220);
         }
         if (typeof onEnd === "function") onEnd();
       };
@@ -1447,14 +1447,14 @@
       finalBurst.innerHTML = "";
       const colors = ["#ffb6d9", "#9fdfff", "#ffe48e", "#baf0ad", "#ffffff"];
 
-      for (let i = 0; i < 52; i++) {
+      for (let i = 0; i < 90; i++) {
         const piece = document.createElement("div");
         piece.className = "burstEgg";
         piece.style.left = "50%";
         piece.style.top = "55%";
         piece.style.background = colors[i % colors.length];
-        piece.style.setProperty("--tx", `${(Math.random() - 0.5) * 700}px`);
-        piece.style.setProperty("--ty", `${-120 - Math.random() * 420}px`);
+        piece.style.setProperty("--tx", `${(Math.random() - 0.5) * 950}px`);
+        piece.style.setProperty("--ty", `${-180 - Math.random() * 560}px`);
         piece.style.setProperty("--rot", `${-180 + Math.random() * 360}deg`);
         piece.style.animationDelay = `${Math.random() * 0.08}s`;
         finalBurst.appendChild(piece);
@@ -1462,7 +1462,7 @@
 
       setTimeout(() => {
         finalBurst.innerHTML = "";
-      }, 2200);
+      }, 3600);
     }
 
     function triggerBigFinalCelebration() {
@@ -1478,7 +1478,7 @@
 
       const colors = ["#ffb6d9", "#9fdfff", "#ffe48e", "#baf0ad", "#ffffff"];
 
-      for (let i = 0; i < 70; i++) {
+      for (let i = 0; i < 120; i++) {
         const egg = document.createElement("div");
         egg.className = "celeEgg";
         egg.style.left = `${10 + Math.random() * 80}%`;
@@ -1494,7 +1494,7 @@
         celebrationField.innerHTML = "";
         finalGlow.classList.remove("show");
         rainbowBanner.classList.remove("show");
-      }, 3900);
+      }, 5600);
     }
 
     function showFinalMessage() {
@@ -1503,13 +1503,13 @@
 
       triggerFinalBurst();
       triggerBigFinalCelebration();
-      fadeBgTo(0.6, 280);
+      fadeBgTo(0.75, 320);
 
       bunnyFinalHop();
 
       setTimeout(() => {
         finalOverlay.classList.add("show");
-      }, 2600);
+      }, 5200);
     }
 
     function handleScan(id) {
@@ -1623,7 +1623,7 @@
       try {
         bgMusic.src = AUDIO.background;
         bgMusic.load();
-        bgMusic.volume = 0.5;
+        bgMusic.volume = 0.68;
         await bgMusic.play();
       } catch (err) {
         console.warn("Background music did not start:", err);
@@ -1651,7 +1651,7 @@
       bgMusic.pause();
       bgMusic.currentTime = 0;
       bgMusic.src = "";
-      bgMusic.volume = 0.5;
+      bgMusic.volume = 0.68;
 
       stopTalking();
 
