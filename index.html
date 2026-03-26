@@ -142,357 +142,164 @@
     }
 
     #bunny {
-      position: relative;
-      width: 170px;
-      height: 200px;
+      width: 180px;
+      height: 210px;
       margin: 0 auto;
-      transform-origin: center bottom;
-      animation: bunnyBreath 3.2s ease-in-out infinite;
     }
 
-    #bunny::after {
-      content: "";
-      position: absolute;
-      bottom: -8px;
-      left: 50%;
-      width: 74px;
-      height: 12px;
-      background: rgba(0,0,0,0.12);
-      border-radius: 50%;
-      transform: translateX(-50%);
+    #bunnySvg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
     }
 
-    @keyframes bunnyBreath {
+    #earLeft,
+    #earRight,
+    #pawLeft,
+    #pawRight,
+    #headGroup,
+    #bodyGroup,
+    #noseGroup,
+    .eyeGroup,
+    #mouthGroup {
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    #earLeft { transform-origin: center bottom; }
+    #earRight { transform-origin: center bottom; }
+    #pawLeft { transform-origin: center top; }
+    #pawRight { transform-origin: center top; }
+
+    #bunny.idle {
+      animation: svgBreathe 3.2s ease-in-out infinite;
+    }
+
+    @keyframes svgBreathe {
       0% { transform: translateY(0) scale(1); }
       50% { transform: translateY(-4px) scale(1.015); }
       100% { transform: translateY(0) scale(1); }
     }
 
-    .ear {
-      position: absolute;
-      top: 0;
-      width: 32px;
-      height: 92px;
-      background: #fff;
-      border: 3px solid #d8d8d8;
-      border-radius: 28px;
-      z-index: 1;
-      overflow: hidden;
-      transform-origin: bottom center;
-      box-shadow: inset -1px -3px 5px rgba(0,0,0,0.04);
-    }
-
-    .ear.left {
-      left: 36px;
-      transform: rotate(-10deg);
-    }
-
-    .ear.right {
-      right: 36px;
-      transform: rotate(10deg);
-    }
-
-    .inner-ear {
-      position: absolute;
-      left: 5px;
-      right: 5px;
-      top: 10px;
-      bottom: 8px;
-      background: linear-gradient(180deg, #ffe3ef, #ffd2e6);
-      border-radius: 20px;
-    }
-
-    .head {
-      position: absolute;
-      left: 26px;
-      top: 42px;
-      width: 118px;
-      height: 118px;
-      background: radial-gradient(circle at 35% 30%, #ffffff 0%, #f3f3f3 60%, #e6e6e6 100%);
-      border: 3px solid #d8d8d8;
-      border-radius: 55% 55% 50% 50%;
-      box-shadow: 0 10px 18px rgba(0,0,0,0.08);
-      z-index: 2;
-    }
-
-    .eye {
-      position: absolute;
-      top: 32px;
-      width: 20px;
-      height: 26px;
-      background: #222;
-      border-radius: 50%;
-      transform-origin: center;
-    }
-
-    .eye.left { left: 22px; }
-    .eye.right { right: 22px; }
-
-    .eye.blinking {
-      animation: blink 0.32s ease;
-    }
-
-    .eye-shine {
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 6px;
-      height: 6px;
-      background: #fff;
-      border-radius: 50%;
-    }
-
-    @keyframes blink {
-      0%   { transform: scaleY(1); }
-      35%  { transform: scaleY(0.05); }
-      65%  { transform: scaleY(0.05); }
-      100% { transform: scaleY(1); }
-    }
-
-    .surprised .eye {
-      animation: eyeBulge 0.65s ease;
-    }
-
-    @keyframes eyeBulge {
-      0%   { transform: scale(1); }
-      35%  { transform: scale(1.7); }
-      65%  { transform: scale(1.7); }
-      100% { transform: scale(1); }
-    }
-
-    .cheek {
-      position: absolute;
-      width: 18px;
-      height: 13px;
-      background: #ffd6de;
-      border-radius: 50%;
-      top: 52px;
-      opacity: 0.8;
-    }
-
-    .cheek.left { left: 18px; }
-    .cheek.right { right: 18px; }
-
-    .nose {
-      position: absolute;
-      top: 56px;
-      left: 50%;
-      width: 14px;
-      height: 10px;
-      background: #ff9cbc;
-      border-radius: 50%;
-      transform: translateX(-50%);
-    }
-
-    .nose.wiggle {
-      animation: noseWiggle 0.35s ease 2;
-    }
-
-    @keyframes noseWiggle {
-      0% { transform: translateX(-50%) scale(1); }
-      25% { transform: translateX(-50%) scale(1.15, 0.9); }
-      50% { transform: translateX(-50%) scale(0.9, 1.15); }
-      100% { transform: translateX(-50%) scale(1); }
-    }
-
-    .whiskers {
-      position: absolute;
-      top: 56px;
-      width: 24px;
-      height: 20px;
-    }
-
-    .whiskers.left { left: -8px; }
-    .whiskers.right { right: -8px; }
-
-    .whiskers span {
-      position: absolute;
-      display: block;
-      width: 18px;
-      height: 2px;
-      background: #9b9b9b;
-      border-radius: 2px;
-    }
-
-    .whiskers.left span:nth-child(1) { top: 0; transform: rotate(-12deg); }
-    .whiskers.left span:nth-child(2) { top: 7px; }
-    .whiskers.left span:nth-child(3) { top: 14px; transform: rotate(12deg); }
-
-    .whiskers.right span:nth-child(1) { top: 0; transform: rotate(12deg); }
-    .whiskers.right span:nth-child(2) { top: 7px; }
-    .whiskers.right span:nth-child(3) { top: 14px; transform: rotate(-12deg); }
-
-    .mouthWrap {
-      position: absolute;
-      left: 50%;
-      top: 74px;
-      width: 30px;
-      height: 22px;
-      transform: translateX(-50%);
-    }
-
-    .mouth {
-      position: absolute;
-      left: 50%;
-      top: 0;
-      width: 20px;
-      height: 8px;
-      border-bottom: 3px solid #333;
-      border-radius: 0 0 16px 16px;
-      transform: translateX(-50%);
-      transform-origin: center top;
-    }
-
-    .mouth.talking {
-      animation: talk 0.24s ease-in-out infinite;
-    }
-
-    @keyframes talk {
-      0%   { height: 8px; transform: translateX(-50%) scaleY(1); }
-      50%  { height: 18px; transform: translateX(-50%) scaleY(1.2); }
-      100% { height: 8px; transform: translateX(-50%) scaleY(1); }
-    }
-
-    .tooth {
-      position: absolute;
-      top: 10px;
-      width: 5px;
-      height: 8px;
-      background: #fff;
-      border: 1px solid #d8d8d8;
-      border-radius: 0 0 4px 4px;
-    }
-
-    .tooth.left { left: 10px; }
-    .tooth.right { right: 10px; }
-
-    .body {
-      position: absolute;
-      left: 42px;
-      bottom: 8px;
-      width: 84px;
-      height: 68px;
-      background: radial-gradient(circle at 50% 30%, #ffffff 0%, #f2f2f2 60%, #e4e4e4 100%);
-      border: 3px solid #d8d8d8;
-      border-radius: 46px;
-      z-index: 1;
-    }
-
-    .belly {
-      position: absolute;
-      left: 50%;
-      top: 14px;
-      width: 36px;
-      height: 32px;
-      background: radial-gradient(circle, #ffffff, #efefef);
-      border-radius: 50%;
-      transform: translateX(-50%);
-    }
-
-    .paw {
-      position: absolute;
-      bottom: 8px;
-      width: 28px;
-      height: 28px;
-      background: #ffffff;
-      border: 3px solid #d8d8d8;
-      border-radius: 50%;
-    }
-
-    .paw.left {
-      left: -6px;
-      transform-origin: top center;
-    }
-
-    .paw.right {
-      right: -6px;
-    }
-
-    .tail {
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      background: #fff;
-      border-radius: 50%;
-      bottom: 14px;
-      right: -8px;
-      box-shadow: inset -2px -2px 4px rgba(0,0,0,0.08);
-    }
-
-    .talking-body .head {
+    #bunny.talking #headGroup {
       animation: headTalkBob 0.32s ease-in-out infinite;
     }
 
-    .talking-body .body {
+    #bunny.talking #bodyGroup {
       animation: bodyTalkBob 0.32s ease-in-out infinite;
     }
 
-    .talking-body .paw.left,
-    .talking-body .paw.right {
+    #bunny.talking #pawLeft,
+    #bunny.talking #pawRight {
       animation: pawTalkBob 0.32s ease-in-out infinite;
     }
 
+    #bunny.talking #noseGroup {
+      animation: noseWiggle 0.35s ease 2 infinite;
+    }
+
+    #bunny.talking #mouthGroup {
+      animation: mouthTalk 0.24s ease-in-out infinite;
+    }
+
     @keyframes headTalkBob {
-      0%   { transform: rotate(0deg) translateY(0); }
-      25%  { transform: rotate(-3deg) translateY(-2px); }
-      50%  { transform: rotate(0deg) translateY(-3px); }
-      75%  { transform: rotate(3deg) translateY(-2px); }
+      0% { transform: rotate(0deg) translateY(0); }
+      25% { transform: rotate(-2deg) translateY(-1px); }
+      50% { transform: rotate(0deg) translateY(-3px); }
+      75% { transform: rotate(2deg) translateY(-1px); }
       100% { transform: rotate(0deg) translateY(0); }
     }
 
     @keyframes bodyTalkBob {
-      0%   { transform: scale(1,1) translateY(0); }
-      50%  { transform: scale(1.05,0.95) translateY(2px); }
+      0% { transform: scale(1,1) translateY(0); }
+      50% { transform: scale(1.05,0.95) translateY(2px); }
       100% { transform: scale(1,1) translateY(0); }
     }
 
     @keyframes pawTalkBob {
-      0%   { transform: translateY(0); }
-      50%  { transform: translateY(-2px); }
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
       100% { transform: translateY(0); }
     }
 
-    .happy {
+    @keyframes noseWiggle {
+      0% { transform: scale(1); }
+      25% { transform: scale(1.12, 0.9); }
+      50% { transform: scale(0.9, 1.12); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes mouthTalk {
+      0% { transform: scaleY(1); }
+      50% { transform: scaleY(1.2) translateY(2px); }
+      100% { transform: scaleY(1); }
+    }
+
+    #bunny.blink #eyeLeft,
+    #bunny.blink #eyeRight {
+      animation: svgBlink 0.32s ease;
+    }
+
+    @keyframes svgBlink {
+      0% { transform: scaleY(1); }
+      35% { transform: scaleY(0.05); }
+      65% { transform: scaleY(0.05); }
+      100% { transform: scaleY(1); }
+    }
+
+    #bunny.surprised #eyeLeft,
+    #bunny.surprised #eyeRight {
+      animation: eyeBulge 0.65s ease;
+    }
+
+    @keyframes eyeBulge {
+      0% { transform: scale(1); }
+      35% { transform: scale(1.7); }
+      65% { transform: scale(1.7); }
+      100% { transform: scale(1); }
+    }
+
+    #bunny.happy {
       animation: bunnyBounce 0.8s ease;
     }
 
-    @keyframes bunnyBounce {
-      0%   { transform: scale(1, 1) translateY(0); }
-      12%  { transform: scale(1.12, 0.82) translateY(0); }
-      45%  { transform: scale(0.9, 1.22) translateY(-28px); }
-      65%  { transform: scale(0.9, 1.22) translateY(-28px); }
-      100% { transform: scale(1, 1) translateY(0); }
-    }
-
-    .happy .ear.left {
+    #bunny.happy #earLeft {
       animation: earSnapL 0.8s ease;
     }
 
-    .happy .ear.right {
+    #bunny.happy #earRight {
       animation: earSnapR 0.8s ease 0.14s;
     }
 
-    .happy .paw.left,
-    .happy .paw.right {
+    #bunny.happy #pawLeft,
+    #bunny.happy #pawRight {
       animation: pawPop 0.6s ease;
     }
 
-    .happy .body {
+    #bunny.happy #bodyGroup {
       animation: bellyBounce 0.6s ease;
     }
 
+    @keyframes bunnyBounce {
+      0% { transform: scale(1,1) translateY(0); }
+      12% { transform: scale(1.12,0.82) translateY(0); }
+      45% { transform: scale(0.9,1.22) translateY(-28px); }
+      65% { transform: scale(0.9,1.22) translateY(-28px); }
+      100% { transform: scale(1,1) translateY(0); }
+    }
+
     @keyframes earSnapL {
-      0%   { transform: rotate(-10deg); }
-      20%  { transform: rotate(16deg); }
-      55%  { transform: rotate(16deg); }
-      100% { transform: rotate(-10deg); }
+      0% { transform: rotate(0deg); }
+      20% { transform: rotate(-18deg); }
+      55% { transform: rotate(-18deg); }
+      100% { transform: rotate(0deg); }
     }
 
     @keyframes earSnapR {
-      0%   { transform: rotate(10deg); }
-      20%  { transform: rotate(-16deg); }
-      55%  { transform: rotate(-16deg); }
-      100% { transform: rotate(10deg); }
+      0% { transform: rotate(0deg); }
+      20% { transform: rotate(18deg); }
+      55% { transform: rotate(18deg); }
+      100% { transform: rotate(0deg); }
     }
 
     @keyframes pawPop {
@@ -503,143 +310,127 @@
 
     @keyframes bellyBounce {
       0% { transform: scale(1,1); }
-      50% { transform: scale(1.1,0.9); }
+      50% { transform: scale(1.08,0.92); }
       100% { transform: scale(1,1); }
     }
 
-    .confused {
+    #bunny.confused {
       animation: bunnyShake 0.8s ease;
     }
 
     @keyframes bunnyShake {
-      0%, 100% { transform: translateX(0) rotate(0); }
-      12%, 32%, 52% { transform: translateX(-10px) rotate(-7deg); }
-      22%, 42%, 62% { transform: translateX(10px) rotate(7deg); }
-      78% { transform: scale(1.12, 0.88); }
+      0%,100% { transform: translateX(0) rotate(0); }
+      12%,32%,52% { transform: translateX(-10px) rotate(-7deg); }
+      22%,42%,62% { transform: translateX(10px) rotate(7deg); }
+      78% { transform: scale(1.12,0.88); }
     }
 
-    .idle-twitch .ear.left {
+    #bunny.idle-twitch #earLeft {
       animation: idleEarLeft 0.7s ease;
     }
 
-    .idle-twitch .ear.right {
+    #bunny.idle-twitch #earRight {
       animation: idleEarRight 0.7s ease;
     }
 
     @keyframes idleEarLeft {
-      0%   { transform: rotate(-10deg); }
-      50%  { transform: rotate(-2deg); }
-      100% { transform: rotate(-10deg); }
+      0% { transform: rotate(0deg); }
+      50% { transform: rotate(8deg); }
+      100% { transform: rotate(0deg); }
     }
 
     @keyframes idleEarRight {
-      0%   { transform: rotate(10deg); }
-      50%  { transform: rotate(2deg); }
-      100% { transform: rotate(10deg); }
+      0% { transform: rotate(0deg); }
+      50% { transform: rotate(-8deg); }
+      100% { transform: rotate(0deg); }
     }
 
-    .wave .paw.left {
+    #bunny.wave #pawLeft {
       animation: pawWave 0.9s ease;
     }
 
     @keyframes pawWave {
-      0%   { transform: rotate(0deg); }
-      30%  { transform: rotate(-30deg); }
-      60%  { transform: rotate(18deg); }
+      0% { transform: rotate(0deg); }
+      30% { transform: rotate(-30deg); }
+      60% { transform: rotate(18deg); }
       100% { transform: rotate(0deg); }
     }
 
-    .announce-hop {
+    #bunny.announce-hop {
       animation: announceHop 0.7s ease;
     }
 
+    #bunny.announce-hop #earLeft { animation: announceEarL 0.7s ease; }
+    #bunny.announce-hop #earRight { animation: announceEarR 0.7s ease; }
+    #bunny.announce-hop #pawLeft,
+    #bunny.announce-hop #pawRight { animation: announcePaw 0.7s ease; }
+
     @keyframes announceHop {
-      0%   { transform: scale(1,1) translateY(0); }
-      12%  { transform: scale(1.12,0.84) translateY(0); }
-      40%  { transform: scale(0.92,1.18) translateY(-22px); }
-      60%  { transform: scale(0.92,1.18) translateY(-22px); }
+      0% { transform: scale(1,1) translateY(0); }
+      12% { transform: scale(1.12,0.84) translateY(0); }
+      40% { transform: scale(0.92,1.18) translateY(-22px); }
+      60% { transform: scale(0.92,1.18) translateY(-22px); }
       100% { transform: scale(1,1) translateY(0); }
     }
 
-    .announce-hop .ear.left {
-      animation: announceEarL 0.7s ease;
-    }
-
-    .announce-hop .ear.right {
-      animation: announceEarR 0.7s ease;
-    }
-
-    .announce-hop .paw.left,
-    .announce-hop .paw.right {
-      animation: announcePaw 0.7s ease;
-    }
-
     @keyframes announceEarL {
-      0%   { transform: rotate(-10deg); }
-      35%  { transform: rotate(-24deg); }
-      60%  { transform: rotate(-24deg); }
-      100% { transform: rotate(-10deg); }
+      0% { transform: rotate(0deg); }
+      35% { transform: rotate(-20deg); }
+      60% { transform: rotate(-20deg); }
+      100% { transform: rotate(0deg); }
     }
 
     @keyframes announceEarR {
-      0%   { transform: rotate(10deg); }
-      35%  { transform: rotate(24deg); }
-      60%  { transform: rotate(24deg); }
-      100% { transform: rotate(10deg); }
+      0% { transform: rotate(0deg); }
+      35% { transform: rotate(20deg); }
+      60% { transform: rotate(20deg); }
+      100% { transform: rotate(0deg); }
     }
 
     @keyframes announcePaw {
-      0%   { transform: translateY(0); }
-      40%  { transform: translateY(-5px) scale(1.08); }
-      60%  { transform: translateY(-5px) scale(1.08); }
+      0% { transform: translateY(0); }
+      40% { transform: translateY(-5px) scale(1.08); }
+      60% { transform: translateY(-5px) scale(1.08); }
       100% { transform: translateY(0); }
     }
 
-    .final-hop {
+    #bunny.final-hop {
       animation: finalHop 1s ease;
     }
 
-    .final-hop .ear.left {
-      animation: finalEarL 1s ease;
-    }
-
-    .final-hop .ear.right {
-      animation: finalEarR 1s ease;
-    }
-
-    .final-hop .paw.left,
-    .final-hop .paw.right {
-      animation: finalPaw 1s ease;
-    }
+    #bunny.final-hop #earLeft { animation: finalEarL 1s ease; }
+    #bunny.final-hop #earRight { animation: finalEarR 1s ease; }
+    #bunny.final-hop #pawLeft,
+    #bunny.final-hop #pawRight { animation: finalPaw 1s ease; }
 
     @keyframes finalHop {
-      0%   { transform: scale(1,1) translateY(0); }
-      10%  { transform: scale(1.12,0.84) translateY(0); }
-      30%  { transform: scale(0.9,1.2) translateY(-26px); }
-      45%  { transform: scale(0.9,1.2) translateY(-26px); }
-      60%  { transform: scale(1.08,0.9) translateY(0); }
-      75%  { transform: scale(0.94,1.1) translateY(-12px); }
+      0% { transform: scale(1,1) translateY(0); }
+      10% { transform: scale(1.12,0.84) translateY(0); }
+      30% { transform: scale(0.9,1.2) translateY(-26px); }
+      45% { transform: scale(0.9,1.2) translateY(-26px); }
+      60% { transform: scale(1.08,0.9) translateY(0); }
+      75% { transform: scale(0.94,1.1) translateY(-12px); }
       100% { transform: scale(1,1) translateY(0); }
     }
 
     @keyframes finalEarL {
-      0%   { transform: rotate(-10deg); }
-      30%  { transform: rotate(-28deg); }
-      45%  { transform: rotate(-28deg); }
-      100% { transform: rotate(-10deg); }
+      0% { transform: rotate(0deg); }
+      30% { transform: rotate(-24deg); }
+      45% { transform: rotate(-24deg); }
+      100% { transform: rotate(0deg); }
     }
 
     @keyframes finalEarR {
-      0%   { transform: rotate(10deg); }
-      30%  { transform: rotate(28deg); }
-      45%  { transform: rotate(28deg); }
-      100% { transform: rotate(10deg); }
+      0% { transform: rotate(0deg); }
+      30% { transform: rotate(24deg); }
+      45% { transform: rotate(24deg); }
+      100% { transform: rotate(0deg); }
     }
 
     @keyframes finalPaw {
-      0%   { transform: translateY(0) scale(1); }
-      30%  { transform: translateY(-7px) scale(1.12); }
-      45%  { transform: translateY(-7px) scale(1.12); }
+      0% { transform: translateY(0) scale(1); }
+      30% { transform: translateY(-7px) scale(1.12); }
+      45% { transform: translateY(-7px) scale(1.12); }
       100% { transform: translateY(0) scale(1); }
     }
 
@@ -1029,37 +820,88 @@
     <div id="speechBubble">Tap Start to begin!</div>
 
     <div id="bunnyWrap">
-      <div id="bunny" aria-hidden="true">
-        <div class="ear left"><div class="inner-ear"></div></div>
-        <div class="ear right"><div class="inner-ear"></div></div>
+      <div id="bunny" class="idle" aria-hidden="true">
+        <svg id="bunnySvg" viewBox="0 0 260 300" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="furGrad" cx="35%" cy="30%" r="75%">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="70%" stop-color="#f1f1f1"/>
+              <stop offset="100%" stop-color="#dfdfdf"/>
+            </radialGradient>
 
-        <div class="head">
-          <div class="eye left"><span class="eye-shine"></span></div>
-          <div class="eye right"><span class="eye-shine"></span></div>
-          <div class="cheek left"></div>
-          <div class="cheek right"></div>
-          <div class="nose" id="nose"></div>
+            <radialGradient id="bellyGrad" cx="50%" cy="40%" r="70%">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#ececec"/>
+            </radialGradient>
 
-          <div class="whiskers left">
-            <span></span><span></span><span></span>
-          </div>
-          <div class="whiskers right">
-            <span></span><span></span><span></span>
-          </div>
+            <linearGradient id="earPink" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#ffe3ef"/>
+              <stop offset="100%" stop-color="#ffd0e3"/>
+            </linearGradient>
 
-          <div class="mouthWrap">
-            <div class="mouth" id="mouth"></div>
-            <div class="tooth left"></div>
-            <div class="tooth right"></div>
-          </div>
-        </div>
+            <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="rgba(0,0,0,0.16)"/>
+            </filter>
+          </defs>
 
-        <div class="body">
-          <div class="paw left"></div>
-          <div class="paw right"></div>
-          <div class="belly"></div>
-          <div class="tail"></div>
-        </div>
+          <ellipse cx="130" cy="280" rx="48" ry="10" fill="rgba(0,0,0,0.12)"/>
+
+          <g id="earLeft" class="earPart">
+            <ellipse cx="82" cy="58" rx="22" ry="58" fill="url(#furGrad)" stroke="#d7d7d7" stroke-width="3"/>
+            <ellipse cx="82" cy="62" rx="11" ry="38" fill="url(#earPink)"/>
+          </g>
+
+          <g id="earRight" class="earPart">
+            <ellipse cx="178" cy="58" rx="22" ry="58" fill="url(#furGrad)" stroke="#d7d7d7" stroke-width="3"/>
+            <ellipse cx="178" cy="62" rx="11" ry="38" fill="url(#earPink)"/>
+          </g>
+
+          <g id="bodyGroup">
+            <ellipse cx="130" cy="214" rx="62" ry="54" fill="url(#furGrad)" stroke="#d7d7d7" stroke-width="3"/>
+            <ellipse cx="130" cy="222" rx="28" ry="24" fill="url(#bellyGrad)"/>
+
+            <g id="pawLeft">
+              <ellipse cx="78" cy="224" rx="18" ry="18" fill="url(#furGrad)" stroke="#d7d7d7" stroke-width="3"/>
+            </g>
+
+            <g id="pawRight">
+              <ellipse cx="182" cy="224" rx="18" ry="18" fill="url(#furGrad)" stroke="#d7d7d7" stroke-width="3"/>
+            </g>
+
+            <ellipse cx="188" cy="215" rx="12" ry="12" fill="url(#furGrad)" stroke="#d7d7d7" stroke-width="2"/>
+          </g>
+
+          <g id="headGroup" filter="url(#softShadow)">
+            <ellipse cx="130" cy="132" rx="74" ry="68" fill="url(#furGrad)" stroke="#d7d7d7" stroke-width="3"/>
+
+            <ellipse cx="92" cy="158" rx="12" ry="8" fill="#ffd6de" opacity="0.8"/>
+            <ellipse cx="168" cy="158" rx="12" ry="8" fill="#ffd6de" opacity="0.8"/>
+
+            <g id="eyeLeft" class="eyeGroup">
+              <ellipse class="eyeShape" cx="100" cy="126" rx="17" ry="21" fill="#222"/>
+              <circle cx="95" cy="120" r="5.5" fill="#fff"/>
+              <circle cx="107" cy="133" r="2.8" fill="rgba(255,255,255,0.75)"/>
+            </g>
+
+            <g id="eyeRight" class="eyeGroup">
+              <ellipse class="eyeShape" cx="160" cy="126" rx="17" ry="21" fill="#222"/>
+              <circle cx="155" cy="120" r="5.5" fill="#fff"/>
+              <circle cx="167" cy="133" r="2.8" fill="rgba(255,255,255,0.75)"/>
+            </g>
+
+            <g id="noseGroup">
+              <ellipse cx="130" cy="152" rx="9" ry="6.5" fill="#ff9cbc"/>
+            </g>
+
+            <ellipse cx="130" cy="170" rx="22" ry="16" fill="rgba(255,255,255,0.55)"/>
+
+            <g id="mouthGroup">
+              <path id="mouthPath" d="M120 170 Q130 182 140 170" fill="none" stroke="#333" stroke-width="3.5" stroke-linecap="round"/>
+              <rect x="124" y="176" width="5" height="8" rx="2" fill="#fff" stroke="#d8d8d8" stroke-width="1"/>
+              <rect x="131" y="176" width="5" height="8" rx="2" fill="#fff" stroke="#d8d8d8" stroke-width="1"/>
+            </g>
+          </g>
+        </svg>
       </div>
     </div>
 
@@ -1196,7 +1038,7 @@
 
     bgMusic.preload = "auto";
     bgMusic.loop = true;
-    bgMusic.volume = 0.35;
+    bgMusic.volume = 0.5;
     bgMusic.playsInline = true;
 
     const progressEggs = document.getElementById("progressEggs");
@@ -1204,9 +1046,6 @@
     const footsteps = document.getElementById("footsteps");
     const messageEl = document.getElementById("message");
     const bunny = document.getElementById("bunny");
-    const mouth = document.getElementById("mouth");
-    const nose = document.getElementById("nose");
-    const eyes = document.querySelectorAll(".eye");
     const scannerVideo = document.getElementById("scanner");
     const startBtn = document.getElementById("startBtn");
     const resetBtn = document.getElementById("resetBtn");
@@ -1290,14 +1129,14 @@
       }, 1000);
     }
 
+    function doBlink() {
+      bunny.classList.add("blink");
+      setTimeout(() => bunny.classList.remove("blink"), 320);
+    }
+
     function startBlinkLoop() {
       if (blinkTimer) clearInterval(blinkTimer);
-      blinkTimer = setInterval(() => {
-        eyes.forEach(eye => {
-          eye.classList.add("blinking");
-          setTimeout(() => eye.classList.remove("blinking"), 320);
-        });
-      }, 4200);
+      blinkTimer = setInterval(doBlink, 4200);
     }
 
     function startEarTwitchLoop() {
@@ -1309,25 +1148,22 @@
     }
 
     function startTalking() {
-      mouth.classList.add("talking");
-      bunny.classList.add("talking-body");
-      nose.classList.add("wiggle");
+      bunny.classList.add("talking");
     }
 
     function stopTalking() {
-      mouth.classList.remove("talking");
-      bunny.classList.remove("talking-body");
-      nose.classList.remove("wiggle");
+      bunny.classList.remove("talking");
     }
 
     function ensureBgMusicRunning() {
       if (!gameStarted) return;
-      if (bgMusic.src !== new URL(AUDIO.background, window.location.href).href) {
+      const resolved = new URL(AUDIO.background, window.location.href).href;
+      if (bgMusic.src !== resolved) {
         bgMusic.src = AUDIO.background;
         bgMusic.load();
       }
       if (bgMusic.paused) {
-        bgMusic.volume = Math.max(bgMusic.volume, 0.35);
+        bgMusic.volume = Math.max(bgMusic.volume, 0.5);
         bgMusic.play().catch(() => {});
       }
     }
@@ -1362,7 +1198,7 @@
         ensureBgMusicRunning();
       }
 
-      fadeBgTo(0.08, 140);
+      fadeBgTo(0.15, 140);
 
       audioPlayer.pause();
       audioPlayer.currentTime = 0;
@@ -1376,7 +1212,7 @@
       const finish = () => {
         stopTalking();
         if (!keepDucked) {
-          fadeBgTo(0.35, 220);
+          fadeBgTo(0.5, 220);
         }
         if (typeof onEnd === "function") onEnd();
       };
@@ -1529,7 +1365,7 @@
         setBubble(BUBBLE_TEXT.final);
         triggerFinalBurst();
         triggerBigFinalCelebration();
-        fadeBgTo(0.5, 280);
+        fadeBgTo(0.6, 280);
         finalOverlay.classList.add("show");
       });
     }
@@ -1645,7 +1481,7 @@
       try {
         bgMusic.src = AUDIO.background;
         bgMusic.load();
-        bgMusic.volume = 0.35;
+        bgMusic.volume = 0.5;
         await bgMusic.play();
       } catch (err) {
         console.warn("Background music did not start:", err);
@@ -1673,7 +1509,8 @@
       bgMusic.pause();
       bgMusic.currentTime = 0;
       bgMusic.src = "";
-      bgMusic.volume = 0.35;
+      bgMusic.volume = 0.5;
+
       stopTalking();
 
       if (reader) {
@@ -1699,7 +1536,7 @@
       rainbowBanner.classList.remove("show");
       finalOverlay.classList.remove("show");
       footsteps.innerHTML = "";
-      bunny.classList.remove("happy", "confused", "surprised", "wave", "announce-hop", "final-hop", "idle-twitch", "talking-body");
+      bunny.className = "idle";
 
       renderEggs();
       setBubble("Tap Start to begin!");
