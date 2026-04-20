@@ -4,330 +4,167 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <title>Blocky Bear Story Hunt</title>
-  <!-- External libraries are loaded dynamically in JS so CDN failures
-       never produce an uncaught "Script error." at the page level. -->
   <style>
     :root {
       --brown-dark:  #6b3d12;
       --gold:        #ffd75d;
-      --gold-light:  #ffe898;
       --cream:       #fff8e8;
       --text-warm:   #3a2010;
-      --panel-glass: rgba(255,248,230,0.90);
+      --panel-glass: rgba(255,248,230,0.92);
       --shadow-warm: rgba(100,50,10,0.22);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       width: 100%; height: 100%;
       overflow: hidden;
-      background: #1a1008;
+      background: radial-gradient(circle at 50% 30%, #2a1506 0%, #0e0703 100%);
       font-family: 'Georgia', 'Times New Roman', serif;
-      touch-action: none;
+      touch-action: manipulation;
     }
 
-    /* AR container */
-    #ar-container { position: fixed; inset: 0; z-index: 0; }
-    #ar-container canvas,
-    #ar-container video {
-      position: absolute !important; inset: 0 !important;
-      width: 100% !important; height: 100% !important;
-      object-fit: cover !important;
-    }
-
-    /* Bear overlay — now uses absolute position driven by JS anchor projection.
-       The flex/padding approach is replaced by direct left/top coordinates
-       so the bear locks visually to the MindAR image target. */
+    /* ── BEAR OVERLAY ─────────────────────────────────────── */
     #bear-overlay {
       position: fixed; inset: 0; z-index: 5;
       pointer-events: none;
-      /* No flex layout — position is set directly by anchorBear() in JS */
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      padding-bottom: 52px;
     }
-
     #bear-scene {
-      position: absolute;
-      /* Base size; --anchor-scale modulates this via calc() */
-      width: calc(min(240px, 56vw) * var(--anchor-scale, 1));
-      /* Default position (before anchor data arrives): bottom-center */
-      left: 50%;
-      bottom: 52px;
+      position: relative;
+      width: min(240px, 58vw);
       opacity: 0;
-      transition: opacity 0.5s cubic-bezier(.34,1.56,.64,1);
+      transform: translateX(0) scale(0.5) translateY(24px);
+      transition: opacity 0.5s cubic-bezier(.34,1.56,.64,1),
+                  transform 0.5s cubic-bezier(.34,1.56,.64,1);
       pointer-events: none;
     }
-    /* Hidden default: translateX(-50%) centers it; scale(0.5) for pop-in feel */
-    #bear-scene:not(.visible):not(.anchored) {
-      transform: translateX(-50%) scale(0.5) translateY(20px);
+    #bear-scene.visible {
+      opacity: 1;
+      transform: translateX(0) scale(1) translateY(0);
     }
-    /* QR-only / pre-anchor visible: center-bottom, full scale */
-    #bear-scene:not(.anchored).visible {
-      transform: translateX(-50%) scale(1) translateY(0);
-    }
-
-    /* Ground shadow — wider ellipse, darker core, organic soft falloff */
     #bear-ground-shadow {
-      position: absolute;
-      bottom: -4px; left: 50%;
+      position: absolute; bottom: -4px; left: 50%;
       transform: translateX(-50%);
-      width: 74%; height: 17px; /* wider for larger bear */
-      background: radial-gradient(ellipse,
-        rgba(30,10,0,0.62) 0%,
-        rgba(30,10,0,0.28) 38%,
-        transparent 72%
-      );
-      border-radius: 50%;
-      z-index: 0;
-      transition: transform 0.12s ease, opacity 0.12s ease;
+      width: 74%; height: 17px;
+      background: radial-gradient(ellipse, rgba(30,10,0,0.62) 0%, rgba(30,10,0,0.28) 38%, transparent 72%);
+      border-radius: 50%; z-index: 0;
     }
-
-    /* Shadow squashes when bear lands from happy bounce */
-    #bear-scene.happy #bear-ground-shadow {
-      animation: shadowSquash 1.05s cubic-bezier(.34,1.56,.64,1);
-    }
+    #bear-scene.happy #bear-ground-shadow { animation: shadowSquash 1.05s cubic-bezier(.34,1.56,.64,1); }
     @keyframes shadowSquash {
-      0%   { transform: translateX(-50%) scaleX(1);    opacity: 1; }
-      12%  { transform: translateX(-50%) scaleX(1.18); opacity: 0.85; }
-      38%  { transform: translateX(-50%) scaleX(0.68); opacity: 0.52; }
-      58%  { transform: translateX(-50%) scaleX(0.68); opacity: 0.52; }
-      76%  { transform: translateX(-50%) scaleX(1.14); opacity: 0.90; }
-      100% { transform: translateX(-50%) scaleX(1);    opacity: 1; }
+      0%   { transform:translateX(-50%) scaleX(1);    opacity:1; }
+      12%  { transform:translateX(-50%) scaleX(1.18); opacity:.85; }
+      38%  { transform:translateX(-50%) scaleX(.68);  opacity:.52; }
+      58%  { transform:translateX(-50%) scaleX(.68);  opacity:.52; }
+      76%  { transform:translateX(-50%) scaleX(1.14); opacity:.90; }
+      100% { transform:translateX(-50%) scaleX(1);    opacity:1; }
     }
-
-    /* ── IMMERSION LAYER CSS ──────────────────────────────────────────────
-       Transform stack — three separate elements, no conflicts:
-
-       #bear-scene        → JS sets left/top (anchor position)
-                          → CSS animation: sway (translateX + rotateZ) while .idle
-                          → CSS var: --anchor-scale applied via scale()
-       #bear-img-wrap     → CSS var: --look-tilt (rotateZ, look-at)
-                          → filter: drop-shadow
-       #bear-img          → CSS animations: breathe, talk, happy, confused, etc.
-
-       Keeping transforms on separate elements means CSS animations and JS
-       updates never fight over the same property on the same element.
-    ──────────────────────────────────────────────────────────────────── */
-
-    /* Anchor depth scale — applied to bear-scene itself via CSS var.
-       When anchored, JS sets --anchor-scale each rAF frame.
-       The sway animation also lives on #bear-scene; CSS animations win over
-       inline style transforms, so we inject scale via a filter:scale() trick —
-       actually we use a pseudo-scale on the wrapper width instead.
-       Simplest correct approach: let #bear-scene handle position (left/top)
-       and sway, and put the depth scale on #bear-img-wrap via CSS var. */
+    #bear-scene.talking #bear-ground-shadow { animation: shadowTalkPulse 0.44s ease-in-out infinite; }
+    @keyframes shadowTalkPulse {
+      0%,100% { transform:translateX(-50%) scaleX(1);  opacity:1; }
+      30%     { transform:translateX(-50%) scaleX(.90); opacity:.80; }
+    }
     #bear-img-wrap {
       position: relative; z-index: 1; width: 100%;
       filter: drop-shadow(0 10px 22px rgba(45,18,0,0.50))
-              drop-shadow(0 3px 7px  rgba(0,0,0,0.28));
-      /* Look-at tilt (slow, smoothed in JS — no CSS transition needed) */
-      transform: rotateZ(var(--look-tilt, 0deg));
-      transform-origin: 50% 92%;
-      /* NO transition here — look-at is already smoothed via LOOK_DECAY in JS.
-         A CSS transition on top of JS easing creates double-smoothing lag. */
+              drop-shadow(0 3px 7px rgba(0,0,0,0.28));
     }
-
-    /* Depth scale sits on a separate property so it can't fight look-at tilt.
-       We scale the scene width (which scales the bear visually) using a
-       CSS var on the scene element itself — safe because it only sets width,
-       not transform. This is the lightest possible depth cue. */
-    #bear-scene {
-      /* --anchor-scale drives apparent size from anchor depth */
-      width: calc(min(240px, 56vw) * var(--anchor-scale, 1));
-    }
-
-    /* ARRIVAL — "step forward" scale on bear-img (separate element from sway).
-       bear-img already has breathing; arriving overrides it briefly then
-       breathing resumes naturally when the class is removed. */
-    #bear-scene.arriving #bear-img {
-      animation: bearArrive 0.88s cubic-bezier(.22,1.2,.36,1) both;
-    }
-    @keyframes bearArrive {
-      0%   { transform: scale(0.84) translateY(8px);  }
-      38%  { transform: scale(1.06) translateY(-6px); }  /* step forward */
-      60%  { transform: scale(0.97) translateY(0);    }  /* settle */
-      76%  { transform: scale(1.02) translateY(-2px); }  /* friendly bounce */
-      100% { transform: scale(1)    translateY(0);    }
-    }
-
     #bear-img {
-      width: 100%; height: auto;
-      display: block;
-      /* transform-origin at 92% so scale/bounce keeps feet planted */
+      width: 100%; height: auto; display: block;
       transform-origin: 50% 92%;
-      user-select: none;
-      -webkit-user-drag: none;
-      /* GPU compositing — prevents composite-layer jank on mobile */
+      user-select: none; -webkit-user-drag: none;
       will-change: transform;
     }
-
-    /*
-      BLINK OVERLAY
-      Positioned over the eye zone of the Blocky Bear reference.
-      Eyes are ~27-44% from top, ~18-82% across the image width.
-      Two dark rounded rects slide down to cover each eye.
-    */
     #bear-blink-overlay {
-      position: absolute;
-      top: 27%; left: 18%;
+      position: absolute; top: 27%; left: 18%;
       width: 64%; height: 17%;
       pointer-events: none; z-index: 2;
       opacity: 0; transform: scaleY(0.04);
       transform-origin: center top;
     }
     #bear-blink-overlay svg { width: 100%; height: 100%; overflow: visible; }
-
-    /* Speech bubble — absolutely positioned above bear-scene,
-       so it moves with the anchor-driven bear position */
     #speech-bubble {
       position: absolute;
-      bottom: calc(100% + 8px); /* sits 8px above the top of bear-scene */
-      left: 50%;
+      bottom: calc(100% + 8px); left: 50%;
       transform: translateX(-50%) translateY(6px);
       background: var(--panel-glass);
       border: 2.5px solid rgba(255,255,255,0.92);
-      border-radius: 22px;
-      padding: 10px 16px;
-      font-size: clamp(14px,4vw,17px);
-      font-weight: bold; color: var(--text-warm);
-      text-align: center;
-      white-space: nowrap; max-width: min(264px, 80vw);
+      border-radius: 22px; padding: 10px 16px;
+      font-size: clamp(14px,4vw,17px); font-weight: bold; color: var(--text-warm);
+      text-align: center; white-space: nowrap; max-width: min(280px, 84vw);
       box-shadow: 0 5px 18px var(--shadow-warm);
       backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      opacity: 0;
-      transition: opacity 0.35s ease, transform 0.35s ease;
-      pointer-events: none;
-      z-index: 6;
+      opacity: 0; transition: opacity 0.35s ease, transform 0.35s ease;
+      pointer-events: none; z-index: 6;
     }
-    #speech-bubble.visible {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
+    #speech-bubble.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
     #speech-bubble::after {
       content: ""; position: absolute; left: 46px; bottom: -12px;
-      width: 14px; height: 14px;
-      background: var(--panel-glass);
+      width: 14px; height: 14px; background: var(--panel-glass);
       border-right: 2.5px solid rgba(255,255,255,0.92);
       border-bottom: 2.5px solid rgba(255,255,255,0.92);
       transform: rotate(45deg);
     }
 
-    /* ═══════ BEAR ANIMATIONS ═══════
-       All anchored at transform-origin 50% 92%
-       so the bear stays grounded at its feet.
-    ════════════════════════════════ */
-
-    /* ENTER — bear drops in and lands with a single soft bounce */
-    #bear-scene.entering #bear-img {
-      animation: bearEnter 0.65s cubic-bezier(.34,1.56,.64,1) both;
-    }
+    /* ── ANIMATIONS ───────────────────────────────────────── */
+    #bear-scene.entering #bear-img { animation: bearEnter 0.65s cubic-bezier(.34,1.56,.64,1) both; }
     @keyframes bearEnter {
       0%   { transform: scale(0.72) translateY(22px); }
       72%  { transform: scale(1.04) translateY(-5px); }
-      100% { transform: scale(1)    translateY(0);    }
+      100% { transform: scale(1) translateY(0); }
     }
-
-    /* TALKING SHADOW PULSE — shadow narrows as bear rises, grounds the motion */
-    #bear-scene.talking #bear-ground-shadow {
-      animation: shadowTalkPulse 0.44s ease-in-out infinite;
-    }
-    @keyframes shadowTalkPulse {
-      0%,100% { transform: translateX(-50%) scaleX(1);    opacity: 1; }
-      30%     { transform: translateX(-50%) scaleX(0.90); opacity: 0.80; }
-    }
-
-    /* IDLE — breathing + sway run simultaneously on the same element.
-       Breathing is on #bear-img (transform: scale/translateY).
-       Sway is on #bear-scene itself (translateX + subtle rotateZ).
-       They layer independently — neither overrides the other. */
-    #bear-scene.idle #bear-img {
-      animation: bearBreathe 4.6s ease-in-out infinite;
-    }
+    #bear-scene.idle #bear-img { animation: bearBreathe 4.6s ease-in-out infinite; }
     @keyframes bearBreathe {
-      0%,100% { transform: scaleX(1)     scaleY(1)     translateY(0);    }
+      0%,100% { transform: scaleX(1) scaleY(1) translateY(0); }
       48%     { transform: scaleX(1.015) scaleY(1.032) translateY(-4px); }
     }
-
-    /* SWAY — applied to #bear-scene wrapper, 6–8s loop, ±4px X + ±1.2deg tilt.
-       Runs continuously while idle; removed by JS when other states take over.
-       The different period (7.2s) from breathing (4.6s) means they drift in and
-       out of phase, creating natural-feeling variation. */
-    #bear-scene.idle {
-      animation: bearSway 7.2s ease-in-out infinite;
-    }
+    #bear-scene.idle { animation: bearSway 7.2s ease-in-out infinite; }
     @keyframes bearSway {
-      0%,100% { transform: translateX(0)   rotateZ(0deg);    }
-      28%     { transform: translateX(4px)  rotateZ(0.8deg);  }
+      0%,100% { transform: translateX(0) rotateZ(0deg); }
+      28%     { transform: translateX(4px) rotateZ(0.8deg); }
       72%     { transform: translateX(-4px) rotateZ(-0.8deg); }
     }
-
-    /* TALKING — 3-phase bob (lean in → settle → return) feels organic */
-    #bear-scene.talking #bear-img {
-      animation: bearTalk 0.44s ease-in-out infinite;
-    }
+    #bear-scene.talking #bear-img { animation: bearTalk 0.44s ease-in-out infinite; }
     @keyframes bearTalk {
-      0%   { transform: translateY(0)    scaleY(1);     }
+      0%   { transform: translateY(0) scaleY(1); }
       30%  { transform: translateY(-5px) scaleY(1.016); }
       58%  { transform: translateY(-2px) scaleY(1.008); }
-      100% { transform: translateY(0)    scaleY(1);     }
+      100% { transform: translateY(0) scaleY(1); }
     }
-
-    /* HAPPY — bigger squash/stretch, longer air time, plush toy feel */
-    #bear-scene.happy #bear-img {
-      animation: bearHappy 1.05s cubic-bezier(.34,1.56,.64,1);
-    }
+    #bear-scene.happy #bear-img { animation: bearHappy 1.05s cubic-bezier(.34,1.56,.64,1); }
     @keyframes bearHappy {
-      0%   { transform: scaleX(1)    scaleY(1)    translateY(0)     rotate(0deg);   }
-      12%  { transform: scaleX(1.10) scaleY(0.84) translateY(0)     rotate(-1deg);  }
+      0%   { transform: scaleX(1) scaleY(1) translateY(0) rotate(0deg); }
+      12%  { transform: scaleX(1.10) scaleY(0.84) translateY(0) rotate(-1deg); }
       38%  { transform: scaleX(0.89) scaleY(1.22) translateY(-30px) rotate(1.5deg); }
-      58%  { transform: scaleX(0.89) scaleY(1.22) translateY(-30px) rotate(-1deg);  }
-      76%  { transform: scaleX(1.06) scaleY(0.93) translateY(0)     rotate(0.5deg); }
-      100% { transform: scaleX(1)    scaleY(1)    translateY(0)     rotate(0deg);   }
+      58%  { transform: scaleX(0.89) scaleY(1.22) translateY(-30px) rotate(-1deg); }
+      76%  { transform: scaleX(1.06) scaleY(0.93) translateY(0) rotate(0.5deg); }
+      100% { transform: scaleX(1) scaleY(1) translateY(0) rotate(0deg); }
     }
-
-    /* CONFUSED — slower warmer tilt, reads as "hmm?" not a harsh shake */
-    #bear-scene.confused #bear-img {
-      animation: bearConfused 0.95s ease;
-    }
-    @keyframes bearConfused {
-      0%,100% { transform: rotate(0deg)    translateX(0);   }
-      18%     { transform: rotate(-5.5deg) translateX(-4px); }
-      42%     { transform: rotate(5deg)    translateX(3px);  }
-      65%     { transform: rotate(-3deg)   translateX(-2px); }
-      84%     { transform: rotate(1.5deg)  translateX(1px);  }
-    }
-
-    /* TWITCH — idle scale nudge */
-    #bear-scene.twitch #bear-img {
-      animation: bearTwitch 0.55s ease;
-    }
+    #bear-scene.twitch #bear-img { animation: bearTwitch 0.55s ease; }
     @keyframes bearTwitch {
       0%,100% { transform: scale(1); }
       40%     { transform: scaleX(1.025) scaleY(0.982) translateY(-2px); }
     }
-
-    /* BLINK — lid overlay */
-    #bear-scene.blinking #bear-blink-overlay {
-      animation: bearBlinkLid 0.30s ease forwards;
-    }
+    #bear-scene.blinking #bear-blink-overlay { animation: bearBlinkLid 0.30s ease forwards; }
     @keyframes bearBlinkLid {
       0%,100% { opacity:0;    transform: scaleY(0.04); }
       35%,65% { opacity:0.97; transform: scaleY(1); }
     }
 
-    /* HUD */
+    /* ── HUD ───────────────────────────────────────────────── */
     #top-hud {
-      position: fixed;
-      top: env(safe-area-inset-top, 10px);
+      position: fixed; top: env(safe-area-inset-top, 10px);
       left: 0; right: 0; z-index: 20;
       display: flex; flex-direction: column; align-items: center; gap: 8px;
       padding: 10px 14px 0; pointer-events: none;
     }
     #title-pill {
-      background: var(--panel-glass);
-      border: 2px solid rgba(255,255,255,0.9);
+      background: var(--panel-glass); border: 2px solid rgba(255,255,255,0.9);
       border-radius: 999px; padding: 5px 18px;
       font-size: 14px; font-weight: bold; color: var(--brown-dark);
-      letter-spacing: 0.04em;
-      box-shadow: 0 3px 12px var(--shadow-warm);
+      letter-spacing: 0.04em; box-shadow: 0 3px 12px var(--shadow-warm);
       backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     }
     #progress-row {
@@ -337,8 +174,7 @@
     }
     .pg-dot {
       width: 14px; height: 18px; border-radius: 2px 5px 5px 2px;
-      background: rgba(255,255,255,0.28);
-      border: 1.5px solid rgba(255,255,255,0.45);
+      background: rgba(255,255,255,0.28); border: 1.5px solid rgba(255,255,255,0.45);
       transition: all 0.3s ease;
     }
     .pg-dot.found {
@@ -346,77 +182,53 @@
       box-shadow: 0 0 7px rgba(255,215,80,0.75); transform: scale(1.18);
     }
     .pg-dot.pop { animation: dotPop 0.38s ease; }
-    @keyframes dotPop { 0%{transform:scale(1.18)} 40%{transform:scale(1.6) rotate(8deg)} 100%{transform:scale(1.18)} }
+    @keyframes dotPop {
+      0%  { transform: scale(1.18); }
+      40% { transform: scale(1.6) rotate(8deg); }
+      100%{ transform: scale(1.18); }
+    }
 
-    /* Scan hint */
-    #scan-hint {
-      position: fixed; bottom: env(safe-area-inset-bottom,16px);
+    /* ── CHAPTER LABEL ─────────────────────────────────────── */
+    #chapter-label {
+      position: fixed; bottom: env(safe-area-inset-bottom, 20px);
       left: 0; right: 0; z-index: 20;
-      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
       padding: 0 20px 10px; pointer-events: none;
       opacity: 1; transition: opacity 0.4s ease;
     }
-    #scan-hint.hidden { opacity: 0; }
-    #scan-ring {
-      width: 52px; height: 52px; border-radius: 50%;
-      border: 3px solid rgba(255,255,255,0.7); position: relative;
-      animation: scanPulse 2s ease-in-out infinite;
+    #chapter-label.hidden { opacity: 0; pointer-events: none; }
+    #chapter-num {
+      font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--gold);
+      text-shadow: 0 1px 6px rgba(0,0,0,0.6);
     }
-    #scan-ring::before {
-      content: ""; position: absolute; inset: 6px;
-      border-radius: 50%; border: 2px dashed rgba(255,215,80,0.7);
-      animation: scanSpin 3s linear infinite;
-    }
-    @keyframes scanPulse { 0%,100%{transform:scale(1);opacity:.9} 50%{transform:scale(1.12);opacity:1} }
-    @keyframes scanSpin  { to { transform: rotate(360deg); } }
-    #scan-label {
-      font-size: 13px; font-weight: bold;
-      color: rgba(255,255,255,0.88); text-shadow: 0 1px 6px rgba(0,0,0,0.5);
-      letter-spacing: 0.06em; text-transform: uppercase;
+    #chapter-title-text {
+      font-size: clamp(16px, 4.5vw, 20px); font-weight: bold;
+      color: rgba(255,248,220,0.95); text-shadow: 0 1px 8px rgba(0,0,0,0.55);
+      text-align: center;
     }
 
-    /* QR overlay */
-    #qr-overlay {
-      position: fixed; inset: 0; z-index: 50;
-      display: none; align-items: center; justify-content: center;
-      background: rgba(10,5,0,0.55);
-      backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
-    }
-    #qr-overlay.show { display: flex; }
-    #qr-box {
-      background: var(--panel-glass); border: 3px solid rgba(255,255,255,0.9);
-      border-radius: 24px; padding: 18px;
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
-      width: min(300px,88vw); box-shadow: 0 16px 40px rgba(0,0,0,0.35);
-    }
-    #qr-title { font-size: 15px; font-weight: bold; color: var(--text-warm); }
-    #qr-video-wrap { width:100%; border-radius:14px; overflow:hidden; border:2px solid rgba(180,120,40,0.4); }
-    #qr-video { display:block; width:100%; height:160px; object-fit:cover; background:#000; }
-    #qr-close {
-      background: var(--gold); border: none; border-radius: 14px;
-      padding: 10px 24px; font-size: 15px; font-weight: bold;
+    /* ── TAP-TO-PLAY ────────────────────────────────────────── */
+    #tap-play {
+      position: fixed; bottom: env(safe-area-inset-bottom, 24px);
+      left: 50%; transform: translateX(-50%);
+      z-index: 25; display: none;
+      background: var(--gold); border: none; border-radius: 999px;
+      padding: 14px 36px; font-size: clamp(16px,4.5vw,19px); font-weight: 900;
       color: var(--text-warm); cursor: pointer; font-family: inherit;
+      box-shadow: 0 6px 24px rgba(255,200,60,0.45);
+      animation: btnPulse 2.2s ease-in-out infinite;
     }
-    #qr-btn {
-      position: fixed; bottom: env(safe-area-inset-bottom,14px); right: 16px;
-      z-index: 22; background: rgba(0,0,0,0.45);
-      border: 2px solid rgba(255,255,255,0.55); border-radius: 14px;
-      padding: 8px 14px; font-size: 12px; font-weight: bold;
-      color: rgba(255,255,255,0.9); cursor: pointer; font-family: inherit;
-      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-      letter-spacing: 0.05em;
+    #tap-play.show { display: block; }
+    @keyframes btnPulse {
+      0%,100% { box-shadow: 0 6px 24px rgba(255,200,60,0.45); }
+      50%     { box-shadow: 0 6px 38px rgba(255,200,60,0.75); }
     }
 
-    /* Effects */
+    /* ── EFFECTS ────────────────────────────────────────────── */
     #effects-layer { position:fixed; inset:0; z-index:8; pointer-events:none; overflow:hidden; }
     .fx-piece { position:absolute; opacity:0; pointer-events:none; will-change:transform,opacity; font-size:clamp(18px,5vw,24px); line-height:1; }
     .fx-dot   { position:absolute; opacity:0; pointer-events:none; border-radius:50%; will-change:transform,opacity; }
-    @keyframes fxFloat {
-      0%   { opacity:0; transform:translate(0,0) scale(0.4) rotate(0deg); }
-      12%  { opacity:1; transform:translate(0,0) scale(1.1); }
-      100% { opacity:0; transform:translate(var(--tx),var(--ty)) scale(0.85) rotate(var(--rot)); }
-    }
-    /* fxRise — gentle upward float for correct-answer celebration around the bear */
     @keyframes fxRise {
       0%   { opacity:0; transform:translate(0,0) scale(0.5) rotate(var(--rot-start)); }
       15%  { opacity:1; }
@@ -429,14 +241,18 @@
       100%{ opacity:0; transform:translate(var(--tx),var(--ty)) scale(1.1) rotate(var(--rot)); }
     }
 
-    /* Final glow + banner */
+    /* ── GLOW + BANNER ──────────────────────────────────────── */
     #final-glow {
       position:fixed; left:50%; top:60%; width:60px; height:60px; border-radius:50%;
       background:radial-gradient(circle,rgba(255,240,100,.95) 0%,rgba(255,220,60,.2) 45%,transparent 70%);
       transform:translate(-50%,-50%) scale(0); opacity:0; z-index:65; pointer-events:none;
     }
     #final-glow.show { animation:glowExpand 2.2s ease-out 3; }
-    @keyframes glowExpand { 0%{transform:translate(-50%,-50%) scale(0.15);opacity:0} 16%{opacity:1} 100%{transform:translate(-50%,-50%) scale(16);opacity:0} }
+    @keyframes glowExpand {
+      0%  { transform:translate(-50%,-50%) scale(0.15); opacity:0; }
+      16% { opacity:1; }
+      100%{ transform:translate(-50%,-50%) scale(16); opacity:0; }
+    }
     #rainbow-banner {
       position:fixed; top:14%; left:50%;
       transform:translateX(-50%) translateY(-60px);
@@ -447,13 +263,18 @@
       opacity:0; z-index:70; pointer-events:none; font-family:inherit;
     }
     #rainbow-banner.show { animation:bannerDrop 5.5s ease forwards; }
-    @keyframes bannerDrop { 0%{opacity:0;transform:translateX(-50%) translateY(-60px)} 10%{opacity:1;transform:translateX(-50%) translateY(0)} 85%{opacity:1} 100%{opacity:0;transform:translateX(-50%) translateY(-14px)} }
+    @keyframes bannerDrop {
+      0%  { opacity:0; transform:translateX(-50%) translateY(-60px); }
+      10% { opacity:1; transform:translateX(-50%) translateY(0); }
+      85% { opacity:1; }
+      100%{ opacity:0; transform:translateX(-50%) translateY(-14px); }
+    }
 
-    /* Final card */
+    /* ── FINAL CARD ─────────────────────────────────────────── */
     #final-screen {
       position:fixed; inset:0; display:none;
       align-items:center; justify-content:center; padding:20px;
-      background:rgba(20,10,2,.50);
+      background:rgba(20,10,2,.52);
       backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); z-index:60;
     }
     #final-screen.show { display:flex; }
@@ -471,7 +292,7 @@
     .fc-btn.primary { background:var(--gold); color:var(--text-warm); }
     .fc-btn.ghost   { background:#fff; color:var(--text-warm); border:2px solid #ddd; }
 
-    /* Start screen */
+    /* ── START SCREEN ───────────────────────────────────────── */
     #start-screen {
       position:fixed; inset:0; z-index:90;
       display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
@@ -481,14 +302,22 @@
     #start-screen.hidden { display:none; }
     #start-bear-preview {
       width: min(170px,42vw);
-      filter: drop-shadow(0 10px 28px rgba(0,0,0,0.6))
-              drop-shadow(0 3px 8px rgba(0,0,0,0.3));
+      filter: drop-shadow(0 10px 28px rgba(0,0,0,0.6)) drop-shadow(0 3px 8px rgba(0,0,0,0.3));
       animation: startBearFloat 3.2s ease-in-out infinite;
     }
-    @keyframes startBearFloat { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-10px) scale(1.016)} }
+    @keyframes startBearFloat {
+      0%,100% { transform:translateY(0) scale(1); }
+      50%     { transform:translateY(-10px) scale(1.016); }
+    }
     #start-title {
       font-size:clamp(22px,6.5vw,32px); font-weight:900; color:var(--gold);
       text-align:center; line-height:1.15; text-shadow:0 2px 10px rgba(0,0,0,.5);
+    }
+    #start-chapter-info {
+      font-size:clamp(14px,4vw,17px); font-weight:bold; color:var(--gold);
+      text-align:center; line-height:1.4;
+      background: rgba(0,0,0,0.35); border-radius:16px;
+      padding: 10px 20px; max-width: 300px; display:none;
     }
     #start-subtitle {
       font-size:clamp(13px,3.8vw,16px); color:rgba(255,240,200,.82);
@@ -501,7 +330,6 @@
       box-shadow:0 6px 24px rgba(255,200,60,.45); font-family:inherit;
       animation:btnPulse 2.2s ease-in-out infinite;
     }
-    @keyframes btnPulse { 0%,100%{box-shadow:0 6px 24px rgba(255,200,60,.45)} 50%{box-shadow:0 6px 38px rgba(255,200,60,.70)} }
   </style>
 </head>
 <body>
@@ -509,51 +337,24 @@
   <!-- START SCREEN -->
   <div id="start-screen">
     <img id="start-bear-preview"
-         src="assets/bear_idle.png"
-         alt="Blocky Bear"
-         onerror="this.style.cssText='font-size:90px;line-height:1';this.outerHTML='<div style=&quot;font-size:90px&quot;>🐻</div>'"/>
+         src="assets/bear_idle.png" alt="Blocky Bear"
+         onerror="this.outerHTML='<div style=&quot;font-size:90px;line-height:1&quot;>🐻</div>'"/>
     <div id="start-title">Blocky Bear<br>Story Hunt</div>
+    <div id="start-chapter-info"></div>
     <div id="start-subtitle">Help Blocky Bear find all the missing story pages!</div>
     <button id="start-btn" type="button">✨ Let's Go!</button>
   </div>
 
-  <!-- AR CONTAINER (MindAR mounts here) -->
-  <div id="ar-container"></div>
-
   <!-- BEAR OVERLAY -->
   <div id="bear-overlay">
     <div id="bear-scene" class="idle">
-      <!-- Speech bubble is a child of bear-scene so it follows anchor position -->
-      <div id="speech-bubble">Point your camera at the sign!</div>
-
+      <div id="speech-bubble">Welcome!</div>
       <div id="bear-ground-shadow"></div>
-
       <div id="bear-img-wrap">
-        <!--
-          ASSET MAP — place files in assets/ folder:
-            bear_idle.png     (REQUIRED)  — the extracted Blocky Bear PNG
-            bear_talk_1.png   (optional)  — mouth slightly open
-            bear_talk_2.png   (optional)  — mouth more open
-            bear_blink.png    (optional)  — eyes closed
-            bear_happy.png    (optional)  — wide eyes / big smile
-            bear_confused.png (optional)  — soft frown
-
-          If optional frames are missing, CSS transforms + blink overlay
-          animate the single idle frame instead. Works with just one PNG.
-        -->
-        <img id="bear-img"
-             src="assets/bear_idle.png"
-             alt="Blocky Bear"
-             draggable="false"/>
-
-        <!-- Blink overlay: dark rounded lids descend over eye zone.
-             Calibrated to Blocky Bear ref: eyes at ~27-44% from top,
-             ~18-82% width. Adjust top/left/width/height above if needed. -->
+        <img id="bear-img" src="assets/bear_idle.png" alt="Blocky Bear" draggable="false"/>
         <div id="bear-blink-overlay" aria-hidden="true">
           <svg viewBox="0 0 100 28" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-            <!-- left eye lid -->
             <rect x="8"  y="0" width="35" height="28" rx="14" fill="#1a0c04" opacity="0.97"/>
-            <!-- right eye lid -->
             <rect x="57" y="0" width="35" height="28" rx="14" fill="#1a0c04" opacity="0.97"/>
           </svg>
         </div>
@@ -567,26 +368,19 @@
     <div id="progress-row" aria-label="Story pages found"></div>
   </div>
 
-  <!-- SCAN HINT -->
-  <div id="scan-hint">
-    <div id="scan-ring"></div>
-    <div id="scan-label">Point at the sign</div>
+  <!-- CHAPTER LABEL -->
+  <div id="chapter-label" class="hidden">
+    <div id="chapter-num"></div>
+    <div id="chapter-title-text"></div>
   </div>
 
-  <!-- QR BUTTON + OVERLAY -->
-  <button id="qr-btn" type="button">📷 Scan QR</button>
-  <div id="qr-overlay">
-    <div id="qr-box">
-      <div id="qr-title">Scan the QR code on the sign</div>
-      <div id="qr-video-wrap"><video id="qr-video" muted playsinline></video></div>
-      <button id="qr-close" type="button">Close</button>
-    </div>
-  </div>
+  <!-- TAP TO REPLAY AUDIO -->
+  <button id="tap-play" type="button">🔊 Play Again</button>
 
   <!-- EFFECTS -->
   <div id="effects-layer"  aria-hidden="true"></div>
   <div id="final-glow"     aria-hidden="true"></div>
-  <div id="rainbow-banner" aria-hidden="true">📖 All Pages Found — Story Time! 🐻</div>
+  <div id="rainbow-banner" aria-hidden="true">📖 Story Complete — Well Done! 🐻</div>
 
   <!-- FINAL CARD -->
   <div id="final-screen" aria-hidden="true">
@@ -605,1177 +399,449 @@
     </div>
   </div>
 
-  <!-- DEBUG OVERLAY — triple-tap top-right corner to toggle.
-       Reads live state; does NOT modify any game variable.
-       Remove this block before final production deploy. -->
-  <div id="bb-debug" aria-hidden="true" style="
-    display:none; position:fixed; top:8px; right:8px; z-index:99999;
-    background:rgba(0,0,0,0.82); color:#0f0; font:11px/1.6 monospace;
-    padding:10px 12px; border-radius:8px; min-width:210px; max-width:90vw;
-    pointer-events:none; border:1px solid rgba(0,255,0,0.25);
-  "></div>
-
-  <script>
-  // ═══════════════════════════════════════════════════════════════════
-  // GLOBAL ERROR HANDLING — installed before any other script runs.
-  // ═══════════════════════════════════════════════════════════════════
-
-  // ── normalizeError ─────────────────────────────────────────────────
-  // Guarantees { message, stack, type } regardless of what was thrown.
-  // Handles: Error, string, number, null, undefined, DOMException,
-  //          plain objects, rejected promises with no value.
-  window.__normalizeError = function (err) {
-    if (err === null || err === undefined) {
-      return {
-        message: "Unknown runtime error (possibly cross-origin or suppressed)",
-        stack:   "(no stack — null/undefined thrown)",
-        type:    "NullError"
-      };
-    }
-    if (typeof err === "string") {
-      return {
-        message: err || "Unknown runtime error (empty string thrown)",
-        stack:   "(no stack — string thrown)",
-        type:    "StringError"
-      };
-    }
-    if (typeof err === "number" || typeof err === "boolean") {
-      return {
-        message: "Non-Error value thrown: " + String(err),
-        stack:   "(no stack — primitive thrown)",
-        type:    "PrimitiveError"
-      };
-    }
-    // Error, DOMException, or Error-like object
-    const msg   = (err.message !== undefined && err.message !== null)
-                ? String(err.message)
-                : (err.reason !== undefined ? String(err.reason) : "");
-    const stack = err.stack  ? String(err.stack)  : "(no stack)";
-    const type  = err.name   ? String(err.name)   : "Error";
-    return {
-      message: msg  || "Unknown runtime error (possibly cross-origin or suppressed)",
-      stack:   stack,
-      type:    type
-    };
-  };
-
-  // ── __bbLog ────────────────────────────────────────────────────────
-  // Signature: __bbLog(code, "system:step", err)
-  // code    — named constant e.g. "MINDAR_START_FAILED"
-  // context — "system:step" string, NEVER undefined
-  // err     — anything (normalizeError handles all types)
-  window.__bbLog = function (code, context, err) {
-    const ctx    = (context && typeof context === "string" && context.trim())
-                 ? context.trim()
-                 : "UNKNOWN_CONTEXT";
-    const parts  = ctx.split(":");
-    const system = parts[0] || "UNKNOWN";
-    const step   = parts.slice(1).join(":") || "UNKNOWN";
-    const n      = window.__normalizeError(err);
-
-    console.warn(
-      "[BlockyBear]", code,
-      "| system:", system,
-      "| step:",   step,
-      "| type:",   n.type,
-      "| msg:",    n.message,
-      "| stack:",  n.stack
-    );
-  };
-
-  // ── isScriptLoadNoise ─────────────────────────────────────────────
-  // Primary signal: message === "Script error." always matches cross-origin
-  // suppression regardless of what lineno/filename the sandbox invented.
-  function isScriptLoadNoise(msg, filename, lineno) {
-    const noSource = !filename || filename === "" || filename === "undefined";
-    const noLine   = !lineno   || lineno   === 0;
-    return (
-      msg === "Script error." ||   // primary: browser's own cross-origin mask text
-      msg === ""              ||   // fully suppressed (no message at all)
-      (noSource && noLine)         // standard CDN failure: no file, no line
-    );
-  }
-
-  // ── Capture-phase error listener ──────────────────────────────────
-  window.addEventListener("error", function (e) {
-    const msg      = (e.message  || "").trim();
-    const filename = (e.filename || "").trim();
-    const lineno   =  e.lineno;
-
-    if (isScriptLoadNoise(msg, filename, lineno)) {
-      e.stopImmediatePropagation();
-      e.preventDefault();
-      return;
-    }
-
-    // Real runtime error — log with full context
-    const ctx = (filename || "inline") + ":" + (lineno || "?");
-    window.__bbLog("RUNTIME_ERROR", "GLOBAL:error:" + ctx, e.error || msg || null);
-    e.preventDefault();
-  }, true);
-
-  // ── window.onerror backstop ───────────────────────────────────────
-  window.onerror = function (message, source, lineno, colno, err) {
-    if (isScriptLoadNoise(message || "", source || "", lineno)) {
-      return true;
-    }
-    const ctx = (source || "inline") + ":" + (lineno || "?");
-    window.__bbLog("RUNTIME_ERROR", "GLOBAL:onerror:" + ctx, err || message || null);
-    return true;
-  };
-
-  // ── unhandledrejection ────────────────────────────────────────────
-  window.addEventListener("unhandledrejection", function (e) {
-    window.__bbLog("UNHANDLED_REJECTION", "GLOBAL:promise", e.reason);
-    e.preventDefault();
-  });
-  </script>
-
   <script>
   (function () {
     "use strict";
 
-    // ─── DYNAMIC SCRIPT LOADER ───────────────────────────────────────────
-    function loadScript(urls, timeoutMs) {
-      const list    = Array.isArray(urls) ? urls : [urls];
-      const timeout = timeoutMs || 8000;
-
-      function tryNext(i) {
-        if (i >= list.length) return Promise.resolve(false);
-        const url = list[i];
-
-        return new Promise((resolve) => {
-          const el    = document.createElement("script");
-          let settled = false;
-
-          const done = (ok) => {
-            if (settled) return;
-            settled = true;
-            clearTimeout(timer);
-            if (!ok) {
-              try { el.parentNode && el.parentNode.removeChild(el); } catch {}
-              // Named code so CDN failures are identifiable in the log
-              window.__bbLog("CDN_LOAD_FAILED", url, new Error("Script failed to load: " + url));
-              resolve(tryNext(i + 1));
-            } else {
-              resolve(true);
-            }
-          };
-
-          const timer = setTimeout(() => done(false), timeout);
-          el.src     = url;
-          el.async   = true;
-          el.onload  = () => done(true);
-          el.onerror = () => done(false);
-
-          try {
-            document.head.appendChild(el);
-          } catch (e) {
-            done(false);
-          }
-        });
-      }
-
-      return tryNext(0);
-    }
-
-    // CDN lists — primary + fallback for each library
-    // MindAR: use the @1.2.2 prod bundle which reliably exposes window.MINDAR.
-    // The @1.2.5 mindar-image-three.prod.js loaded but did NOT set window.MINDAR
-    // (confirmed by MINDAR_API_MISSING log — script loaded, API missing).
-    const MINDAR_URLS = [
-      "https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-three.prod.js",
-      "https://unpkg.com/mind-ar@1.2.2/dist/mindar-image-three.prod.js",
-    ];
-    const ZXING_URLS = [
-      "https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js",
-      "https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js",
-      "https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.20.0/index.min.js",
+    // ── CHAPTER CONFIG ────────────────────────────────────────
+    const CHAPTERS = [
+      { num:1, title:"The Entrance",        audio:"clue_01_entrance.mp3"    },
+      { num:2, title:"The Hungry Bear",     audio:"clue_02_eatery.mp3"      },
+      { num:3, title:"The Picnic Field",    audio:"clue_03_pavilion.mp3"    },
+      { num:4, title:"The Sunny Meadow",    audio:"clue_04_grass.mp3"       },
+      { num:5, title:"The Big Show",        audio:"clue_05_mainstage.mp3"   },
+      { num:6, title:"The Secret Room",     audio:"clue_06_office.mp3"      },
+      { num:7, title:"Behind the Curtain",  audio:"clue_07_behindstage.mp3" },
+      { num:8, title:"The Story Ends",      audio:"clue_08_books.mp3"       },
     ];
 
-    // ─── DEPENDENCY FLAGS ─────────────────────────────────────────────────
-    window.__mindARReady = false;
-    window.__zxingReady  = false;
-
-    // ─── DEPENDENCY GUARDS ───────────────────────────────────────────────
-    function depOK(path, root) {
-      try {
-        let obj = root || window;
-        for (const key of path) {
-          if (obj === null || obj === undefined) return false;
-          if (typeof obj[key] === "undefined") return false;
-          obj = obj[key];
-        }
-        return true;
-      } catch { return false; }
-    }
-
-    const HAS_MINDAR  = () => depOK(["MINDAR","IMAGE","MindARThree"]);
-    const HAS_THREE   = () => depOK(["THREE","Vector3"]);
-    const HAS_ZXING   = () => depOK(["ZXing","BrowserMultiFormatReader"]);
-    const HAS_CAMERA  = () => depOK(["navigator","mediaDevices","getUserMedia"]);
-
-    // ─── DEPENDENCY VALIDATION ────────────────────────────────────────────
-    function validateDeps(mindARLoaded, zxingLoaded) {
-      if (!mindARLoaded) {
-        window.__bbLog("MINDAR_LOAD_FAILED", "validateDeps:load",
-          new Error("All MindAR CDNs unreachable"));
-      } else if (!HAS_MINDAR()) {
-        window.__bbLog("MINDAR_API_MISSING", "validateDeps:check",
-          new Error("MindAR script loaded but window.MINDAR.IMAGE.MindARThree is undefined"));
-      }
-
-      if (!zxingLoaded) {
-        window.__bbLog("ZXING_LOAD_FAILED", "validateDeps:load",
-          new Error("All ZXing CDNs unreachable"));
-      } else if (!HAS_ZXING()) {
-        window.__bbLog("ZXING_API_MISSING", "validateDeps:check",
-          new Error("ZXing script loaded but window.ZXing.BrowserMultiFormatReader is undefined"));
-      }
-
-      if (mindARLoaded && !HAS_THREE()) {
-        window.__bbLog("THREE_UNDEFINED", "validateDeps:check",
-          new Error("MindAR loaded but window.THREE.Vector3 is undefined — THREE not bundled?"));
-      }
-    }
-
-
-    // bear_idle.png is required (the extracted transparent PNG).
-    // All expression frames are optional — CSS handles everything if absent.
-    const BEAR = {
-      idle:     "assets/bear_idle.png",
-      talk1:    "assets/bear_talk_1.png",
-      talk2:    "assets/bear_talk_2.png",
-      blink:    "assets/bear_blink.png",
-      happy:    "assets/bear_happy.png",
-      confused: "assets/bear_confused.png",
-    };
-    const OK = { idle: true };
-
-    function preloadOptional() {
-      ["talk1","talk2","blink","happy","confused"].forEach(k => {
-        const img = new Image();
-        img.onload  = () => { OK[k] = true; };
-        img.onerror = () => { OK[k] = false; };
-        img.src = BEAR[k];
-      });
-    }
-
-    function setFrame(k) {
-      bearImg.src = (OK[k]) ? BEAR[k] : BEAR.idle;
-    }
-
-    // ─── GAME CONFIG ────────────────────────────────────────────────────
-    const SEQUENCE = [
-      "entrance","eatery","pavilion","grass",
-      "mainstage","office","behindstage","books"
-    ];
-    const NAMES = {
-      entrance:"the Entrance",    eatery:"the Eatery",
-      pavilion:"the Pavilion",    grass:"the Grass Area",
-      mainstage:"the Main Stage", office:"the Manager's Office",
-      behindstage:"Behind the Stage", books:"Enchanted Books"
-    };
     const AP = "assets/audio/";
-    const SFX = {
-      opening:"opening.mp3",
-      entrance:"clue_01_entrance.mp3", eatery:"clue_02_eatery.mp3",
-      pavilion:"clue_03_pavilion.mp3", grass:"clue_04_grass.mp3",
-      mainstage:"clue_05_mainstage.mp3", office:"clue_06_office.mp3",
-      behindstage:"clue_07_behindstage.mp3", books:"clue_08_books.mp3",
-      final:"final.mp3", background:"background.mp3"
-    };
-    const BUBBLES = {
-      opening: "Listen for your first clue!",
-      wrong:   ["Hmm, not that one!","Keep looking!","Almost there!","Try another!","Let's look again!"],
-      correct: ["You found a page! 🌟","Hooray! Amazing!","Wonderful!","You did it!","Yay! Keep going!"],
-      final:   "All pages found! 🐻📖 Go to the Manager's Office!"
-    };
 
-    // ─── STATE ──────────────────────────────────────────────────────────
-    let idx=0, lock=false, started=false, correctN=0, wrongN=0;
-    let blinkTO=null, twitchIV=null, talkIV=null, bgFadeIV=null, celTok=0;
-    let arUp=false, qrRdr=null, qrOn=false, curTarget=null;
+    // ── URL ROUTING ───────────────────────────────────────────
+    // gate=1  → Chapter 1 (idx 0)
+    // step=N  → Chapter N (idx N-1), N = 2..8
+    function getChapterIdx() {
+      const p = new URLSearchParams(window.location.search);
+      if (p.has("gate") && p.get("gate") === "1") return 0;
+      if (p.has("step")) {
+        const n = parseInt(p.get("step"), 10);
+        if (n >= 2 && n <= 8) return n - 1;
+      }
+      return null;
+    }
 
-    const ANIM_STATES = ["idle","talking","happy","confused","blinking","twitch","entering","arriving"];
+    const TARGET_IDX = getChapterIdx();
 
-    // ─── DOM ─────────────────────────────────────────────────────────────
-    const $         = id => document.getElementById(id);
-    const startScr  = $("start-screen");
-    const bearScene = $("bear-scene");
-    const bearImg   = $("bear-img");
-    const blinkOvl  = $("bear-blink-overlay");
-    const bubble    = $("speech-bubble");
-    const progRow   = $("progress-row");
-    const scanHint  = $("scan-hint");
-    const qrOvl     = $("qr-overlay");
-    const qrVid     = $("qr-video");
-    const fxLayer   = $("effects-layer");
-    const finalScr  = $("final-screen");
-    const glowEl    = $("final-glow");
-    const bannerEl  = $("rainbow-banner");
+    // ── STATE ─────────────────────────────────────────────────
+    let audioUnlocked = false;
+    let blinkTO       = null;
+    let twitchTO      = null;
+    let talkIV        = null;
+    let bgFadeIV      = null;
+    let celTok        = 0;
+    let correctN      = 0;
 
-    // ─── AUDIO ──────────────────────────────────────────────────────────
-    // BG_FULL = 0.78 — outdoor-ready level (was 0.62)
-    // BG_DUCK = 0.14 — clear voice-over headroom in noisy environments
-    // BG_FADE_IN_MS = 380 — perceptible "music returning" moment after speech
-    const BG_FULL        = 0.78;
-    const BG_DUCK        = 0.14;
-    const BG_FADE_IN_MS  = 380;
-    const BG_FADE_OUT_MS = 130;
+    const ANIM_STATES = ["idle","talking","happy","confused","blinking","twitch","entering"];
 
+    // ── DOM ───────────────────────────────────────────────────
+    const $           = id => document.getElementById(id);
+    const startScr    = $("start-screen");
+    const bearScene   = $("bear-scene");
+    const bearImg     = $("bear-img");
+    const bubble      = $("speech-bubble");
+    const progRow     = $("progress-row");
+    const chLabel     = $("chapter-label");
+    const chNum       = $("chapter-num");
+    const chTitleEl   = $("chapter-title-text");
+    const tapPlay     = $("tap-play");
+    const fxLayer     = $("effects-layer");
+    const finalScr    = $("final-screen");
+    const glowEl      = $("final-glow");
+    const bannerEl    = $("rainbow-banner");
+
+    // ── AUDIO ─────────────────────────────────────────────────
+    const BG_FULL = 0.78;
+    const BG_DUCK = 0.14;
     const sfx = new Audio();
     const bg  = new Audio();
-    sfx.preload="auto"; sfx.playsInline=true;
-    bg.preload="auto"; bg.loop=true; bg.playsInline=true;
+    sfx.preload = "auto"; sfx.playsInline = true;
+    bg.preload  = "auto"; bg.loop = true; bg.playsInline = true;
+    bg.volume   = BG_FULL;
 
-    // Set initial volume constant (replaces inline 0.62 at declaration site)
-    bg.volume = BG_FULL;
-
-    function fadeBg(to, ms = BG_FADE_IN_MS) {
+    function fadeBg(to, ms) {
+      ms = ms || 300;
       if (bgFadeIV) clearInterval(bgFadeIV);
       const from = bg.volume, diff = to - from,
             steps = Math.max(1, Math.round(ms / 28));
       let s = 0;
-      bgFadeIV = setInterval(() => {
+      bgFadeIV = setInterval(function() {
         s++;
         bg.volume = Math.max(0, Math.min(1, from + diff * (s / steps)));
         if (s >= steps) { clearInterval(bgFadeIV); bgFadeIV = null; }
       }, 28);
     }
 
-    function playAudio(file, cb, duck = false) {
-      if (started && bg.paused) bg.play().catch(() => {});
-      fadeBg(BG_DUCK, BG_FADE_OUT_MS);        // duck quickly on voice start
-
+    function playAudio(file, cb) {
+      if (!audioUnlocked) { if (cb) setTimeout(cb, 100); return; }
+      if (bg.paused) bg.play().catch(function(){});
+      fadeBg(BG_DUCK, 130);
       sfx.pause(); sfx.currentTime = 0;
       sfx.src = AP + file; sfx.load();
       sfx.onended = sfx.onerror = null;
-
       startTalk();
-
-      const done = () => {
+      var done = function() {
         stopTalk();
-        if (!duck) fadeBg(BG_FULL, BG_FADE_IN_MS); // restore to full outdoor level
+        fadeBg(BG_FULL, 380);
         if (cb) cb();
       };
       sfx.onended = done;
       sfx.onerror = done;
-      const p = sfx.play();
-      if (p && p.catch) p.catch(done);
+      var p = sfx.play();
+      if (p && p.catch) p.catch(function(err) {
+        if (err && err.name === "NotAllowedError") {
+          tapPlay.classList.add("show");
+        }
+        done();
+      });
     }
 
-    async function unlockAudio() {
+    function unlockAudio() {
+      if (audioUnlocked) return;
+      audioUnlocked = true;
+      tapPlay.classList.remove("show");
       try {
-        sfx.src=AP+SFX.opening; sfx.load();
-        await Promise.allSettled([sfx.play().catch(()=>{})]);
-        sfx.pause(); sfx.currentTime=0;
-      } catch{}
+        bg.src = AP + "background.mp3";
+        bg.load();
+        bg.volume = BG_FULL;
+        bg.play().catch(function(){});
+      } catch(e) {}
     }
 
-    // ─── BEAR ANIMATION ─────────────────────────────────────────────────
-    function clearBear(...keep) {
-      ANIM_STATES.forEach(s=>{ if(!keep.includes(s)) bearScene.classList.remove(s); });
+    // ── BEAR ANIMATION ────────────────────────────────────────
+    const BEAR = {
+      idle:  "assets/bear_idle.png",
+      talk1: "assets/bear_talk_1.png",
+      talk2: "assets/bear_talk_2.png",
+      blink: "assets/bear_blink.png",
+    };
+    var OK = { idle: true };
+
+    function preloadOptional() {
+      ["talk1","talk2","blink"].forEach(function(k) {
+        var img = new Image();
+        img.onload  = function() { OK[k] = true; };
+        img.onerror = function() { OK[k] = false; };
+        img.src = BEAR[k];
+      });
     }
 
+    function clearBear() {
+      var keep = Array.prototype.slice.call(arguments);
+      ANIM_STATES.forEach(function(s) {
+        if (keep.indexOf(s) === -1) bearScene.classList.remove(s);
+      });
+    }
     function setIdle() {
-      clearBear("idle"); bearScene.classList.add("idle"); setFrame("idle");
+      clearBear("idle"); bearScene.classList.add("idle");
+      if (talkIV) { clearInterval(talkIV); talkIV = null; }
+      bearImg.src = BEAR.idle;
     }
-
     function startTalk() {
       clearBear("talking"); bearScene.classList.add("talking");
-      // If expression frames exist, cycle them; otherwise CSS bob handles it
       if (OK.talk1 && OK.talk2) {
-        let toggle=false;
-        if(talkIV) clearInterval(talkIV);
-        talkIV=setInterval(()=>{ bearImg.src=toggle?BEAR.talk2:BEAR.talk1; toggle=!toggle; },185);
+        var tog = false;
+        if (talkIV) clearInterval(talkIV);
+        talkIV = setInterval(function() {
+          bearImg.src = tog ? BEAR.talk2 : BEAR.talk1; tog = !tog;
+        }, 185);
       }
     }
-
     function stopTalk() {
       clearBear("idle"); bearScene.classList.add("idle");
-      if(talkIV){clearInterval(talkIV);talkIV=null;}
-      setFrame("idle");
+      if (talkIV) { clearInterval(talkIV); talkIV = null; }
+      bearImg.src = BEAR.idle;
     }
-
-    function triggerAnim(state, frameKey, dur) {
-      clearBear(state); bearScene.classList.add(state);
-      setFrame(frameKey);
-      setTimeout(setIdle, dur);
+    function bearHappy() {
+      clearBear("happy"); bearScene.classList.add("happy");
+      setTimeout(setIdle, 1050);
     }
-
-    function bearHappy()    { triggerAnim("happy",   "happy",   1050); }
-    function bearConfused() { triggerAnim("confused","confused", 950); }
-
     function doBlink() {
       if (OK.blink) {
-        // Swap to blink frame for ~160ms
-        const prev=bearImg.src;
-        bearImg.src=BEAR.blink;
-        setTimeout(()=>{ if(bearImg.src===BEAR.blink) bearImg.src=prev; }, 160);
+        var prev = bearImg.src;
+        bearImg.src = BEAR.blink;
+        setTimeout(function() { if (bearImg.src === BEAR.blink) bearImg.src = prev; }, 160);
       } else {
-        // CSS overlay blink
         bearScene.classList.add("blinking");
-        setTimeout(()=>bearScene.classList.remove("blinking"), 300);
+        setTimeout(function() { bearScene.classList.remove("blinking"); }, 300);
       }
     }
-
     function startBlinkLoop() {
-      if(blinkTO) clearTimeout(blinkTO);
-      const loop = () => {
-        // Natural range 2.8–6.5s (was fixed 3–5s)
-        const gap = 2800 + Math.random() * 3700;
-        blinkTO = setTimeout(() => {
+      if (blinkTO) clearTimeout(blinkTO);
+      var loop = function() {
+        blinkTO = setTimeout(function() {
           doBlink();
-          // 15% chance of double-blink — what real eyes do, makes bear feel alive
-          if (Math.random() < 0.15) {
-            setTimeout(doBlink, 280);
-          }
+          if (Math.random() < 0.15) setTimeout(doBlink, 280);
           loop();
-        }, gap);
+        }, 2800 + Math.random() * 3700);
       };
       loop();
     }
-
     function startTwitchLoop() {
-      if(twitchIV) clearTimeout(twitchIV);
-      // Variable interval 4–9s: avoids robotic metronome feel
-      const scheduleNext = () => {
-        twitchIV = setTimeout(() => {
-          if(!["talking","happy","confused"].some(s=>bearScene.classList.contains(s))){
+      if (twitchTO) clearTimeout(twitchTO);
+      var next = function() {
+        twitchTO = setTimeout(function() {
+          if (!["talking","happy"].some(function(s) { return bearScene.classList.contains(s); })) {
             bearScene.classList.add("twitch");
-            setTimeout(()=>bearScene.classList.remove("twitch"), 550);
+            setTimeout(function() { bearScene.classList.remove("twitch"); }, 550);
           }
-          scheduleNext();
+          next();
         }, 4000 + Math.random() * 5000);
       };
-      scheduleNext();
+      next();
     }
 
-    // ─── BEAR VISIBILITY ─────────────────────────────────────────────────
+    // ── SHOW BEAR ─────────────────────────────────────────────
     function showBear(text) {
-      const wasHidden = !bearScene.classList.contains("visible");
+      var wasHidden = !bearScene.classList.contains("visible");
       bearScene.classList.add("visible");
-      // Mark as anchor-driven if we have an active anchor group
-      if (anchorGroup) bearScene.classList.add("anchored");
       bubble.classList.add("visible");
-      if(text) bubble.textContent = text;
-      scanHint.classList.add("hidden");
-      // Play entrance landing animation the first time bear appears
+      if (text !== null && text !== undefined) bubble.textContent = text;
       if (wasHidden) {
         bearScene.classList.add("entering");
-        setTimeout(() => bearScene.classList.remove("entering"), 650);
+        setTimeout(function() { bearScene.classList.remove("entering"); }, 650);
       }
     }
-    function hideBear() {
-      bearScene.classList.remove("visible", "anchored");
-      bubble.classList.remove("visible");
-      scanHint.classList.remove("hidden");
-      // Reset inline position so bear returns to default bottom-center on reshow
-      bearScene.style.left   = "";
-      bearScene.style.top    = "";
-      bearScene.style.bottom = "";
-      // Reset smooth accumulators so next appearance snaps, not slides
-      resetSmoothAnchor();
-    }
 
-    // ─── PROGRESS ────────────────────────────────────────────────────────
-    function renderProg() {
-      progRow.innerHTML="";
-      SEQUENCE.forEach((_,i)=>{
-        const d=document.createElement("div");
-        d.className="pg-dot"+(i<idx?" found":"");
+    // ── PROGRESS ──────────────────────────────────────────────
+    function renderProg(foundCount) {
+      progRow.innerHTML = "";
+      CHAPTERS.forEach(function(_, i) {
+        var d = document.createElement("div");
+        d.className = "pg-dot" + (i < foundCount ? " found" : "");
         progRow.appendChild(d);
       });
     }
-    function popPage() {
-      const dots=progRow.querySelectorAll(".pg-dot"), i=idx-1;
-      if(dots[i]){dots[i].classList.add("pop");setTimeout(()=>dots[i].classList.remove("pop"),380);}
-    }
-
-    // ─── EFFECTS ─────────────────────────────────────────────────────────
-    const EMOJIS=["⭐","✨","📖","🌟","💫","📜","🍀"];
-    const COLS  =["#ffb6d9","#9fdfff","#ffe48e","#baf0ad","#ffffff","#ffd97a"];
-
-    // Returns the screen-space center of the bear's chest
-    function getBearOrigin() {
-      const rect = bearScene.getBoundingClientRect();
-      if (rect.width === 0) {
-        return { x: window.innerWidth * 0.5, y: window.innerHeight * 0.65 };
+    function popDot(idx) {
+      var dots = progRow.querySelectorAll(".pg-dot");
+      if (dots[idx]) {
+        dots[idx].classList.add("pop");
+        setTimeout(function() { dots[idx].classList.remove("pop"); }, 380);
       }
-      return {
-        x: rect.left + rect.width  * 0.5,  // horizontal center
-        y: rect.top  + rect.height * 0.42, // bear chest area
-      };
     }
 
-    function spawnFx(count, dur, isFinal=false) {
-      const tok=++celTok;
-      fxLayer.innerHTML="";
+    // ── EFFECTS ───────────────────────────────────────────────
+    var EMOJIS = ["⭐","✨","📖","🌟","💫","📜","🍀"];
+    var COLS   = ["#ffb6d9","#9fdfff","#ffe48e","#baf0ad","#ffffff","#ffd97a"];
 
-      const { x: ox, y: oy } = getBearOrigin(); // spawn FROM the bear
+    function getBearOrigin() {
+      var r = bearScene.getBoundingClientRect();
+      if (r.width === 0) return { x: window.innerWidth * 0.5, y: window.innerHeight * 0.65 };
+      return { x: r.left + r.width * 0.5, y: r.top + r.height * 0.42 };
+    }
 
-      for(let i=0;i<count;i++){
-        const el=document.createElement("div");
-
-        if(Math.random()>.42){
-          el.className="fx-piece";
-          el.textContent=EMOJIS[i%EMOJIS.length];
+    function spawnFx(count, dur, isFinal) {
+      if (document.hidden) return;
+      var tok = ++celTok;
+      fxLayer.innerHTML = "";
+      var o = getBearOrigin();
+      var n = Math.round(count * ((navigator.deviceMemory || 4) < 2 ? 0.5 : 1));
+      for (var i = 0; i < n; i++) {
+        var el = document.createElement("div");
+        if (Math.random() > 0.42) {
+          el.className = "fx-piece";
+          el.textContent = EMOJIS[i % EMOJIS.length];
         } else {
-          el.className="fx-dot";
-          const s=7+Math.random()*10;
-          el.style.width=el.style.height=s+"px";
-          el.style.background=COLS[i%COLS.length];
-          el.style.boxShadow="0 0 6px 2px "+COLS[i%COLS.length];
+          el.className = "fx-dot";
+          var s = 7 + Math.random() * 10;
+          el.style.width = el.style.height = s + "px";
+          el.style.background = COLS[i % COLS.length];
+          el.style.boxShadow  = "0 0 6px 2px " + COLS[i % COLS.length];
         }
-
-        el.style.left=ox+"px";
-        el.style.top=oy+"px";
-
-        if(isFinal){
-          // Final: full radial explosion
-          const angle=Math.random()*Math.PI*2;
-          const dist=100+Math.random()*Math.max(window.innerWidth,window.innerHeight)*.62;
-          el.style.setProperty("--tx",(Math.cos(angle)*dist)+"px");
-          el.style.setProperty("--ty",(Math.sin(angle)*dist-100)+"px");
-          el.style.setProperty("--rot",(-200+Math.random()*400)+"deg");
-          const d=4.8+Math.random()*1.2;
-          el.style.animation=`fxFinalBurst ${d.toFixed(2)}s ease-out ${(Math.random()*.22).toFixed(2)}s forwards`;
-
+        el.style.left = o.x + "px";
+        el.style.top  = o.y + "px";
+        if (isFinal) {
+          var angle = Math.random() * Math.PI * 2;
+          var dist  = 100 + Math.random() * Math.max(window.innerWidth, window.innerHeight) * 0.62;
+          el.style.setProperty("--tx",  (Math.cos(angle)*dist)+"px");
+          el.style.setProperty("--ty",  (Math.sin(angle)*dist-100)+"px");
+          el.style.setProperty("--rot", (-200+Math.random()*400)+"deg");
+          var d = 4.8 + Math.random() * 1.2;
+          el.style.animation = "fxFinalBurst "+d.toFixed(2)+"s ease-out "+(Math.random()*.22).toFixed(2)+"s forwards";
         } else {
-          // Correct-answer: gentle upward rise around the bear, stays visible
-          const spreadX=(Math.random()-0.5)*360;
-          const riseY=-(120+Math.random()*160);
-          const rotStart=-30+Math.random()*60;
-          const rotEnd=-180+Math.random()*360;
-          el.style.setProperty("--tx",spreadX+"px");
-          el.style.setProperty("--ty",riseY+"px");
-          el.style.setProperty("--rot",rotEnd+"deg");
-          el.style.setProperty("--rot-start",rotStart+"deg");
-          const d=(dur/1000*.88);
-          el.style.animation=`fxRise ${d.toFixed(2)}s ease-out ${(Math.random()*.14).toFixed(2)}s forwards`;
+          var sx = (Math.random()-0.5)*360;
+          var ry = -(120+Math.random()*160);
+          el.style.setProperty("--tx",        sx+"px");
+          el.style.setProperty("--ty",        ry+"px");
+          el.style.setProperty("--rot",       (-180+Math.random()*360)+"deg");
+          el.style.setProperty("--rot-start", (-30+Math.random()*60)+"deg");
+          var dd = dur/1000*0.88;
+          el.style.animation = "fxRise "+dd.toFixed(2)+"s ease-out "+(Math.random()*.14).toFixed(2)+"s forwards";
         }
-
         fxLayer.appendChild(el);
       }
-      setTimeout(()=>{ if(celTok===tok) fxLayer.innerHTML=""; },dur+400);
+      setTimeout(function() { if (celTok === tok) fxLayer.innerHTML = ""; }, dur + 400);
     }
 
     function bigCelebration() {
-      spawnFx(160,6500,true);
-      [glowEl,bannerEl].forEach(el=>{
+      spawnFx(160, 6500, true);
+      [glowEl, bannerEl].forEach(function(el) {
         el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
       });
-      setTimeout(()=>{glowEl.classList.remove("show");bannerEl.classList.remove("show");},7000);
+      setTimeout(function() { glowEl.classList.remove("show"); bannerEl.classList.remove("show"); }, 7000);
     }
 
-    // ─── CLUE FLOW ───────────────────────────────────────────────────────
-    function playClue() {
-      const id=SEQUENCE[idx]; if(!id) return;
-      bubble.textContent=`Go find ${NAMES[id]}!`;
-      playAudio(SFX[id],()=>{ bubble.textContent=`Go find ${NAMES[id]}!`; lock=false; },true);
+    // ── CHAPTER LABEL ─────────────────────────────────────────
+    function setChapterLabel(idx) {
+      var ch = CHAPTERS[idx];
+      if (!ch) { chLabel.classList.add("hidden"); return; }
+      chNum.textContent   = "Chapter " + ch.num;
+      chTitleEl.textContent = ch.title;
+      chLabel.classList.remove("hidden");
     }
 
-    function showFinal() {
-      bubble.textContent=BUBBLES.final;
-      bigCelebration(); fadeBg(BG_FULL, 320);
-      setTimeout(()=>finalScr.classList.add("show"),5600);
-    }
-
-    // ─── SCAN HANDLER ────────────────────────────────────────────────────
-    function handleTrigger(stopId) {
-      if(!started||lock) return;
-      showBear(null);
-      const expected=SEQUENCE[idx];
-
-      if(stopId===expected){
-        lock=true; idx++; renderProg(); popPage();
-        bubble.textContent=BUBBLES.correct[Math.floor(Math.random()*5)];
-        bearHappy();
-        correctN=(correctN%5)+1;
-        const isLast=(idx===SEQUENCE.length);
-        if(isLast){
-          playAudio(`correct_0${correctN}.mp3`,()=>{
-            spawnFx(30,5000);
-            setTimeout(()=>playAudio(SFX.final,showFinal,true),3200);
-          },true);
-        } else {
-          playAudio(`correct_0${correctN}.mp3`,()=>{
-            spawnFx(24,3400);
-            setTimeout(playClue,3300);
-          },true);
-        }
-      } else {
-        wrongN=(wrongN%5)+1;
-        bubble.textContent=BUBBLES.wrong[Math.floor(Math.random()*5)];
-        bearConfused();
-        playAudio(`wrong_0${wrongN}.mp3`,()=>{ bubble.textContent=`Find ${NAMES[SEQUENCE[idx]]}!`; });
-      }
-    }
-
-    // ─── IMMERSION LAYER ─────────────────────────────────────────────────
-    //
-    // Five systems added here, all lightweight (no new libs, no meshes):
-    //
-    // 1. ANCHOR PROJECTION   — reads the MindAR anchor's 3D world position
-    //                          each frame and projects it to 2D screen coords.
-    //                          Bear CSS left/top tracks that point.
-    //
-    // 2. LOOK-AT             — samples device orientation (or mouse fallback)
-    //                          and applies a ±3° horizontal tilt to bear-scene.
-    //                          Smoothed with exponential decay (τ = 8 frames).
-    //
-    // 3. ARRIVAL MOMENT      — brief "step forward" scale bump + tiny bounce
-    //                          plays when a target is first detected.
-    //
-    // 4. IDLE SWAY           — CSS animation on bear-scene (separate from the
-    //                          breathing on bear-img — they layer independently).
-    //
-    // 5. PERSPECTIVE PARALLAX — the bear-overlay has a perspective CSS transform
-    //                           that shifts ±8px based on device tilt, giving a
-    //                           subtle "object in space" parallax feel.
-    //
-    // All state is local to this IIFE — nothing touches existing systems.
-
-    // ── Projection helpers ────────────────────────────────────────────────
-    // Convert a Three.js Vector3 world position → CSS {x, y, scale} on screen.
-    function projectAnchor(worldPos, camera, renderer) {
-      const v  = worldPos.clone().project(camera);
-      const hw = renderer.domElement.clientWidth  / 2;
-      const hh = renderer.domElement.clientHeight / 2;
-      const x  = v.x *  hw + hw;
-      const y  = v.y * -hh + hh;
-      // Depth scale: further = smaller. Clamped so bear stays visible.
-      const depth = Math.max(0.3, Math.min(2.0, 1.0 / (v.z * 0.5 + 0.5 + 0.001)));
-      return { x, y, scale: depth };
-    }
-
-    // ── State ─────────────────────────────────────────────────────────────
-    let  anchorGroup   = null;
-    let  arCamera      = null;
-    let  arRenderer    = null;
-
-    // Alias — bearScene declared in DOM refs above
-    const bearSceneEl  = bearScene;
-
-    // Look-at smoothing
-    let  lookTargetX   = 0;
-    let  lookCurrentX  = 0;
-    const LOOK_DECAY   = 0.10;
-    const LOOK_MAX_DEG = 3.2;
-
-    // Parallax state
-    let  paraX = 0, paraY = 0;
-    let  paraTargetX = 0, paraTargetY = 0;
-
-    // rAF projection loop
-    let  projectionRAF  = null;
-    let  immersionActive = false;
-
-    // ── FIX 1 + 2: Smoothed anchor position ──────────────────────────────
-    //
-    // FIX 1 — FOOT ANCHOR CORRECTION
-    // The anchor projects to the center of the image target.
-    // "top = screenY - bearH" puts the element top at the target center,
-    // meaning the bear's visual center (not feet) sits on the sign.
-    // The bear's transform-origin is 50% 92%, so the feet are at 92% of
-    // the element height. Correct offset: screenY - bearH * 0.92
-    // This locks the foot point (not the center or top) to the sign surface.
-    //
-    // FIX 2 — JITTER SMOOTHING
-    // AR tracking emits per-frame noise (typically ±1–3px).
-    // Three smoothed accumulators (smoothX, smoothY, smoothScale) lerp
-    // toward the raw projected value each frame.
-    // SMOOTH_FACTOR = 0.18: lag of ~5 frames at 60fps — fast enough to
-    // track real camera movement without visible delay, slow enough to
-    // absorb single-frame noise spikes completely.
-    // Initial values of -1 flag "not yet set" so the first frame snaps
-    // instantly (no slide-in from 0,0).
-
-    let smoothX     = -1;   // -1 = uninitialised, snaps on first frame
-    let smoothY     = -1;
-    let smoothScale = -1;
-
-    const SMOOTH_FACTOR = 0.18;  // lerp per frame (~5-frame lag at 60fps)
-
-    // ── Bear position write ───────────────────────────────────────────────
-    const bearImgWrap = document.getElementById("bear-img-wrap");
-
-    function positionBearAt(rawX, rawY, rawScale) {
-      // FIX 2 — apply lerp smoothing to all three values
-      if (smoothX < 0) {
-        // First frame: snap directly to avoid sliding in from 0,0
-        smoothX     = rawX;
-        smoothY     = rawY;
-        smoothScale = rawScale;
-      } else {
-        smoothX     += (rawX     - smoothX)     * SMOOTH_FACTOR;
-        smoothY     += (rawY     - smoothY)     * SMOOTH_FACTOR;
-        smoothScale += (rawScale - smoothScale) * SMOOTH_FACTOR;
-      }
-
-      const bearW = bearSceneEl.offsetWidth  || 240;
-      const bearH = bearSceneEl.offsetHeight || 320;
-
-      // FIX 1 — foot anchor: offset by 92% of element height so the
-      // foot point (transform-origin 50% 92%) sits on the sign surface,
-      // not the element center or top.
-      const left = smoothX - bearW * 0.5;
-      const top  = smoothY - bearH * 0.92;   // was: screenY - bearH (off by 8%)
-
-      bearSceneEl.style.left   = left.toFixed(1) + "px";
-      bearSceneEl.style.top    = top.toFixed(1)  + "px";
-      bearSceneEl.style.bottom = "auto";
-
-      // Depth scale via CSS var → drives calc() on element width
-      const s = Math.max(0.72, Math.min(1.28, smoothScale));
-      bearSceneEl.style.setProperty("--anchor-scale", s.toFixed(3));
-    }
-
-    // Reset smooth state when bear is hidden so next appearance snaps clean
-    function resetSmoothAnchor() {
-      smoothX = smoothY = smoothScale = -1;
-    }
-
-    // ── Look-at write (called every frame) ───────────────────────────────
-    function applyLookAt() {
-      lookCurrentX += (lookTargetX - lookCurrentX) * LOOK_DECAY;
-      // Write to bear-img-wrap (separate element from sway) — no conflict
-      if (bearImgWrap) {
-        bearImgWrap.style.setProperty("--look-tilt",
-          lookCurrentX.toFixed(2) + "deg");
-      }
-    }
-
-    // ── Parallax (device tilt → overlay shift) ────────────────────────────
-    function applyParallax() {
-      paraX += (paraTargetX - paraX) * 0.06;
-      paraY += (paraTargetY - paraY) * 0.06;
-      const overlay = document.getElementById("bear-overlay");
-      if (overlay) {
-        overlay.style.transform = `translate(${paraX.toFixed(1)}px, ${paraY.toFixed(1)}px)`;
-      }
-    }
-
-    // ── Projection Loop — HARDENED WITH HARD STOP ────────────────────────
-    // Any error immediately kills the loop (immersionActive = false) and logs
-    // PROJECTION_LOOP_ERROR once. Prevents infinite silent spam at 60fps.
-    function runProjectionLoop() {
-      if (!immersionActive) return;
-      projectionRAF = requestAnimationFrame(runProjectionLoop);
-
-      try { applyLookAt();   } catch (e) {
-        window.__bbLog("PROJECTION_LOOP_ERROR", "runProjectionLoop:applyLookAt", e);
-      }
-      try { applyParallax(); } catch (e) {
-        window.__bbLog("PROJECTION_LOOP_ERROR", "runProjectionLoop:applyParallax", e);
-      }
-
-      if (!anchorGroup || !arCamera || !arRenderer) return;
-
-      if (!HAS_THREE()) {
-        window.__bbLog("THREE_UNDEFINED", "runProjectionLoop:HAS_THREE",
-          new Error("window.THREE.Vector3 is undefined inside projection loop"));
-        immersionActive = false;   // hard stop — no point retrying
-        cancelAnimationFrame(projectionRAF);
-        return;
-      }
-
-      try {
-        const worldPos = new window.THREE.Vector3();
-        anchorGroup.getWorldPosition(worldPos);
-
-        const { x, y, scale } = projectAnchor(worldPos, arCamera, arRenderer);
-
-        if ( typeof x === "number" && isFinite(x) &&
-             typeof y === "number" && isFinite(y) &&
-             typeof scale === "number" && isFinite(scale) &&
-             y > -100 && y < window.innerHeight * 2 ) {
-          positionBearAt(x, y, scale);
-        }
-      } catch (e) {
-        // Hard stop — log once and kill loop
-        window.__bbLog("PROJECTION_LOOP_ERROR", "runProjectionLoop:project", e);
-        immersionActive = false;
-        cancelAnimationFrame(projectionRAF);
-      }
-    }
-
-    // ── Device orientation → look-at + parallax ───────────────────────────
-    function handleOrientation(e) {
-      // gamma = left-right tilt (-90..+90), beta = forward-back (-180..+180)
-      const gamma = e.gamma || 0;
-      const beta  = e.beta  || 0;
-
-      // Horizontal look-at: gamma drives rotateZ tilt on the bear
-      lookTargetX = Math.max(-LOOK_MAX_DEG, Math.min(LOOK_MAX_DEG,
-        gamma * (LOOK_MAX_DEG / 25)   // 25° phone tilt = max bear tilt
-      ));
-
-      // Parallax: ±8px shift, independent of look-at
-      paraTargetX = -gamma * 0.32;   // phone tilts right → bear shifts left slightly
-      paraTargetY = -(beta - 45) * 0.18;  // forward tilt → bear shifts up slightly
-      paraTargetX = Math.max(-8, Math.min(8, paraTargetX));
-      paraTargetY = Math.max(-8, Math.min(8, paraTargetY));
-    }
-
-    // Mouse fallback for desktop testing
-    function handleMouseMove(e) {
-      const cx = window.innerWidth  / 2;
-      lookTargetX = ((e.clientX - cx) / cx) * LOOK_MAX_DEG;
-      paraTargetX = (e.clientX - cx) / cx * -4;
-      paraTargetY = (e.clientY - window.innerHeight/2) / (window.innerHeight/2) * -3;
-    }
-
-    // ── CSS variable hook for look-at (applied in CSS below) ─────────────
-    // The --look-tilt and --anchor-scale variables are set by JS above.
-    // The sway animation already runs on #bear-scene.idle via CSS.
-    // We inject the look-at tilt on top via a CSS custom property.
-
-    // ── Arrival moment ────────────────────────────────────────────────────
-    // Called once when a target is newly found. Runs after showBear().
-    // A short "step forward" — scale briefly grows then returns — creates the
-    // feeling of the bear noticing you and leaning toward you.
-    function triggerArrival() {
-      const img = document.getElementById("bear-img");
-      if (!img) return;
-
-      // Remove any competing animation briefly, then restore
-      // We use a one-shot CSS class that plays once and removes itself
-      bearSceneEl.classList.add("arriving");
-      setTimeout(() => bearSceneEl.classList.remove("arriving"), 900);
-    }
-
-    // ── IMAGE-TARGET AR — HARDENED ────────────────────────────────────────
-    async function initAR() {
-      if (arUp) return;
-
-      // Step 0: flag check — set by validateDeps after dynamic load
-      if (!window.__mindARReady) {
-        window.__bbLog("MINDAR_NOT_READY", "initAR:step0",
-          new Error("MindAR unavailable — skipping AR init, entering QR-only mode"));
-        enterQROnlyMode("AR sign tracking unavailable here — QR mode is ready.");
-        return;
-      }
-
-      // Step 1: THREE must be present (bundled inside MindAR)
-      if (!HAS_THREE()) {
-        window.__bbLog("THREE_UNDEFINED", "initAR:step1",
-          new Error("window.THREE.Vector3 missing after MindAR load"));
-        enterQROnlyMode("AR sign tracking unavailable here — QR mode is ready.");
-        return;
-      }
-
-      // Step 2: constructor
-      let mAR;
-      try {
-        mAR = new window.MINDAR.IMAGE.MindARThree({
-          container:      document.getElementById("ar-container"),
-          imageTargetSrc: "assets/targets.mind",
-          maxTrack:       1,
-          uiLoading:      "no",
-          uiScanning:     "no",
-          uiError:        "no"
-        });
-      } catch (e) {
-        window.__bbLog("MINDAR_CONSTRUCTOR_FAILED", "initAR:step2", e);
-        enterQROnlyMode("AR sign tracking unavailable here — QR mode is ready.");
-        return;
-      }
-
-      // Step 3: destructure renderer refs
-      let renderer, scene, camera;
-      try {
-        ({ renderer, scene, camera } = mAR);
-        if (!renderer || !scene || !camera) throw new Error("Incomplete MindAR instance — renderer/scene/camera undefined");
-        arCamera   = camera;
-        arRenderer = renderer;
-      } catch (e) {
-        window.__bbLog("MINDAR_RENDERER_FAILED", "initAR:step3", e);
-        enterQROnlyMode("AR sign tracking unavailable here — QR mode is ready.");
-        return;
-      }
-
-      // Step 4: add anchors
-      try {
-        SEQUENCE.forEach((id, i) => {
-          const a = mAR.addAnchor(i);
-
-          a.onTargetFound = () => {
-            try {
-              curTarget   = id;
-              anchorGroup = a.group;
-              if (!immersionActive) {
-                immersionActive = true;
-                runProjectionLoop();
-              }
-              showBear(`Found: ${NAMES[id]}!`);
-              setTimeout(triggerArrival, 120);
-              handleTrigger(id);
-            } catch (e) {
-              window.__bbLog("TARGET_FOUND_ERROR", "initAR:onTargetFound:" + id, e);
-            }
-          };
-
-          a.onTargetLost = () => {
-            try {
-              if (curTarget === id) {
-                curTarget   = null;
-                anchorGroup = null;
-                setTimeout(() => { if (!curTarget) hideBear(); }, 1800);
-              }
-            } catch (e) {
-              window.__bbLog("TARGET_LOST_ERROR", "initAR:onTargetLost:" + id, e);
-            }
-          };
-        });
-      } catch (e) {
-        window.__bbLog("MINDAR_ADD_ANCHOR_FAILED", "initAR:step4", e);
-        enterQROnlyMode("AR sign tracking unavailable here — QR mode is ready.");
-        return;
-      }
-
-      // Step 5: start AR engine
-      try {
-        await mAR.start();
-      } catch (e) {
-        window.__bbLog("MINDAR_START_FAILED", "initAR:step5", e);
-        enterQROnlyMode("AR sign tracking unavailable here — QR mode is ready.");
-        return;
-      }
-
-      // Step 6: renderer loop
-      try {
-        renderer.setAnimationLoop(() => {
-          try { renderer.render(scene, camera); } catch (e) {
-            window.__bbLog("RENDERER_FRAME_ERROR", "initAR:renderLoop", e);
-          }
-        });
-        arUp = true;
-      } catch (e) {
-        window.__bbLog("RENDERER_LOOP_FAILED", "initAR:step6", e);
-        // AR partially up — still usable, continue
-      }
-
-      // Step 7: input listeners (non-critical)
-      try {
-        window.addEventListener("deviceorientation", handleOrientation, { passive: true });
-        window.addEventListener("mousemove",         handleMouseMove,   { passive: true });
-      } catch { /* input enhancement is optional */ }
-    }
-
-    // ─── QR FALLBACK — HARDENED ──────────────────────────────────────────
-    async function openQR() {
-      if (qrOn) return;
-
-      if (!window.__zxingReady) {
-        window.__bbLog("ZXING_NOT_READY", "openQR",
-          new Error("ZXing unavailable — QR mode disabled"));
-        const label = document.getElementById("scan-label");
-        if (label) label.textContent = "QR scanning unavailable — use AR signs.";
-        return;
-      }
-
-      qrOn = true;
-      qrOvl.classList.add("show");
-
-      try {
-        if (!qrRdr) qrRdr = new window.ZXing.BrowserMultiFormatReader();
-      } catch (e) {
-        window.__bbLog("ZXING_CONSTRUCTOR_FAILED", "openQR:constructor", e);
-        closeQR();
-        return;
-      }
-
-      try {
-        await qrRdr.decodeFromVideoDevice(null, qrVid, (res) => {
-          if (!res) return;
-          try {
-            const v    = res.getText().trim().toLowerCase();
-            const stop = SEQUENCE.find(s => v===s || v.endsWith("/"+s) || v.endsWith("="+s));
-            if (stop) { closeQR(); showBear(null); handleTrigger(stop); }
-          } catch (e) {
-            window.__bbLog("ZXING_DECODE_CALLBACK_ERROR", "openQR:decodeCallback", e);
-          }
-        });
-      } catch (e) {
-        window.__bbLog("ZXING_DECODE_FAILED", "openQR:decodeFromVideoDevice", e);
-        closeQR();
-      }
-    }
-    function closeQR() {
-      qrOn = false;
-      qrOvl.classList.remove("show");
-      if (qrRdr) { try { qrRdr.reset(); } catch { /* ignore */ } }
-    }
-
-    // ── QR-Only Fallback Entry Point — HARDENED ───────────────────────────
-    async function enterQROnlyMode(statusMsg) {
-      const label = document.getElementById("scan-label");
-      if (label && statusMsg) {
-        label.textContent = statusMsg;
-        setTimeout(() => { try { label.textContent = "Point at the sign"; } catch {} }, 5000);
-      }
-
-      if (HAS_CAMERA()) {
-        try {
-          const v = document.createElement("video");
-          v.setAttribute("autoplay", "");
-          v.setAttribute("muted",    "");
-          v.setAttribute("playsinline", "");
-          v.style.cssText = "position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;";
-          document.getElementById("ar-container").appendChild(v);
-
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" }, audio: false
-          }).catch(err => {
-            window.__bbLog("CAMERA_PERMISSION_DENIED", "enterQROnlyMode:getUserMedia", err);
-            return null;
-          });
-
-          if (stream) {
-            v.srcObject = stream;
-            v.play().catch(e => window.__bbLog("CAMERA_PLAY_FAILED", "enterQROnlyMode:play", e));
-          }
-        } catch (e) {
-          window.__bbLog("CAMERA_SETUP_FAILED", "enterQROnlyMode:setup", e);
-        }
-      }
-
-      if (!immersionActive) {
-        immersionActive = true;
-        try { window.addEventListener("deviceorientation", handleOrientation, { passive: true }); } catch {}
-        try { window.addEventListener("mousemove",         handleMouseMove,   { passive: true }); } catch {}
-        try { runProjectionLoop(); } catch (e) {
-          window.__bbLog("PROJECTION_LOOP_ERROR", "enterQROnlyMode:runProjectionLoop", e);
-        }
-      }
-    }
-
-    // ─── GAME START ──────────────────────────────────────────────────────
-    async function startGame() {
-      if(started) return; started=true;
-      startScr.classList.add("hidden");
-      await unlockAudio();
-      try { bg.src=AP+SFX.background; bg.load(); bg.volume=BG_FULL; await bg.play(); } catch{}
-      idx=0; renderProg(); setIdle(); startBlinkLoop(); startTwitchLoop();
-
-      // Load libraries with CDN fallbacks — all failures resolve(false), never throw.
-      const [mindARLoaded, zxingLoaded] = await Promise.all([
-        loadScript(MINDAR_URLS),
-        loadScript(ZXING_URLS),
-      ]);
-
-      window.__mindARReady = mindARLoaded && HAS_MINDAR();
-      window.__zxingReady  = zxingLoaded  && HAS_ZXING();
-
-      // Emit named codes for every dependency state — surfaces exact failure point
-      validateDeps(mindARLoaded, zxingLoaded);
-
-      // initAR reads __mindARReady; no setTimeout needed — libraries are already loaded
-      initAR();
-
-      showBear(BUBBLES.opening);
-      playAudio(SFX.opening,()=>{ setTimeout(()=>{ hideBear(); playClue(); },200); },true);
-    }
-
-    // ─── EVENTS ──────────────────────────────────────────────────────────
-    $("start-btn") .addEventListener("click", startGame);
-    $("qr-btn")    .addEventListener("click", ()=>{ if(started) openQR(); });
-    $("qr-close")  .addEventListener("click", closeQR);
-    $("btn-replay").addEventListener("click", ()=>{
-      finalScr.classList.remove("show"); bigCelebration();
-      setTimeout(()=>playAudio(SFX.final),300);
-    });
-    $("btn-done")  .addEventListener("click", ()=>{ finalScr.classList.remove("show"); });
-    document.body.addEventListener("click",    unlockAudio, {once:true});
-    document.body.addEventListener("touchend", unlockAudio, {once:true});
-    window.addEventListener("beforeunload", () => {
-      if(qrRdr){try{qrRdr.reset();}catch{}}
-      if(projectionRAF) cancelAnimationFrame(projectionRAF);
-      immersionActive = false;
-    });
-
-    // ─── DEBUG OVERLAY ────────────────────────────────────────────────────
-    // Triple-tap the top-right corner to toggle. Polls live state each second.
-    // Reads only — touches no game variables. Remove for final production build.
-    (function initDebugOverlay() {
-      const panel = document.getElementById("bb-debug");
-      if (!panel) return;
-
-      // Intercept __bbLog to capture the last error code without altering behavior
-      const _origLog = window.__bbLog;
-      let _lastCode = "—", _lastCtx = "—", _lastMsg = "—";
-      window.__bbLog = function(code, ctx, err) {
-        _lastCode = code  || "—";
-        _lastCtx  = ctx   || "—";
-        const n   = window.__normalizeError ? window.__normalizeError(err) : { message: String(err||"") };
-        _lastMsg  = (n.message || "—").slice(0, 60);
-        _origLog.apply(this, arguments);   // call original unchanged
+    // ── PLAY CLUE AUDIO ───────────────────────────────────────
+    function playClue(idx) {
+      var ch = CHAPTERS[idx];
+      if (!ch) return;
+      tapPlay.classList.remove("show");
+      tapPlay.onclick = function() {
+        tapPlay.classList.remove("show");
+        playClue(idx);
       };
+      showBear(ch.title);
+      playAudio(ch.audio, null);
+    }
 
-      // Triple-tap detection on top-right 80×80px zone
-      let tapCount = 0, tapTimer = null;
-      document.addEventListener("touchend", function(e) {
-        const t = e.changedTouches[0];
-        if (t.clientX < window.innerWidth - 80 || t.clientY > 80) return;
-        tapCount++;
-        clearTimeout(tapTimer);
-        tapTimer = setTimeout(() => { tapCount = 0; }, 500);
-        if (tapCount >= 3) {
-          tapCount = 0;
-          panel.style.display = panel.style.display === "none" ? "block" : "none";
+    // ── BOOTSTRAP FROM URL ────────────────────────────────────
+    function bootstrap(idx) {
+      startScr.classList.add("hidden");
+      renderProg(idx);           // dots up to (not including) current
+      setChapterLabel(idx);
+      showBear(CHAPTERS[idx].title);
+      startBlinkLoop();
+      startTwitchLoop();
+
+      var ch = CHAPTERS[idx];
+
+      if (idx === 0) {
+        // Chapter 1: opening narration → chapter clue
+        playAudio("opening.mp3", function() {
+          setTimeout(function() { playClue(0); }, 200);
+        });
+      } else {
+        // Chapters 2–8: arrival — play correct chime → fx → chapter clue
+        correctN = (correctN % 5) + 1;
+        bearHappy();
+        popDot(idx - 1);         // light up the previous dot as found
+        renderProg(idx);         // re-render with correct found count
+        playAudio("correct_0" + correctN + ".mp3", function() {
+          spawnFx(20, 2800, false);
+          setTimeout(function() { playClue(idx); }, 2600);
+        });
+      }
+    }
+
+    // ── FINAL CHAPTER COMPLETE ────────────────────────────────
+    // Chapter 8 has no "next poster" — mark complete and celebrate
+    function finishHunt(idx) {
+      bearHappy();
+      correctN = (correctN % 5) + 1;
+      popDot(idx);
+      renderProg(idx + 1);
+      playAudio("correct_0" + correctN + ".mp3", function() {
+        spawnFx(30, 5000, false);
+        setTimeout(function() {
+          playAudio("final.mp3", function() {
+            bigCelebration();
+            fadeBg(BG_FULL, 320);
+            setTimeout(function() { finalScr.classList.add("show"); }, 5600);
+          });
+        }, 3200);
+      });
+    }
+
+    // ── INIT START SCREEN ─────────────────────────────────────
+    function initStartScreen() {
+      var btn = $("start-btn");
+      var info = $("start-chapter-info");
+      var sub  = $("start-subtitle");
+
+      if (TARGET_IDX !== null) {
+        var ch = CHAPTERS[TARGET_IDX];
+        info.style.display = "block";
+        if (TARGET_IDX === 0) {
+          info.textContent   = "Chapter 1 — " + ch.title;
+          sub.textContent    = "Your adventure begins here!";
+          btn.textContent    = "✨ Start the Hunt!";
+        } else if (TARGET_IDX === CHAPTERS.length - 1) {
+          info.innerHTML  = "Chapter " + ch.num + "<br>" + ch.title;
+          sub.textContent = "You found the final clue!";
+          btn.textContent = "🐻 Final Chapter!";
+        } else {
+          info.innerHTML  = "Chapter " + ch.num + "<br>" + ch.title;
+          sub.textContent = "You found the next clue!";
+          btn.textContent = "🐻 Continue!";
         }
-      }, { passive: true });
+      }
 
-      // Keyboard shortcut for desktop testing: Ctrl+Shift+D
-      document.addEventListener("keydown", function(e) {
-        if (e.ctrlKey && e.shiftKey && e.key === "D") {
-          panel.style.display = panel.style.display === "none" ? "block" : "none";
+      btn.addEventListener("click", function() {
+        unlockAudio();
+        var idx = TARGET_IDX !== null ? TARGET_IDX : 0;
+        // If this is the LAST chapter and user taps the button, also set up
+        // a "complete hunt" trigger after the clue plays
+        if (idx === CHAPTERS.length - 1) {
+          startScr.classList.add("hidden");
+          renderProg(idx);
+          setChapterLabel(idx);
+          showBear(CHAPTERS[idx].title);
+          startBlinkLoop();
+          startTwitchLoop();
+          correctN = (correctN % 5) + 1;
+          bearHappy();
+          popDot(idx - 1);
+          renderProg(idx);
+          playAudio("correct_0" + correctN + ".mp3", function() {
+            spawnFx(20, 2800, false);
+            setTimeout(function() {
+              showBear(CHAPTERS[idx].title);
+              tapPlay.classList.remove("show");
+              tapPlay.onclick = function() {
+                tapPlay.classList.remove("show");
+                finishHunt(idx);
+              };
+              playAudio(CHAPTERS[idx].audio, function() {
+                finishHunt(idx);
+              });
+            }, 2600);
+          });
+        } else {
+          bootstrap(idx);
         }
       });
+    }
 
-      // Poll and render state every second
-      setInterval(function() {
-        if (panel.style.display === "none") return;
+    // ── EVENTS ────────────────────────────────────────────────
+    $("btn-replay").addEventListener("click", function() {
+      finalScr.classList.remove("show");
+      bigCelebration();
+      setTimeout(function() { playAudio("final.mp3", null); }, 300);
+    });
+    $("btn-done").addEventListener("click", function() {
+      finalScr.classList.remove("show");
+    });
+    document.body.addEventListener("click",    unlockAudio, { once: true });
+    document.body.addEventListener("touchend", unlockAudio, { once: true });
+    window.addEventListener("beforeunload", function() {
+      sfx.pause(); bg.pause();
+    });
 
-        const cameraActive = (function() {
-          const vids = document.querySelectorAll("video");
-          for (const v of vids) {
-            if (v.srcObject && v.srcObject.active) return "✅ yes";
-          }
-          return "❌ no";
-        })();
-
-        const mode = window.__mindARReady && arUp ? "AR" : "QR-only";
-
-        panel.innerHTML =
-          "<b>BlockyBear Debug</b><br>" +
-          "─────────────────<br>" +
-          "Mode:        " + mode + "<br>" +
-          "MindAR:      " + (window.__mindARReady ? "✅ loaded" : "❌ not loaded") + "<br>" +
-          "ZXing:       " + (window.__zxingReady  ? "✅ loaded" : "❌ not loaded") + "<br>" +
-          "Camera:      " + cameraActive           + "<br>" +
-          "AR up:       " + (arUp ? "✅" : "❌")   + "<br>" +
-          "Stop idx:    " + idx + " / " + SEQUENCE.length + "<br>" +
-          "Stop ID:     " + (SEQUENCE[idx] || "complete") + "<br>" +
-          "Lock:        " + lock                    + "<br>" +
-          "─────────────────<br>" +
-          "Last error:<br>" +
-          "&nbsp;" + _lastCode + "<br>" +
-          "&nbsp;ctx: " + _lastCtx + "<br>" +
-          "&nbsp;msg: " + _lastMsg + "<br>" +
-          "─────────────────<br>" +
-          "<i>triple-tap corner to hide</i>";
-      }, 1000);
-    })();
-
-    // ─── BOOT ────────────────────────────────────────────────────────────
+    // ── BOOT ──────────────────────────────────────────────────
     preloadOptional();
-    renderProg();
+    renderProg(0);
     setIdle();
     startBlinkLoop();
     startTwitchLoop();
+    initStartScreen();
 
   }());
   </script>
