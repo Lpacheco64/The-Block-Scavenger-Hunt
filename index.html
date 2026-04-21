@@ -692,12 +692,21 @@ var CHAPTERS=[
 ];
 var AP="assets/audio/";
 
-// ── URL ROUTING (LOCKED) ──────────────────────────────────
+// ── URL ROUTING ───────────────────────────────────────────
+// Reads ?c=1..8 (new QR format), ?gate=1 (ch1), or ?step=2..8 (legacy).
+// Returns 0-based chapter index, or null → show start screen.
 function getChapterIdx(){
   var p=new URLSearchParams(window.location.search);
+  // New format: ?c=1 through ?c=8
+  if(p.has("c")){
+    var c=parseInt(p.get("c"),10);
+    if(c>=1&&c<=8) return c-1;
+  }
+  // Legacy: ?gate=1 → chapter 1
   if(p.has("gate")&&p.get("gate")==="1") return 0;
+  // Legacy: ?step=2..8
   if(p.has("step")){var n=parseInt(p.get("step"),10);if(n>=2&&n<=8) return n-1;}
-  return null;
+  return null; // no valid param → start screen
 }
 var TARGET_IDX=getChapterIdx();
 // NOTE: applyScene is NOT called here — it runs inside bootstrap() after start button press
