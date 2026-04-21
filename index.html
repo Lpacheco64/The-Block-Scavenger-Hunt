@@ -722,29 +722,81 @@ var progRow=$("progress-row"),chLabel=$("chapter-label"),chNum=$("chapter-num"),
 var tapPlay=$("tap-play"),fxLayer=$("effects-layer"),finalScr=$("final-screen"),glowEl=$("final-glow"),bannerEl=$("rainbow-banner");
 
 // ── AUDIO ─────────────────────────────────────────────────
-var BG_FULL=0.78,BG_DUCK=0.14;
-var sfx=new Audio(),bg=new Audio();
-sfx.preload="auto";sfx.playsInline=true;
-bg.preload="auto";bg.loop=true;bg.playsInline=true;bg.volume=BG_FULL;
+var BG_FULL=0.32,  // bg_loop plays quietly under voice
+    BG_DUCK=0.06,  // ducked while voice is playing
+    BG_FINAL=0.18; // bg_final volume level
+
+var sfx   = new Audio();          // voice / sfx channel
+var bgLoop= new Audio();          // bg_loop.mp3 — looping hunt music
+var bgFin = new Audio();          // bg_final.mp3 — end-state music
+
+sfx.preload    = "auto"; sfx.playsInline = true;
+bgLoop.preload = "auto"; bgLoop.loop = true;  bgLoop.playsInline = true; bgLoop.volume = BG_FULL;
+bgFin.preload  = "auto"; bgFin.loop  = true;  bgFin.playsInline  = true; bgFin.volume  = 0;
+
+// Alias: keep existing bg reference pointing at bgLoop so all fadeBg calls still work
+var bg = bgLoop;
 
 function fadeBg(to,ms){
   ms=ms||300; if(bgFadeIV) clearInterval(bgFadeIV);
   var from=bg.volume,diff=to-from,steps=Math.max(1,Math.round(ms/28)),s=0;
-  bgFadeIV=setInterval(function(){s++;bg.volume=Math.max(0,Math.min(1,from+diff*(s/steps)));if(s>=steps){clearInterval(bgFadeIV);bgFadeIV=null;}},28);
+  bgFadeIV=setInterval(function(){
+    s++;bg.volume=Math.max(0,Math.min(BG_FULL,from+diff*(s/steps)));
+    if(s>=steps){clearInterval(bgFadeIV);bgFadeIV=null;}
+  },28);
 }
+
+// Start bg_loop if not already running
+function startBgLoop(){
+  if(!audioUnlocked||!bgLoop.paused) return;
+  bgLoop.src=AP+"bg_loop.mp3"; bgLoop.load();
+  bgLoop.volume=BG_FULL;
+  bgLoop.play().catch(function(){});
+}
+
 function playAudio(file,cb){
   if(!audioUnlocked){if(cb) setTimeout(cb,100);return;}
-  if(bg.paused) bg.play().catch(function(){});
+  startBgLoop();
   fadeBg(BG_DUCK,130);
   sfx.pause();sfx.currentTime=0;sfx.src=AP+file;sfx.load();sfx.onended=sfx.onerror=null;
   startTalk();
   var done=function(){stopTalk();fadeBg(BG_FULL,380);if(cb) cb();};
   sfx.onended=done;sfx.onerror=done;
-  var p=sfx.play();if(p&&p.catch) p.catch(function(err){if(err&&err.name==="NotAllowedError") tapPlay.classList.add("show");done();});
+  var p=sfx.play();
+  if(p&&p.catch) p.catch(function(err){
+    if(err&&err.name==="NotAllowedError") tapPlay.classList.add("show");
+    done();
+  });
 }
+
+// Maps chapterIdx (0-based) to correct audio:
+// arriving at ch2 (idx=1) plays correct_01, ..., arriving at ch8 (idx=7) skips to cb (final flow)
+var CORRECT_FILES=[
+  "correct_01.mp3","correct_02.mp3","correct_03.mp3","correct_04.mp3",
+  "correct_05.mp3","correct_06.mp3","correct_07.mp3"
+];
+function playCorrect(chapterIdx,cb){
+  // chapterIdx is the chapter we JUST LEFT (0-based)
+  // 0→correct_01 .. 6→correct_07, 7→no file (final.mp3 used in finishHunt)
+  var file=CORRECT_FILES[chapterIdx];
+  if(file){ playAudio(file,cb); } else { if(cb) cb(); }
+}
+
+function playWrong(){
+  playAudio("wrong.mp3",null);
+}
+
 function unlockAudio(){
-  if(audioUnlocked) return; audioUnlocked=true; tapPlay.classList.remove("show");
-  try{bg.src=AP+"background.mp3";bg.load();bg.volume=BG_FULL;bg.play().catch(function(){});}catch(e){}
+  if(audioUnlocked) return;
+  audioUnlocked=true;
+  tapPlay.classList.remove("show");
+  // bg_loop starts after opening.mp3 finishes (see bootstrap),
+  // or immediately here if jumping into mid-hunt chapter
+  if(TARGET_IDX!==null&&TARGET_IDX!==0){
+    bgLoop.src=AP+"bg_loop.mp3"; bgLoop.load();
+    bgLoop.volume=BG_FULL;
+    bgLoop.play().catch(function(){});
+  }
 }
 
 // ── BEAR ASSET LOADING ────────────────────────────────────
@@ -815,12 +867,35 @@ function playClue(idx){var ch=CHAPTERS[idx];if(!ch) return;tapPlay.classList.rem
 // ── BOOTSTRAP ─────────────────────────────────────────────
 function bootstrap(idx){
   startScr.classList.add("hidden");applyScene(idx);renderProg(idx);setChapterLabel(idx);showBear(CHAPTERS[idx].title);startBlinkLoop();startTwitchLoop();
-  if(idx===0){playAudio("opening.mp3",function(){setTimeout(function(){playClue(0);},200);});}
-  else{correctN=(correctN%7)+1;bearHappy();popDot(idx-1);renderProg(idx);playAudio("correct_0"+correctN+".mp3",function(){spawnFx(20,2800,false);setTimeout(function(){playClue(idx);},2600);});}
+  if(idx===0){
+    // Chapter 1: play opening, then start bg_loop, then play clue
+    playAudio("opening.mp3",function(){
+      startBgLoop();
+      setTimeout(function(){playClue(0);},200);
+    });
+  } else {
+    // Chapters 2–8: play correct chime for arriving at this chapter, then clue
+    bearHappy();popDot(idx-1);renderProg(idx);
+    playCorrect(idx-1,function(){
+      spawnFx(20,2800,false);
+      setTimeout(function(){playClue(idx);},2600);
+    });
+  }
 }
 function finishHunt(idx){
-  bearHappy();correctN=(correctN%7)+1;popDot(idx);renderProg(idx+1);
-  playAudio("correct_0"+correctN+".mp3",function(){spawnFx(30,5000,false);setTimeout(function(){playAudio("final.mp3",function(){bigCelebration();fadeBg(BG_FULL,320);setTimeout(function(){finalScr.classList.add("show");},5600);});},3200);});
+  bearHappy();popDot(idx);renderProg(idx+1);
+  // Fade bg_loop out, bring in bg_final underneath final voice
+  fadeBg(0,800);
+  setTimeout(function(){
+    bgLoop.pause();
+    bgFin.src=AP+"bg_final.mp3"; bgFin.load();
+    bgFin.volume=BG_FINAL;
+    bgFin.play().catch(function(){});
+    playAudio("final.mp3",function(){
+      bigCelebration();
+      setTimeout(function(){finalScr.classList.add("show");},5600);
+    });
+  },600);
 }
 
 // ── INIT START SCREEN ─────────────────────────────────────
@@ -834,12 +909,24 @@ function initStartScreen(){
   }
   btn.addEventListener("click",function(){
     document.body.classList.add("started");
-    unlockAudio();var idx=TARGET_IDX!==null?TARGET_IDX:0;
+    unlockAudio();
+    var idx=TARGET_IDX!==null?TARGET_IDX:0;
     if(idx===CHAPTERS.length-1){
+      // Last chapter scanned — play correct chime, then clue, then finish
       startScr.classList.add("hidden");applyScene(idx);renderProg(idx);setChapterLabel(idx);showBear(CHAPTERS[idx].title);startBlinkLoop();startTwitchLoop();
-      correctN=(correctN%7)+1;bearHappy();popDot(idx-1);renderProg(idx);
-      playAudio("correct_0"+correctN+".mp3",function(){spawnFx(20,2800,false);setTimeout(function(){showBear(CHAPTERS[idx].title);tapPlay.classList.remove("show");tapPlay.onclick=function(){tapPlay.classList.remove("show");finishHunt(idx);};playAudio(CHAPTERS[idx].audio,function(){finishHunt(idx);});},2600);});
-    } else { bootstrap(idx); }
+      bearHappy();popDot(idx-1);renderProg(idx);
+      playCorrect(idx-1,function(){
+        spawnFx(20,2800,false);
+        setTimeout(function(){
+          showBear(CHAPTERS[idx].title);
+          tapPlay.classList.remove("show");
+          tapPlay.onclick=function(){tapPlay.classList.remove("show");finishHunt(idx);};
+          playAudio(CHAPTERS[idx].audio,function(){finishHunt(idx);});
+        },2600);
+      });
+    } else {
+      bootstrap(idx);
+    }
   });
 }
 
@@ -848,7 +935,7 @@ $("btn-replay").addEventListener("click",function(){finalScr.classList.remove("s
 $("btn-done").addEventListener("click",function(){finalScr.classList.remove("show");});
 document.body.addEventListener("click",   unlockAudio,{once:true});
 document.body.addEventListener("touchend",unlockAudio,{once:true});
-window.addEventListener("beforeunload",function(){sfx.pause();bg.pause();});
+window.addEventListener("beforeunload",function(){sfx.pause();bgLoop.pause();bgFin.pause();});
 
 // ── BOOT ──────────────────────────────────────────────────
 probeIdleBear();preloadOptional();initStartScreen();
