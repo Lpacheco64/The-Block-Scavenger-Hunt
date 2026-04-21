@@ -340,6 +340,29 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
 .fc-btn.ghost  {background:#fff;color:var(--text-warm);border:2px solid #ddd;}
 
 /* ══════════════════════════════════════════════════════
+   HIDE ALL CHAPTER UI WHILE START SCREEN IS VISIBLE
+   body.on-start-screen is added at boot, removed when
+   the start button fires bootstrap() / the experience begins
+══════════════════════════════════════════════════════ */
+body.on-start-screen #top-hud,
+body.on-start-screen #bear-overlay,
+body.on-start-screen #chapter-label,
+body.on-start-screen #arch-overlay,
+body.on-start-screen #tap-play,
+body.on-start-screen #effects-layer,
+body.on-start-screen #final-glow,
+body.on-start-screen #rainbow-banner,
+body.on-start-screen #final-screen,
+body.on-start-screen .depth-tree,
+body.on-start-screen #depth-path,
+body.on-start-screen #depth-center-glow,
+body.on-start-screen #depth-light-glow,
+body.on-start-screen #depth-vignette,
+body.on-start-screen #scene {
+  display:none !important;
+}
+
+/* ══════════════════════════════════════════════════════
    START SCREEN — Full-screen illustrated forest scene
    Primary: assets/forest_bg.png
    Fallback: layered CSS forest if image not found
@@ -350,12 +373,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
   align-items:center;justify-content:flex-start;
   overflow:hidden;
   padding:0;
-}
-#start-screen.hidden{display:none;}
-
-/* ── Background: real image + CSS fallback ── */
-#start-bg{
-  position:absolute;inset:0;z-index:0;
+  /* Paint the background directly on #start-screen so nothing bleeds through */
   background:
     url('assets/forest_bg.png') center center / cover no-repeat,
     radial-gradient(ellipse 55% 65% at 50% -5%, #fffbe0 0%, #f0f0a0 15%, transparent 55%),
@@ -364,6 +382,38 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
       #c4e87a 0%,#9fd45c 18%,#7ac244 32%,
       #5aaa2e 50%,#3e8a1a 68%,#2a6e0e 85%,#1e5808 100%
     );
+}
+#start-screen.hidden{display:none;}
+
+/* #start-bg acts as an overlay for vignette/depth effects on top of the image */
+#start-bg{
+  position:absolute;inset:0;z-index:0;
+  /* Vignette to darken edges slightly over the forest image */
+  background:radial-gradient(ellipse 100% 100% at 50% 50%,
+    transparent 42%, rgba(0,0,0,0.38) 100%);
+  pointer-events:none;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CHAPTER SCENE ELEMENTS — hidden until game is started.
+   body.started is added by JS when the start button fires.
+   This guarantees the opening screen is always clean.
+═══════════════════════════════════════════════════════ */
+body:not(.started) #scene,
+body:not(.started) #bear-overlay,
+body:not(.started) #top-hud,
+body:not(.started) #chapter-label,
+body:not(.started) #tap-play,
+body:not(.started) #effects-layer,
+body:not(.started) #arch-overlay,
+body:not(.started) .depth-tree,
+body:not(.started) #depth-path,
+body:not(.started) #depth-center-glow,
+body:not(.started) #depth-light-glow,
+body:not(.started) #depth-vignette,
+body:not(.started) #final-glow,
+body:not(.started) #rainbow-banner {
+  display: none !important;
 }
 
 /* ── Content layout ── */
@@ -758,6 +808,7 @@ function initStartScreen(){
     else{info.innerHTML="Chapter "+ch.num+"<br>"+ch.title;sub.textContent="You found the next clue!";btn.textContent="🐻 Continue!";}
   }
   btn.addEventListener("click",function(){
+    document.body.classList.add("started");
     unlockAudio();var idx=TARGET_IDX!==null?TARGET_IDX:0;
     if(idx===CHAPTERS.length-1){
       startScr.classList.add("hidden");applyScene(idx);renderProg(idx);setChapterLabel(idx);showBear(CHAPTERS[idx].title);startBlinkLoop();startTwitchLoop();
