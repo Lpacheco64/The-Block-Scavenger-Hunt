@@ -385,68 +385,52 @@ body.correct        .bear-eye{
 #bear-scene.talking #bear-body::after{
   content:"";
   position:absolute;
-  left:42.2%;top:38.6%;
-  width:10.8%;height:4.6%;
-  border-radius:42% 42% 58% 58% / 35% 35% 65% 65%;
-  background:radial-gradient(ellipse at 50% 70%, rgba(210,80,60,1.00) 0%, rgba(28,5,1,1.00) 75%);
-  transform-origin:center 20%;
-  transform:scaleY(0.18) scaleX(0.80);
+  left:43.1%;top:39.6%;
+  width:9%;height:2.2%;
+  border-radius:50px;
+  background:none;
+  border-bottom:2px solid rgba(35,12,6,0.90);
+  transform-origin:center;
+  transform:scaleY(1) scaleX(1);
   opacity:0;
-  animation:mouthFadeIn 0.10s ease forwards,
-            beMouth5Shape var(--mouth-dur,0.42s) ease-in-out 0.10s infinite;
+  animation:mouthFadeIn 0.08s ease forwards,
+            mouthLineTalk 0.32s ease-in-out 0.08s infinite;
   pointer-events:none;z-index:3;
 }
 /* Fade-in entrance — mouth eases open on start */
 @keyframes mouthFadeIn{
-  0%  {opacity:0;transform:scaleY(0.10) scaleX(0.75);}
-  100%{opacity:1.00;transform:scaleY(0.18) scaleX(0.80);}
+  0%  {opacity:0;transform:scaleY(0.8) scaleX(0.9);}
+  100%{opacity:1;transform:scaleY(1) scaleX(1);}
 }
 /* Excited / correct-answer: slightly bigger, slightly faster */
 #bear-scene.talking-excited #bear-body::after{
   width:12%;height:5%;
-  animation:mouthFadeIn 0.10s ease forwards,
-            beMouth5ShapeExcited var(--mouth-dur-ex,0.34s) ease-in-out 0.08s infinite;
-}
-@keyframes beMouth5ShapeExcited{
-  0%   {transform:scaleY(0.20) scaleX(0.80);opacity:0.30;}
-  15%  {transform:scaleY(0.65) scaleX(0.95);opacity:0.68;}
-  35%  {transform:scaleY(1.55) scaleX(1.12);opacity:0.98;}
-  46%  {transform:scaleY(1.48) scaleX(1.14);opacity:0.96;}
-  62%  {transform:scaleY(0.95) scaleX(1.06);opacity:0.76;}
-  80%  {transform:scaleY(0.55) scaleX(0.96);opacity:0.58;}
-  100% {transform:scaleY(0.20) scaleX(0.80);opacity:0.30;}
+  animation:mouthFadeIn 0.08s ease forwards,
+            mouthLineTalk 0.28s ease-in-out 0.08s infinite;
 }
 /* Stopping: ease mouth closed before class removal */
 #bear-scene.talking-stopping #bear-body::after{
   content:"";
   position:absolute;
-  left:42.2%;top:38.6%;
-  width:10.8%;height:4.6%;
-  border-radius:42% 42% 58% 58% / 35% 35% 65% 65%;
-  background:radial-gradient(ellipse at 50% 70%, rgba(210,80,60,1.00) 0%, rgba(28,5,1,1.00) 75%);
-  transform-origin:center 20%;
-  animation:mouthFadeOut 0.14s ease forwards !important;
+  left:43.1%;top:39.6%;
+  width:9%;height:2.2%;
+  border-radius:50px;
+  background:none;
+  border-bottom:2px solid rgba(35,12,6,0.90);
+  transform-origin:center;
+  animation:mouthLineFadeOut 0.12s ease forwards !important;
   pointer-events:none;z-index:3;
 }
-@keyframes mouthFadeOut{
-  0%  {transform:scaleY(0.55) scaleX(0.92);opacity:1.00;}
-  100%{transform:scaleY(0.10) scaleX(0.76);opacity:0;}
+@keyframes mouthLineFadeOut{
+  0%  {opacity:1;transform:scaleY(1) scaleX(1);}
+  100%{opacity:0;transform:scaleY(0.7) scaleX(0.9);}
 }
-@keyframes beMouth5Shape{
-  /* Shape 1: closed */
-  0%   {transform:scaleY(0.18) scaleX(0.80);opacity:0.85;}
-  /* Shape 2: small open */
-  18%  {transform:scaleY(0.60) scaleX(0.93);opacity:0.95;}
-  /* Shape 3: wide open — vowel peak */
-  38%  {transform:scaleY(1.45) scaleX(1.10);opacity:1.00;}
-  /* tiny hold at wide */
-  48%  {transform:scaleY(1.38) scaleX(1.12);opacity:1.00;}
-  /* Shape 4: medium — transition down */
-  64%  {transform:scaleY(0.90) scaleX(1.05);opacity:0.95;}
-  /* Shape 5: small open — syllable end */
-  80%  {transform:scaleY(0.52) scaleX(0.95);opacity:0.90;}
-  /* back to closed */
-  100% {transform:scaleY(0.18) scaleX(0.80);opacity:0.85;}
+@keyframes mouthLineTalk{
+  0%  {transform:scaleY(1) scaleX(1);}
+  25% {transform:scaleY(1.6) scaleX(1.05);}
+  50% {transform:scaleY(0.8) scaleX(0.95);}
+  75% {transform:scaleY(1.4) scaleX(1.02);}
+  100%{transform:scaleY(1) scaleX(1);}
 }
 /* Happy bounce */
 #bear-scene.happy #bear-body{animation:beHappy 1.3s cubic-bezier(.34,1.56,.64,1);}
