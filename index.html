@@ -180,86 +180,146 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
   mix-blend-mode:multiply;
 }
 /* ── Blink overlay: two eyelid divs, top-down sweep ── */
+/* ── Eye highlight overlay ── */
+#bear-eye-overlay{
+  position:absolute;
+  top:17%;left:20%;
+  width:60%;height:18%;
+  pointer-events:none;z-index:3;
+  display:flex;justify-content:space-between;
+  align-items:center;
+  padding:0 5%;
+}
+.bear-eye-highlight{
+  width:28%;height:55%;
+  border-radius:50%;
+  background:radial-gradient(circle,
+    rgba(255,255,255,0.85) 0%,
+    rgba(255,245,210,0.55) 40%,
+    transparent            100%);
+  opacity:0;
+  transform:scale(0.5);
+  will-change:transform,opacity;
+  transition:transform .22s ease, opacity .22s ease;
+}
+/* Idle: soft resting glow */
+#bear-scene.idle .bear-eye-highlight{
+  opacity:0.42;transform:scale(0.82);
+  animation:eyeIdleShimmer 3.8s ease-in-out infinite;
+}
+@keyframes eyeIdleShimmer{
+  0%,100%{opacity:0.38;transform:scale(0.80);}
+  50%    {opacity:0.52;transform:scale(0.90);}
+}
+/* Talking: eyes widen + highlights pulse with voice */
+#bear-scene.talking .bear-eye-highlight{
+  opacity:0.72;transform:scale(1.08);
+  animation:eyeHighlightPulse .48s ease-in-out infinite;
+}
+@keyframes eyeHighlightPulse{
+  0%,100%{opacity:0.60;transform:scale(1.02);}
+  45%    {opacity:0.92;transform:scale(1.18);}
+}
+/* Excited: bright flash on correct scan */
+#bear-scene.excited .bear-eye-highlight{
+  animation:eyeExcitedBurst .55s ease-out forwards;
+}
+@keyframes eyeExcitedBurst{
+  0%  {opacity:0.60;transform:scale(1.00);}
+  25% {opacity:1.00;transform:scale(1.55);}
+  55% {opacity:0.95;transform:scale(1.35);}
+  100%{opacity:0.80;transform:scale(1.20);}
+}
+/* Happy: bright warm glow */
+#bear-scene.happy .bear-eye-highlight{
+  opacity:0.95;transform:scale(1.30);
+  animation:eyeHighlightHappy .42s ease-out 2 forwards;
+}
+@keyframes eyeHighlightHappy{
+  0%  {opacity:0.75;transform:scale(1.10);}
+  35% {opacity:1.00;transform:scale(1.50);}
+  65% {opacity:0.90;transform:scale(1.28);}
+  100%{opacity:0.95;transform:scale(1.30);}
+}
+
+/* ── Blink overlay ── */
 #bear-blink-overlay{
   position:absolute;
-  top:16%;left:24%;
-  width:52%;height:12%;
+  top:15%;left:20%;
+  width:60%;height:16%;
   pointer-events:none;z-index:2;
   display:flex;justify-content:space-between;
   align-items:flex-start;
-  padding:0 6%;
+  padding:0 4%;
 }
 .bear-eyelid{
-  width:32%;
-  height:100%;
-  /* Very soft — fades to nothing before halfway */
-  background:radial-gradient(ellipse 100% 60% at 50% 0%,
-    rgba(52,22,6,0.52) 0%,
-    rgba(52,22,6,0.18) 55%,
+  width:30%;height:100%;
+  background:radial-gradient(ellipse 80% 55% at 50% 0%,
+    rgba(48,18,4,0.38) 0%,
+    rgba(48,18,4,0.10) 60%,
     transparent        100%);
-  /* Strongly curved — reads as eyelid, not rectangle */
-  border-radius:0 0 50% 50% / 0 0 100% 100%;
+  border-radius:0 0 50% 50% / 0 0 120% 120%;
   transform-origin:top center;
   transform:scaleY(0);
   will-change:transform;
 }
 @keyframes beEyelidClose{
   0%  {transform:scaleY(0);}
-  42% {transform:scaleY(1);}
-  58% {transform:scaleY(1);}
+  40% {transform:scaleY(1);}
+  60% {transform:scaleY(1);}
   100%{transform:scaleY(0);}
 }
-.bear-eyelid.blink{animation:beEyelidClose .14s ease-in-out forwards;}
+.bear-eyelid.blink{animation:beEyelidClose .12s ease-in-out forwards;}
 
-/* Bear animations */
+/* ══════════════════════════════════════
+   BEAR ANIMATIONS
+══════════════════════════════════════ */
 #bear-scene.entering #bear-img{animation:beEnter .7s cubic-bezier(.34,1.56,.64,1) both;}
 @keyframes beEnter{
   0%  {transform:scale(.68) translateY(28px);}
   72% {transform:scale(1.06) translateY(-7px);}
   100%{transform:scale(1)   translateY(0);}
 }
-
-/* Idle: slow breathing + very gentle bob */
+/* Idle: slow breathing */
 #bear-scene.idle #bear-img{animation:beBreathe 5.2s ease-in-out infinite;}
 @keyframes beBreathe{
   0%,100%{transform:scaleX(1)     scaleY(1)     translateY(0);}
   50%     {transform:scaleX(1.012) scaleY(1.022) translateY(-4px);}
 }
-/* Idle sway — lighter, slower */
+/* Idle sway */
 #bear-scene.idle{animation:beSway 9s ease-in-out infinite;}
 @keyframes beSway{
-  0%,100%{transform:translateX(0)   rotateZ(0);}
-  30%     {transform:translateX(3px) rotateZ(.5deg);}
+  0%,100%{transform:translateX(0)    rotateZ(0);}
+  30%     {transform:translateX(3px)  rotateZ(.5deg);}
   70%     {transform:translateX(-3px) rotateZ(-.5deg);}
 }
-
-/* Talking: subtle head/body nod + mouth area */
+/* Talking: subtle head nod */
 #bear-scene.talking #bear-img{animation:beTalkBody .52s ease-in-out infinite;}
 @keyframes beTalkBody{
-  0%,100%{transform:translateY(0)   scaleY(1);}
+  0%,100%{transform:translateY(0)    scaleY(1);}
   35%     {transform:translateY(-3px) scaleY(1.008);}
   65%     {transform:translateY(-1px) scaleY(1.004);}
 }
-/* Mouth pulse: tiny soft shape on the muzzle during audio */
+/* Mouth pulse — clearly visible oval, synced to .talking */
 #bear-scene.talking::after{
   content:"";
   position:absolute;
-  /* Centered tightly on the muzzle area */
-  left:40%;top:65%;
-  width:20%;height:7%;
-  border-radius:50%;
-  background:rgba(70,22,8,0.22);
-  transform-origin:center center;
-  transform:scaleY(0.4) scaleX(0.9);
-  animation:beMouthPulse .42s ease-in-out infinite;
+  left:36%;top:61%;
+  width:28%;height:12%;
+  border-radius:45% 45% 55% 55%;
+  background:rgba(55,16,4,0.38);
+  transform-origin:center top;
+  transform:scaleY(0.25) scaleX(0.82);
+  opacity:0;
+  animation:beMouthPulse .34s ease-in-out infinite;
   pointer-events:none;z-index:3;
 }
 @keyframes beMouthPulse{
-  0%,100%{transform:scaleY(0.4) scaleX(0.9);opacity:0.45;}
-  45%     {transform:scaleY(1)   scaleX(1.1); opacity:0.70;}
+  0%,100%{transform:scaleY(0.25) scaleX(0.82);opacity:0.35;}
+  42%    {transform:scaleY(1.30) scaleX(1.12);opacity:0.92;}
+  75%    {transform:scaleY(0.80) scaleX(1.05);opacity:0.68;}
 }
-
-/* Happy: cleaner bounce — reduced squash extremes, keep face readable */
+/* Happy bounce */
 #bear-scene.happy #bear-img{animation:beHappy 1.3s cubic-bezier(.34,1.56,.64,1);}
 @keyframes beHappy{
   0%  {transform:scaleX(1)    scaleY(1)    translateY(0)     rotate(0);}
@@ -270,15 +330,30 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
   82% {transform:scaleX(.97)  scaleY(1.04) translateY(-8px)  rotate(-.3deg);}
   100%{transform:scaleX(1)    scaleY(1)    translateY(0)     rotate(0);}
 }
-
-/* Twitch: ear/head micro-movement */
+/* Twitch */
 #bear-scene.twitch #bear-img{animation:beTwitch .5s ease;}
 @keyframes beTwitch{
   0%,100%{transform:scale(1);}
   40%     {transform:scaleX(1.025) scaleY(.982) translateY(-2px) rotateZ(.4deg);}
 }
-
-/* Old blinkLid kept for any fallback references — now a no-op */
+/* Correct-scan glow */
+#bear-scene.happy::before{
+  content:"";position:absolute;left:50%;top:55%;
+  width:260px;height:260px;border-radius:50%;
+  background:radial-gradient(circle,
+    rgba(255,230,80,0.58) 0%,
+    rgba(255,200,60,0.28) 40%,
+    transparent 72%);
+  transform:translate(-50%,-50%) scale(0);opacity:0;
+  pointer-events:none;z-index:0;
+  animation:bearGlow 1.3s ease-out forwards;
+}
+@keyframes bearGlow{
+  0%  {transform:translate(-50%,-50%) scale(0.2);opacity:0;}
+  18% {opacity:1;}
+  55% {transform:translate(-50%,-50%) scale(1.6);opacity:.85;}
+  100%{transform:translate(-50%,-50%) scale(2.2);opacity:0;}
+}
 @keyframes beBlinkLid{0%,100%{opacity:0;}}
 
 /* ══════════════════════════════════════
@@ -436,13 +511,14 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
   100%{transform:translate(-50%,-50%) scale(2.2);opacity:0;}
 }
 
-/* Upgraded dot pop — bigger scale, gold ring flash */
-.pg-dot.pop{animation:dotPop .55s cubic-bezier(.34,1.56,.64,1);}
+/* Upgraded dot pop — big satisfying reward pop */
+.pg-dot.pop{animation:dotPop .6s cubic-bezier(.34,1.56,.64,1);}
 @keyframes dotPop{
   0%  {transform:scale(1.22) translateY(-2px);}
-  30% {transform:scale(2.0)  translateY(-10px) rotate(16deg);
-       box-shadow:0 0 22px rgba(255,210,60,0.90),0 0 6px rgba(255,240,100,.8);}
-  65% {transform:scale(1.55) translateY(-4px) rotate(-6deg);}
+  28% {transform:scale(2.2)  translateY(-14px) rotate(18deg);
+       box-shadow:0 0 28px rgba(255,220,60,0.95),0 0 8px rgba(255,240,100,.9);}
+  55% {transform:scale(1.60) translateY(-6px) rotate(-8deg);}
+  80% {transform:scale(1.28) translateY(-3px) rotate(3deg);}
   100%{transform:scale(1.22) translateY(-2px);}
 }
 
@@ -468,6 +544,15 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
 @keyframes scenePulseGold{
   0%,100%{filter:brightness(1)   saturate(1);}
   45%    {filter:brightness(1.18) saturate(1.35) sepia(0.15);}
+}
+/* Correct-scan: brief warm bloom */
+#scene.correct-pulse{
+  animation:sceneCorrectPulse .8s ease-out forwards;
+}
+@keyframes sceneCorrectPulse{
+  0%  {filter:brightness(1)    saturate(1);}
+  30% {filter:brightness(1.22) saturate(1.4) sepia(0.12);}
+  100%{filter:brightness(1)    saturate(1);}
 }
 
 /* Final glow + banner */
@@ -813,6 +898,10 @@ body.started #tap-play{
         <div class="bear-eyelid" id="eyelid-left"></div>
         <div class="bear-eyelid" id="eyelid-right"></div>
       </div>
+      <div id="bear-eye-overlay" aria-hidden="true">
+        <div class="bear-eye-highlight" id="eye-hl-left"></div>
+        <div class="bear-eye-highlight" id="eye-hl-right"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -935,7 +1024,7 @@ var TARGET_IDX=getChapterIdx();
 var audioUnlocked=false,blinkTO=null,twitchTO=null,talkIV=null,bgFadeIV=null,celTok=0,correctN=0;
 var isFinalSequence=false; // true once finishHunt() fires — prevents bgLoop restart
 var currentStep=0; // 0-based index of the clue currently active; scanner validates against this
-var ANIM_STATES=["idle","talking","happy","confused","blinking","twitch","entering"];
+var ANIM_STATES=["idle","talking","happy","excited","confused","blinking","twitch","entering"];
 
 // ── DOM ───────────────────────────────────────────────────
 var $=function(id){return document.getElementById(id);};
@@ -981,12 +1070,18 @@ function playAudio(file,cb){
   if(!isFinalSequence) startBgLoop();
   fadeBg(BG_DUCK,130);
   sfx.pause();sfx.currentTime=0;sfx.src=AP+file;sfx.load();sfx.onended=sfx.onerror=null;
+  // Talking state starts immediately — visible even if audio is loading
   startTalk();
+  var talkStarted=Date.now();
   var done=function(){
-    stopTalk();
-    // During final sequence, do NOT restore bg to BG_FULL — bgFin is in control
-    if(!isFinalSequence) fadeBg(BG_FULL,380);
-    if(cb) cb();
+    // Ensure talking visible for at least 1200ms (debug/load fallback)
+    var elapsed=Date.now()-talkStarted;
+    var delay=Math.max(0,1200-elapsed);
+    setTimeout(function(){
+      stopTalk();
+      if(!isFinalSequence) fadeBg(BG_FULL,380);
+      if(cb) cb();
+    },delay);
   };
   sfx.onended=done;sfx.onerror=done;
   var p=sfx.play();
@@ -1202,13 +1297,31 @@ function correctCelebration(){
   setTimeout(function(){if(celTok===tok) fxLayer.innerHTML="";},1700);
 }
 
-// Unified correct-scan entry point called by onResult and bootstrap.
-// step is 0-based index of the step that was just completed.
-// Fires bear animation, glow, particles immediately — audio plays in parallel.
-function playCorrectCelebration(step){
-  bearHappy();
+// ── CORRECT-SCAN REWARD — layered payoff ─────────────────
+// Fires immediately on correct scan: excited eyes + scene pulse + particles.
+function playCorrectReward(step){
+  // Layer A: bear excited state → eyes burst + body bounce
+  clearBear("excited","happy");
+  bearScene.classList.add("excited","happy");
+  setTimeout(function(){
+    bearScene.classList.remove("excited");
+    setIdle();
+  },1300);
+  // Layer B: progress dot pop
   popDot(step);
+  // Layer C: warm scene pulse behind bear
+  var sceneEl=document.getElementById("scene");
+  if(sceneEl){
+    sceneEl.classList.add("correct-pulse");
+    setTimeout(function(){sceneEl.classList.remove("correct-pulse");},900);
+  }
+  // Layer D: particle burst
   correctCelebration();
+}
+
+// Unified correct-scan entry point — replaces old playCorrectCelebration.
+function playCorrectCelebration(step){
+  playCorrectReward(step);
 }
 
 // ── CHAPTER LABEL ─────────────────────────────────────────
