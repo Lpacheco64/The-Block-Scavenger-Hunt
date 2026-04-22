@@ -181,99 +181,126 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
 }
 /* ── Blink overlay: two eyelid divs, top-down sweep ── */
 /* ══════════════════════════════════════
-   EYE ANIMATION SYSTEM — SCALE ONLY
-   PNG's own black eyes are the visuals.
-   These divs are transparent hit-targets
-   centered on each pupil.
-
-   Pixel data from embedded 386×480 bear PNG:
-     LEFT  eye center: 36.2% x, 23.2% y  ~12% diam
-     RIGHT eye center: 63.1% x, 23.4% y  ~12% diam
-
-   Width set to 14% so scale transforms
-   stay cleanly inside the eye diameter.
+   EYE OVERLAY SYSTEM
+   Glossy cartoon circles sit exactly over
+   the bear PNG's own black eye circles.
+   Pixel-measured from embedded 386×480 PNG:
+     LEFT  center: 36.2% x, 23.2% y  ~12% diam
+     RIGHT center: 63.1% x, 23.4% y  ~12% diam
+   Overlay is 13% wide (≈ eye diameter).
+   transform-origin: center — scale stays
+   perfectly centered on the pupil.
 ══════════════════════════════════════ */
 
+/* ── Base eye circle ── */
 .bear-eye{
   position:absolute;
-  /* 14% of #bear-img-wrap = ~43px on a 310px bear.
-     Slightly larger than eye circle so scale has room. */
-  width:14%;
+  width:13%;
   aspect-ratio:1/1;
-  transform-origin:center center;
-  /* Completely invisible — no background, no border */
-  pointer-events:none;
-  will-change:transform,filter;
   border-radius:50%;
+  /* Glossy black eye: dark center, subtle rim highlight */
+  background:
+    radial-gradient(circle at 38% 32%,
+      rgba(80,40,10,0.18) 0%,
+      rgba(10,5,2,0.82)  38%,
+      rgba(4,2,1,0.95)   100%);
+  transform-origin:center center;
+  pointer-events:none;
+  will-change:transform;
   z-index:3;
+  /* Soft shadow so edges blend into bear fur */
+  box-shadow:0 0 0 1.5px rgba(30,10,2,0.35),
+             0 2px 6px rgba(0,0,0,0.28);
 }
 
-/* Independent placement over each black eye circle.
-   Center offset = 36.2% - 7% = 29.2% left, 23.2% - 7% = 16.2% top  */
-#bear-eye-left {left:29.2%;top:16.2%;}
-#bear-eye-right{left:56.1%;top:16.4%;}
+#bear-eye-left {left:29.7%;top:17.3%;}
+#bear-eye-right{left:56.6%;top:17.5%;}
 
-/* ════ IDLE: barely-there life pulse ════ */
+/* ── Single highlight dot — upper-left, minimal ── */
+.bear-eye-shine{
+  position:absolute;
+  top:13%;left:16%;
+  width:26%;height:26%;
+  border-radius:50%;
+  background:#ffffff;
+  opacity:0.55;       /* subtle in idle — not a sticker */
+  pointer-events:none;
+  will-change:opacity,transform;
+}
+
+/* ════ IDLE: gentle life pulse ════ */
 #bear-scene.idle .bear-eye{
-  animation:eyeIdlePulse 3.8s ease-in-out infinite;
+  animation:eyeIdlePulse 3.6s ease-in-out infinite;
 }
 @keyframes eyeIdlePulse{
-  0%,100%{transform:scale(1.04);}
-  50%    {transform:scale(1.08);}
+  0%,100%{transform:scale(1.05);}
+  50%    {transform:scale(1.09);}
 }
+#bear-scene.idle .bear-eye-shine{opacity:0.50;}
 
-/* ════ TALKING: rhythmic scale with audio ════ */
+/* ════ TALKING: bounce with audio rhythm ════ */
 #bear-scene.talking .bear-eye{
   animation:eyeTalkBeat .46s ease-in-out infinite;
 }
 @keyframes eyeTalkBeat{
-  0%,100%{transform:scale(1.08);}
-  40%    {transform:scale(1.16);}
+  0%,100%{transform:scale(1.09);}
+  42%    {transform:scale(1.18);}
 }
+#bear-scene.talking .bear-eye-shine{opacity:0.68;}
 
-/* ════ EXCITED / CORRECT ANSWER: big joyful pop ════ */
+/* ════ EXCITED / CORRECT: big cartoon pop ════ */
 #bear-scene.excited .bear-eye,
 #bear-scene.happy   .bear-eye,
 body.correct        .bear-eye{
-  animation:eyeExcitedPop .55s cubic-bezier(.22,1.6,.46,1) forwards;
+  animation:eyeExcitedPop .52s cubic-bezier(.20,1.65,.45,1) forwards;
 }
 @keyframes eyeExcitedPop{
-  0%  {transform:scale(1.08);}
-  30% {transform:scale(1.48);}
-  58% {transform:scale(1.34);}
-  78% {transform:scale(1.40);}
-  100%{transform:scale(1.36);}
+  0%  {transform:scale(1.09);}
+  28% {transform:scale(1.58);}
+  52% {transform:scale(1.38);}
+  72% {transform:scale(1.46);}
+  100%{transform:scale(1.42);}
 }
-
-/* Warm glow behind eye — scale only, no shape on the eye itself */
+/* Highlight brightens on excited */
+#bear-scene.excited .bear-eye-shine,
+#bear-scene.happy   .bear-eye-shine{
+  opacity:1.00;
+  animation:shineFlash .52s ease-out forwards;
+}
+@keyframes shineFlash{
+  0%  {transform:scale(1.0);opacity:0.55;}
+  28% {transform:scale(1.5);opacity:1.00;}
+  100%{transform:scale(1.2);opacity:0.90;}
+}
+/* Warm glow ring BEHIND the eye (z-index -1, never on top) */
 #bear-scene.excited .bear-eye::after,
 #bear-scene.happy   .bear-eye::after{
   content:"";
-  position:absolute;inset:-30%;
+  position:absolute;inset:-35%;
   border-radius:50%;
   background:radial-gradient(circle,
-    rgba(255,210,50,0.32) 0%,
-    rgba(255,170,20,0.12) 50%,
-    transparent           78%);
+    rgba(255,210,50,0.42) 0%,
+    rgba(255,160,20,0.16) 50%,
+    transparent           75%);
   animation:eyeGlow .6s ease-out forwards;
   pointer-events:none;
+  z-index:-1;
 }
 @keyframes eyeGlow{
-  0%  {opacity:0;transform:scale(0.6);}
+  0%  {opacity:0;transform:scale(0.5);}
   35% {opacity:1;transform:scale(1.0);}
-  100%{opacity:0;transform:scale(1.6);}
+  100%{opacity:0;transform:scale(1.7);}
 }
 
-/* ════ BLINK: vertical squash only ════ */
-/* Blink is applied directly to .bear-eye via JS */
+/* ════ BLINK: vertical squash ════ */
 .bear-eye.blink{
-  animation:eyeBlink .14s ease-in-out forwards !important;
+  animation:eyeBlink .13s ease-in-out forwards !important;
 }
 @keyframes eyeBlink{
-  0%  {transform:scale(1.04) scaleY(1);}
-  40% {transform:scale(1.04) scaleY(0.08);}
-  60% {transform:scale(1.04) scaleY(0.08);}
-  100%{transform:scale(1.04) scaleY(1);}
+  0%  {transform:scale(1.05) scaleY(1);}
+  40% {transform:scale(1.05) scaleY(0.06);}
+  60% {transform:scale(1.05) scaleY(0.06);}
+  100%{transform:scale(1.05) scaleY(1);}
 }
 
 /* ══════════════════════════════════════
@@ -940,10 +967,10 @@ body.correct{
     <div id="bear-ground-shadow"></div>
     <div id="bear-img-wrap">
       <img id="bear-img" alt="Blocky Bear" draggable="false" style="visibility:hidden"/>
-      <!-- Two transparent eye targets — centered on the bear's black eye circles.
-           No fills, no shapes. Scale/glow only via CSS states. -->
-      <div class="bear-eye" id="bear-eye-left"  aria-hidden="true"></div>
-      <div class="bear-eye" id="bear-eye-right" aria-hidden="true"></div>
+      <!-- Cartoon eye overlays — sit over the PNG black eye circles.
+           Each has one tiny white highlight dot. -->
+      <div class="bear-eye" id="bear-eye-left"  aria-hidden="true"><span class="bear-eye-shine"></span></div>
+      <div class="bear-eye" id="bear-eye-right" aria-hidden="true"><span class="bear-eye-shine"></span></div>
     </div>
   </div>
 </div>
@@ -1400,7 +1427,7 @@ function bootstrap(idx){
     playCorrectCelebration(idx-1);
     playCorrect(idx-1,function(){
       correctCelebration();
-      setTimeout(function(){playClue(idx);},300);
+      setTimeout(function(){playClue(idx);},180);
     });
   }
 }
@@ -1408,28 +1435,56 @@ function finishHunt(idx){
   currentStep=-1;       // reject all further scans
   isFinalSequence=true; // prevent playAudio from restarting bgLoop
 
-  bearHappy();popDot(idx);renderProg(idx+1);
+  // Immediate visual reaction on final scan
+  clearBear("excited","happy");
+  bearScene.classList.add("excited","happy");
+  popDot(idx);
+  renderProg(idx+1);
+  triggerCelebrationFX();       // screen pop
+  correctCelebration();          // particle burst at scan moment
+  if(sceneEl){                   // warm scene pulse
+    sceneEl.classList.add("correct-pulse");
+    setTimeout(function(){sceneEl.classList.remove("correct-pulse");},900);
+  }
+  setTimeout(function(){bearScene.classList.remove("excited");},1400);
 
-  // Fade bgLoop out cleanly, then hand off to bgFin
-  fadeBg(0,700);
+  // Fade bgLoop out cleanly
+  fadeBg(0,600);
   setTimeout(function(){
     bgLoop.pause();
     bgLoop.currentTime=0;
 
-    // bgFin plays softly throughout the entire ending
+    // bgFin starts quietly underneath everything
     bgFin.src=AP+"bg_final.mp3";
     bgFin.load();
     bgFin.volume=BG_FINAL;
     bgFin.play().catch(function(){});
 
-    // final.mp3 voice plays over bgFin — playAudio won't restart bgLoop
+    // final.mp3 — voice plays clearly over bgFin
+    // Staged celebration fires as voice plays, not after
     playAudio("final.mp3",function(){
-      // Voice done → mega celebration
-      triggerMegaCelebration();
-      // Card shows after celebration has had room to breathe — ~8s total
+      // Voice has landed — now the big payoff
+      // Stage 1 (0ms): particles + glow burst
+      spawnFx(320,8000,true);
+      [glowEl,bannerEl].forEach(function(el){
+        el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
+      });
+      // Stage 2 (1200ms): second particle wave
+      setTimeout(function(){spawnFx(160,6000,true);},1200);
+      // Stage 3 (600ms): scene gold pulse
+      if(sceneEl){
+        sceneEl.classList.add("final-pulse");
+        setTimeout(function(){sceneEl.classList.remove("final-pulse");},4000);
+      }
+      // Stage 4 (6000ms): card settles in — celebration has fully played
       setTimeout(function(){
         finalScr.classList.add("show");
-      },8000);
+      },6000);
+      // Stage 5 (10000ms): clear glow + banner
+      setTimeout(function(){
+        glowEl.classList.remove("show");
+        bannerEl.classList.remove("show");
+      },10000);
     });
   },500);
 }
@@ -1459,7 +1514,7 @@ function initStartScreen(){
           tapPlay.classList.remove("show");
           tapPlay.onclick=function(){tapPlay.classList.remove("show");finishHunt(idx);};
           playAudio(CHAPTERS[idx].audio,function(){finishHunt(idx);});
-        },2600);
+        },400);
       });
     } else {
       bootstrap(idx);
@@ -1543,7 +1598,7 @@ function startPersistentScanner(){
             showBear(CHAPTERS[currentStep].title);
             playClue(currentStep);
             scanLock=false;
-          },300);
+          },180);
         });
       }
     } else {
