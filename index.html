@@ -217,7 +217,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
 /* ── Base eye circle — fully opaque black, glossy ── */
 .bear-eye{
   position:absolute;
-  width:14.5%;
+  width:12%;
   aspect-ratio:1/1;
   border-radius:50%;
   /* Solid black with subtle gloss catch in upper-left */
@@ -235,17 +235,16 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
              0 2px 8px rgba(0,0,0,0.45);
 }
 
-#bear-eye-left {left:29.0%;top:16.7%;}
-#bear-eye-right{left:55.9%;top:16.9%;}
+#bear-eye-left {left:30.2%;top:17.2%;}
+#bear-eye-right{left:57.1%;top:17.4%;}
 
 /* Eyebrow accent — dark arc above each eye for expression/depth */
 .bear-eye::before{
   content:"";
   position:absolute;
-  top:-38%;left:8%;
-  width:80%;height:36%;
-  border-top:3px solid rgba(40,16,4,0.82);
-  border-radius:50% 50% 0 0 / 80% 80% 0 0;
+  inset:-2px;
+  border-radius:50%;
+  box-shadow:0 0 0 1.5px rgba(30,10,2,0.45);
   pointer-events:none;
 }
 
@@ -382,8 +381,8 @@ body.correct        .bear-eye{
 #bear-scene.talking #bear-body::after{
   content:"";
   position:absolute;
-  left:33%;top:58%;
-  width:34%;height:17%;
+  left:39%;top:62%;
+  width:22%;height:9%;
   border-radius:42% 42% 58% 58% / 35% 35% 65% 65%;
   background:radial-gradient(ellipse at 50% 70%, rgba(210,80,60,1.00) 0%, rgba(28,5,1,1.00) 75%);
   transform-origin:center 20%;
