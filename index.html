@@ -179,45 +179,105 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
      Bear's brown fur (dark values) × scene ≈ original dark tone → fur stays visible. */
   mix-blend-mode:multiply;
 }
+/* ── Blink overlay: two eyelid divs, top-down sweep ── */
 #bear-blink-overlay{
-  position:absolute;top:14%;left:18%;
-  width:64%;height:18%;
+  position:absolute;
+  top:15%;left:22%;
+  width:56%;height:14%;
   pointer-events:none;z-index:2;
-  opacity:0;transform:scaleY(0.04);transform-origin:center top;
+  display:flex;justify-content:space-between;
+  align-items:flex-start;
+  padding:0 5%;
 }
-#bear-blink-overlay svg{width:100%;height:100%;overflow:visible;}
-
-/* Speech bubble */
-#speech-bubble{
-  position:absolute;bottom:calc(100% + 12px);left:50%;
-  transform:translateX(-50%) translateY(8px);
-  background:var(--glass);border:3px solid rgba(255,255,255,0.96);
-  border-radius:26px;padding:12px 20px;
-  font-size:clamp(14px,4vw,18px);font-weight:bold;color:var(--text-warm);
-  text-align:center;white-space:nowrap;max-width:min(310px,88vw);
-  box-shadow:0 6px 24px var(--sh),inset 0 2px 4px rgba(255,240,200,0.5);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  opacity:0;transition:opacity .35s ease,transform .35s ease;
-  pointer-events:none;z-index:12;
+.bear-eyelid{
+  width:36%;
+  height:100%;
+  background:linear-gradient(to bottom,
+    rgba(58,26,8,0.68) 0%,
+    rgba(58,26,8,0.32) 65%,
+    transparent        100%);
+  border-radius:0 0 50% 50% / 0 0 80% 80%;
+  transform-origin:top center;
+  transform:scaleY(0);
+  will-change:transform;
 }
-#speech-bubble.visible{opacity:1;transform:translateX(-50%) translateY(0);}
-#speech-bubble::after{content:"";position:absolute;left:52px;bottom:-14px;width:16px;height:16px;background:var(--glass);border-right:3px solid rgba(255,255,255,0.96);border-bottom:3px solid rgba(255,255,255,0.96);transform:rotate(45deg);}
+@keyframes beEyelidClose{
+  0%  {transform:scaleY(0);}
+  38% {transform:scaleY(1);}
+  62% {transform:scaleY(1);}
+  100%{transform:scaleY(0);}
+}
+.bear-eyelid.blink{animation:beEyelidClose .17s ease-in-out forwards;}
 
 /* Bear animations */
 #bear-scene.entering #bear-img{animation:beEnter .7s cubic-bezier(.34,1.56,.64,1) both;}
-@keyframes beEnter{0%{transform:scale(.68) translateY(28px);}72%{transform:scale(1.06) translateY(-7px);}100%{transform:scale(1) translateY(0);}}
-#bear-scene.idle #bear-img{animation:beBreathe 4.8s ease-in-out infinite;}
-@keyframes beBreathe{0%,100%{transform:scaleX(1) scaleY(1) translateY(0);}48%{transform:scaleX(1.016) scaleY(1.034) translateY(-5px);}}
-#bear-scene.idle{animation:beSway 7.4s ease-in-out infinite;}
-@keyframes beSway{0%,100%{transform:translateX(0) rotateZ(0);}28%{transform:translateX(5px) rotateZ(.9deg);}72%{transform:translateX(-5px) rotateZ(-.9deg);}}
-#bear-scene.talking #bear-img{animation:beTalk .46s ease-in-out infinite;}
-@keyframes beTalk{0%{transform:translateY(0) scaleY(1);}32%{transform:translateY(-6px) scaleY(1.018);}62%{transform:translateY(-2px) scaleY(1.008);}100%{transform:translateY(0) scaleY(1);}}
-#bear-scene.happy #bear-img{animation:beHappy 1.1s cubic-bezier(.34,1.56,.64,1);}
-@keyframes beHappy{0%{transform:scaleX(1) scaleY(1) translateY(0) rotate(0);}12%{transform:scaleX(1.12) scaleY(.82) translateY(0) rotate(-1.5deg);}38%{transform:scaleX(.87) scaleY(1.25) translateY(-36px) rotate(2deg);}58%{transform:scaleX(.87) scaleY(1.25) translateY(-36px) rotate(-1.5deg);}76%{transform:scaleX(1.08) scaleY(.9) translateY(0) rotate(.8deg);}100%{transform:scaleX(1) scaleY(1) translateY(0) rotate(0);}}
-#bear-scene.twitch #bear-img{animation:beTwitch .55s ease;}
-@keyframes beTwitch{0%,100%{transform:scale(1);}40%{transform:scaleX(1.03) scaleY(.975) translateY(-3px);}}
-#bear-scene.blinking #bear-blink-overlay{animation:beBlinkLid .30s ease forwards;}
-@keyframes beBlinkLid{0%,100%{opacity:0;transform:scaleY(.04);}35%,65%{opacity:.96;transform:scaleY(1);}}
+@keyframes beEnter{
+  0%  {transform:scale(.68) translateY(28px);}
+  72% {transform:scale(1.06) translateY(-7px);}
+  100%{transform:scale(1)   translateY(0);}
+}
+
+/* Idle: slow breathing + very gentle bob */
+#bear-scene.idle #bear-img{animation:beBreathe 5.2s ease-in-out infinite;}
+@keyframes beBreathe{
+  0%,100%{transform:scaleX(1)     scaleY(1)     translateY(0);}
+  50%     {transform:scaleX(1.012) scaleY(1.022) translateY(-4px);}
+}
+/* Idle sway — lighter, slower */
+#bear-scene.idle{animation:beSway 9s ease-in-out infinite;}
+@keyframes beSway{
+  0%,100%{transform:translateX(0)   rotateZ(0);}
+  30%     {transform:translateX(3px) rotateZ(.5deg);}
+  70%     {transform:translateX(-3px) rotateZ(-.5deg);}
+}
+
+/* Talking: subtle head/body nod + mouth area */
+#bear-scene.talking #bear-img{animation:beTalkBody .52s ease-in-out infinite;}
+@keyframes beTalkBody{
+  0%,100%{transform:translateY(0)   scaleY(1);}
+  35%     {transform:translateY(-3px) scaleY(1.008);}
+  65%     {transform:translateY(-1px) scaleY(1.004);}
+}
+/* Mouth pulse: tiny soft shape on the muzzle during audio */
+#bear-scene.talking::after{
+  content:"";
+  position:absolute;
+  /* Centered tightly on the muzzle area */
+  left:40%;top:65%;
+  width:20%;height:7%;
+  border-radius:50%;
+  background:rgba(70,22,8,0.22);
+  transform-origin:center center;
+  transform:scaleY(0.4) scaleX(0.9);
+  animation:beMouthPulse .42s ease-in-out infinite;
+  pointer-events:none;z-index:3;
+}
+@keyframes beMouthPulse{
+  0%,100%{transform:scaleY(0.4) scaleX(0.9);opacity:0.45;}
+  45%     {transform:scaleY(1)   scaleX(1.1); opacity:0.70;}
+}
+
+/* Happy: cleaner bounce — reduced squash extremes, keep face readable */
+#bear-scene.happy #bear-img{animation:beHappy 1.3s cubic-bezier(.34,1.56,.64,1);}
+@keyframes beHappy{
+  0%  {transform:scaleX(1)    scaleY(1)    translateY(0)     rotate(0);}
+  10% {transform:scaleX(1.14) scaleY(.82)  translateY(0)     rotate(-1.5deg);}
+  35% {transform:scaleX(.88)  scaleY(1.24) translateY(-44px) rotate(2deg);}
+  52% {transform:scaleX(.88)  scaleY(1.24) translateY(-44px) rotate(-1.5deg);}
+  68% {transform:scaleX(1.10) scaleY(.90)  translateY(0)     rotate(.8deg);}
+  82% {transform:scaleX(.97)  scaleY(1.04) translateY(-8px)  rotate(-.3deg);}
+  100%{transform:scaleX(1)    scaleY(1)    translateY(0)     rotate(0);}
+}
+
+/* Twitch: ear/head micro-movement */
+#bear-scene.twitch #bear-img{animation:beTwitch .5s ease;}
+@keyframes beTwitch{
+  0%,100%{transform:scale(1);}
+  40%     {transform:scaleX(1.025) scaleY(.982) translateY(-2px) rotateZ(.4deg);}
+}
+
+/* Old blinkLid kept for any fallback references — now a no-op */
+@keyframes beBlinkLid{0%,100%{opacity:0;}}
 
 /* ══════════════════════════════════════
    TOP HUD — warm storybook parchment style
@@ -277,8 +337,6 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
 }
 .pg-dot.found::before{background:rgba(100,50,0,0.22);box-shadow:0 4px 0 rgba(100,50,0,0.14);}
 .pg-dot.found::after{background:rgba(180,120,0,0.32);}
-.pg-dot.pop{animation:dotPop .4s cubic-bezier(.34,1.56,.64,1);}
-@keyframes dotPop{0%{transform:scale(1.22) translateY(-2px);}40%{transform:scale(1.65) translateY(-6px) rotate(12deg);}100%{transform:scale(1.22) translateY(-2px);}}
 
 /* ══════════════════════════════════════
    SPEECH BUBBLE — warm cream card
@@ -351,6 +409,48 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
 }
 #tap-play.show{display:block;}
 @keyframes btnPulse{0%,100%{box-shadow:0 8px 24px rgba(0,0,0,0.18),0 3px 8px rgba(0,0,0,0.14);}50%{box-shadow:0 10px 36px rgba(200,140,0,0.45),0 3px 10px rgba(0,0,0,0.16);}}
+
+/* ── Correct-scan glow: warm radial bloom behind bear ── */
+#bear-scene.happy::before{
+  content:"";
+  position:absolute;
+  left:50%;top:55%;
+  width:260px;height:260px;
+  border-radius:50%;
+  background:radial-gradient(circle,
+    rgba(255,230,80,0.58) 0%,
+    rgba(255,200,60,0.28) 40%,
+    transparent 72%);
+  transform:translate(-50%,-50%) scale(0);
+  opacity:0;
+  pointer-events:none;
+  z-index:0;
+  animation:bearGlow 1.3s ease-out forwards;
+}
+@keyframes bearGlow{
+  0%  {transform:translate(-50%,-50%) scale(0.2);opacity:0;}
+  18% {opacity:1;}
+  55% {transform:translate(-50%,-50%) scale(1.6);opacity:.85;}
+  100%{transform:translate(-50%,-50%) scale(2.2);opacity:0;}
+}
+
+/* Upgraded dot pop — bigger scale, gold ring flash */
+.pg-dot.pop{animation:dotPop .55s cubic-bezier(.34,1.56,.64,1);}
+@keyframes dotPop{
+  0%  {transform:scale(1.22) translateY(-2px);}
+  30% {transform:scale(2.0)  translateY(-10px) rotate(16deg);
+       box-shadow:0 0 22px rgba(255,210,60,0.90),0 0 6px rgba(255,240,100,.8);}
+  65% {transform:scale(1.55) translateY(-4px) rotate(-6deg);}
+  100%{transform:scale(1.22) translateY(-2px);}
+}
+
+/* Correct-burst particles — faster pop, wider spread than fxRise */
+@keyframes fxCorrectBurst{
+  0%  {opacity:0;transform:translate(0,0) scale(.4) rotate(var(--rot-start));}
+  12% {opacity:1;}
+  65% {opacity:.9;}
+  100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(1.1) rotate(var(--rot));}
+}
 
 /* Effects */
 #effects-layer{position:fixed;inset:0;z-index:20;pointer-events:none;overflow:hidden;}
@@ -699,10 +799,8 @@ body.started #tap-play{
     <div id="bear-img-wrap">
       <img id="bear-img" alt="Blocky Bear" draggable="false" style="visibility:hidden"/>
       <div id="bear-blink-overlay" aria-hidden="true">
-        <svg viewBox="0 0 100 28" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-          <rect x="8"  y="0" width="35" height="28" rx="14" fill="#1a0c04" opacity="0.96"/>
-          <rect x="57" y="0" width="35" height="28" rx="14" fill="#1a0c04" opacity="0.96"/>
-        </svg>
+        <div class="bear-eyelid" id="eyelid-left"></div>
+        <div class="bear-eyelid" id="eyelid-right"></div>
       </div>
     </div>
   </div>
@@ -792,14 +890,14 @@ function applyScene(idx){
 
 // ── CHAPTER CONFIG (LOCKED) ───────────────────────────────
 var CHAPTERS=[
-  {num:1,title:"The Entrance",       audio:"clue_01_entry.mp3"},
-  {num:2,title:"The Hungry Bear",    audio:"clue_02_eatery.mp3"},
-  {num:3,title:"The Picnic Field",   audio:"clue_03_pavilion.mp3"},
-  {num:4,title:"The Sunny Meadow",   audio:"clue_04_grass.mp3"},
-  {num:5,title:"The Big Show",       audio:"clue_05_office.mp3"},
-  {num:6,title:"The Secret Room",    audio:"clue_06_stage.mp3"},
-  {num:7,title:"Behind the Curtain", audio:"clue_07_behindstage.mp3"},
-  {num:8,title:"The Story Ends",     audio:"clue_08_books.mp3"},
+  {num:1,title:"Entry",            audio:"clue_01_entry.mp3"},
+  {num:2,title:"Eatery",           audio:"clue_02_eatery.mp3"},
+  {num:3,title:"Pavilion",         audio:"clue_03_pavilion.mp3"},
+  {num:4,title:"Grass",            audio:"clue_04_grass.mp3"},
+  {num:5,title:"Office",           audio:"clue_05_office.mp3"},
+  {num:6,title:"Stage",            audio:"clue_06_stage.mp3"},
+  {num:7,title:"Behind the Stage", audio:"clue_07_behindstage.mp3"},
+  {num:8,title:"Bookstore",        audio:"clue_08_books.mp3"},
 ];
 var AP="assets/audio/";
 
@@ -933,12 +1031,60 @@ function preloadOptional(){["talk1","talk2","blink"].forEach(function(k){var img
 // ── BEAR ANIMATION ────────────────────────────────────────
 function clearBear(){var keep=Array.prototype.slice.call(arguments);ANIM_STATES.forEach(function(s){if(keep.indexOf(s)===-1) bearScene.classList.remove(s);});}
 function setIdle(){clearBear("idle");bearScene.classList.add("idle");if(talkIV){clearInterval(talkIV);talkIV=null;}var bi=$("bear-img");if(bi&&BEAR.idle) bi.src=BEAR.idle;}
-function startTalk(){clearBear("talking");bearScene.classList.add("talking");if(OK.talk1&&OK.talk2){var tog=false,bi=$("bear-img");if(talkIV) clearInterval(talkIV);talkIV=setInterval(function(){if(bi){bi.src=tog?BEAR.talk2:BEAR.talk1;tog=!tog;}},185);}}
-function stopTalk(){clearBear("idle");bearScene.classList.add("idle");if(talkIV){clearInterval(talkIV);talkIV=null;}var bi=$("bear-img");if(bi&&BEAR.idle) bi.src=BEAR.idle;}
-function bearHappy(){clearBear("happy");bearScene.classList.add("happy");setTimeout(setIdle,1100);}
-function doBlink(){var bi=$("bear-img");if(!bi) return;if(OK.blink){var prev=bi.src;bi.src=BEAR.blink;setTimeout(function(){if(bi.src===BEAR.blink) bi.src=prev;},160);}else{bearScene.classList.add("blinking");setTimeout(function(){bearScene.classList.remove("blinking");},300);}}
-function startBlinkLoop(){if(blinkTO) clearTimeout(blinkTO);var loop=function(){blinkTO=setTimeout(function(){doBlink();if(Math.random()<.15) setTimeout(doBlink,280);loop();},2800+Math.random()*3700);};loop();}
-function startTwitchLoop(){if(twitchTO) clearTimeout(twitchTO);var next=function(){twitchTO=setTimeout(function(){if(!["talking","happy"].some(function(s){return bearScene.classList.contains(s);})){bearScene.classList.add("twitch");setTimeout(function(){bearScene.classList.remove("twitch");},550);}next();},4000+Math.random()*5000);};next();}
+
+// ── BLINK: CSS eyelid divs, no image swap ─────────────────
+function doBlink(){
+  var el=$("eyelid-left"),er=$("eyelid-right");
+  if(!el||!er) return;
+  // Remove class to allow re-trigger
+  el.classList.remove("blink"); er.classList.remove("blink");
+  void el.offsetWidth; // reflow
+  el.classList.add("blink"); er.classList.add("blink");
+  setTimeout(function(){el.classList.remove("blink");er.classList.remove("blink");},250);
+}
+function startBlinkLoop(){
+  if(blinkTO) clearTimeout(blinkTO);
+  var loop=function(){
+    blinkTO=setTimeout(function(){
+      doBlink();
+      // ~20% chance of double-blink
+      if(Math.random()<.20){
+        setTimeout(doBlink, 320);
+      }
+      loop();
+    },2400+Math.random()*4200);
+  };
+  loop();
+}
+
+// ── TALKING: class drives CSS mouth pulse ─────────────────
+function startTalk(){
+  clearBear("talking");
+  bearScene.classList.add("talking");
+  // talkIV not used — mouth handled entirely by CSS beMouthPulse on .talking class
+}
+function stopTalk(){
+  clearBear("idle");
+  bearScene.classList.add("idle");
+  if(talkIV){clearInterval(talkIV);talkIV=null;}
+  var bi=$("bear-img");
+  if(bi&&BEAR.idle) bi.src=BEAR.idle;
+}
+
+function bearHappy(){clearBear("happy");bearScene.classList.add("happy");setTimeout(setIdle,1300);}
+function startTwitchLoop(){
+  if(twitchTO) clearTimeout(twitchTO);
+  var next=function(){
+    twitchTO=setTimeout(function(){
+      if(!["talking","happy"].some(function(s){return bearScene.classList.contains(s);})){
+        bearScene.classList.add("twitch");
+        setTimeout(function(){bearScene.classList.remove("twitch");},520);
+      }
+      next();
+    },5000+Math.random()*6000);
+  };
+  next();
+}
 
 function showBear(text){
   var wasHidden=!bearScene.classList.contains("visible");
@@ -952,7 +1098,7 @@ function renderProg(found){
   progRow.innerHTML="";
   CHAPTERS.forEach(function(_,i){var d=document.createElement("div");d.className="pg-dot"+(i<found?" found":"");progRow.appendChild(d);});
 }
-function popDot(idx){var dots=progRow.querySelectorAll(".pg-dot");if(dots[idx]){dots[idx].classList.add("pop");setTimeout(function(){dots[idx].classList.remove("pop");},400);}}
+function popDot(idx){var dots=progRow.querySelectorAll(".pg-dot");if(dots[idx]){dots[idx].classList.add("pop");setTimeout(function(){dots[idx].classList.remove("pop");},600);}}
 
 // ── EFFECTS ───────────────────────────────────────────────
 var EMOJIS=["⭐","✨","📖","🌟","💫","📜","🍀"];
@@ -974,6 +1120,57 @@ function spawnFx(count,dur,isFinal){
 }
 function bigCelebration(){spawnFx(160,6500,true);[glowEl,bannerEl].forEach(function(el){el.classList.remove("show");void el.offsetWidth;el.classList.add("show");});setTimeout(function(){glowEl.classList.remove("show");bannerEl.classList.remove("show");},7000);}
 
+// ── CORRECT-SCAN CELEBRATION ─────────────────────────────
+// Bigger than a no-op, smaller than bigCelebration.
+// ~48 particles, uses fxCorrectBurst for a snappier pop.
+function correctCelebration(){
+  if(document.hidden) return;
+  var tok=++celTok;
+  fxLayer.innerHTML="";
+  var o=getBearOrigin();
+  var lowMem=(navigator.deviceMemory||4)<2;
+  var n=lowMem?28:52;
+  for(var i=0;i<n;i++){
+    var el=document.createElement("div");
+    var r=Math.random();
+    if(r>.55){
+      el.className="fx-piece";
+      // heavier weight toward stars and sparkles for this burst
+      el.textContent=["⭐","✨","🌟","💫","⭐","✨"][i%6];
+    } else {
+      el.className="fx-dot";
+      var s=6+Math.random()*10;
+      el.style.width=el.style.height=s+"px";
+      var c=COLS[i%COLS.length];
+      el.style.background=c;
+      el.style.boxShadow="0 0 7px 2px "+c;
+    }
+    el.style.left=o.x+"px";
+    el.style.top =o.y+"px";
+    // Spread: wide fan upward with slight outward bias
+    var angle=(-Math.PI*0.85)+(Math.random()*Math.PI*1.7); // ~-153° to +153° (upward fan)
+    var dist =90+Math.random()*200;
+    el.style.setProperty("--tx",(Math.cos(angle)*dist)+"px");
+    el.style.setProperty("--ty",(Math.sin(angle)*dist-60)+"px");
+    el.style.setProperty("--rot",(-220+Math.random()*440)+"deg");
+    el.style.setProperty("--rot-start",(-40+Math.random()*80)+"deg");
+    var dur=(1.1+Math.random()*0.5).toFixed(2);
+    var delay=(Math.random()*0.1).toFixed(2);
+    el.style.animation="fxCorrectBurst "+dur+"s ease-out "+delay+"s forwards";
+    fxLayer.appendChild(el);
+  }
+  setTimeout(function(){if(celTok===tok) fxLayer.innerHTML="";},1700);
+}
+
+// Unified correct-scan entry point called by onResult and bootstrap.
+// step is 0-based index of the step that was just completed.
+// Fires bear animation, glow, particles immediately — audio plays in parallel.
+function playCorrectCelebration(step){
+  bearHappy();
+  popDot(step);
+  correctCelebration();
+}
+
 // ── CHAPTER LABEL ─────────────────────────────────────────
 function setChapterLabel(idx){var ch=CHAPTERS[idx];if(!ch){chLabel.classList.add("hidden");return;}chNum.textContent="Chapter "+ch.num;chTitleEl.textContent=ch.title;chLabel.classList.remove("hidden");}
 
@@ -992,10 +1189,10 @@ function bootstrap(idx){
     });
   } else {
     // Chapters 2–8: play correct chime for arriving at this chapter, then clue
-    bearHappy();popDot(idx-1);renderProg(idx);
+    playCorrectCelebration(idx-1);
     playCorrect(idx-1,function(){
-      spawnFx(20,2800,false);
-      setTimeout(function(){playClue(idx);},2600);
+      correctCelebration();
+      setTimeout(function(){playClue(idx);},300);
     });
   }
 }
@@ -1033,9 +1230,9 @@ function initStartScreen(){
     if(idx===CHAPTERS.length-1){
       // Last chapter scanned — play correct chime, then clue, then finish
       startScr.classList.add("hidden");applyScene(idx);renderProg(idx);setChapterLabel(idx);showBear(CHAPTERS[idx].title);startBlinkLoop();startTwitchLoop();
-      bearHappy();popDot(idx-1);renderProg(idx);
+      playCorrectCelebration(idx-1);
       playCorrect(idx-1,function(){
-        spawnFx(20,2800,false);
+        correctCelebration();
         setTimeout(function(){
           showBear(CHAPTERS[idx].title);
           tapPlay.classList.remove("show");
@@ -1108,20 +1305,19 @@ function startPersistentScanner(){
         // Final chapter — finish the hunt
         finishHunt(idx);
       } else {
-        // Advance to next chapter
-        bearHappy();
-        popDot(idx);
+        // Fire celebration immediately — same moment audio starts
         currentStep=idx+1;
         renderProg(currentStep);
+        playCorrectCelebration(idx); // bear bounce + glow + particles NOW
         playCorrect(idx,function(){
-          spawnFx(20,2800,false);
+          // Audio done — transition to next scene
           setTimeout(function(){
             applyScene(currentStep);
             setChapterLabel(currentStep);
             showBear(CHAPTERS[currentStep].title);
             playClue(currentStep);
             scanLock=false;
-          },2600);
+          },300);
         });
       }
     } else {
