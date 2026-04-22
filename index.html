@@ -242,11 +242,13 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
 .bear-eye::before{
   content:"";
   position:absolute;
-  inset:-2px;
+  left:8%;top:6%;
+  width:84%;height:84%;
   border-radius:50%;
-  /* Thin white ring for depth against dark fur */
-  box-shadow:0 0 0 1.5px rgba(255,255,255,0.55),
-             0 0 0 3px   rgba(20,8,2,0.25);
+  border-top:1px solid rgba(255,255,255,0.45);
+  border-left:1px solid rgba(255,255,255,0.18);
+  border-right:none;
+  border-bottom:none;
   pointer-events:none;
 }
 
@@ -383,8 +385,8 @@ body.correct        .bear-eye{
 #bear-scene.talking #bear-body::after{
   content:"";
   position:absolute;
-  left:40%;top:55%;
-  width:20%;height:7%;
+  left:42%;top:43%;
+  width:10%;height:4%;
   border-radius:42% 42% 58% 58% / 35% 35% 65% 65%;
   background:radial-gradient(ellipse at 50% 70%, rgba(210,80,60,1.00) 0%, rgba(28,5,1,1.00) 75%);
   transform-origin:center 20%;
@@ -401,7 +403,7 @@ body.correct        .bear-eye{
 }
 /* Excited / correct-answer: slightly bigger, slightly faster */
 #bear-scene.talking-excited #bear-body::after{
-  width:32%;height:15%;
+  width:12%;height:5%;
   animation:mouthFadeIn 0.10s ease forwards,
             beMouth5ShapeExcited var(--mouth-dur-ex,0.34s) ease-in-out 0.08s infinite;
 }
@@ -418,8 +420,8 @@ body.correct        .bear-eye{
 #bear-scene.talking-stopping #bear-body::after{
   content:"";
   position:absolute;
-  left:35%;top:60%;
-  width:30%;height:13%;
+  left:42%;top:43%;
+  width:10%;height:4%;
   border-radius:42% 42% 58% 58% / 35% 35% 65% 65%;
   background:radial-gradient(ellipse at 50% 70%, rgba(210,80,60,1.00) 0%, rgba(28,5,1,1.00) 75%);
   transform-origin:center 20%;
