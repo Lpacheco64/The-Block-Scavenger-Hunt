@@ -217,7 +217,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
 /* ── Base eye circle — fully opaque black, glossy ── */
 .bear-eye{
   position:absolute;
-  width:13%;
+  width:14.5%;
   aspect-ratio:1/1;
   border-radius:50%;
   /* Solid black with subtle gloss catch in upper-left */
@@ -235,17 +235,28 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
              0 2px 8px rgba(0,0,0,0.45);
 }
 
-#bear-eye-left {left:29.7%;top:17.3%;}
-#bear-eye-right{left:56.6%;top:17.5%;}
+#bear-eye-left {left:29.0%;top:16.7%;}
+#bear-eye-right{left:55.9%;top:16.9%;}
+
+/* Eyebrow accent — dark arc above each eye for expression/depth */
+.bear-eye::before{
+  content:"";
+  position:absolute;
+  top:-38%;left:8%;
+  width:80%;height:36%;
+  border-top:3px solid rgba(40,16,4,0.82);
+  border-radius:50% 50% 0 0 / 80% 80% 0 0;
+  pointer-events:none;
+}
 
 /* ── Single highlight dot — upper-left, minimal ── */
 .bear-eye-shine{
   position:absolute;
-  top:13%;left:16%;
-  width:26%;height:26%;
+  top:11%;left:14%;
+  width:30%;height:30%;
   border-radius:50%;
   background:#ffffff;
-  opacity:0.75;       /* clearly visible white dot */
+  opacity:0.90;       /* bright gloss */
   pointer-events:none;
   will-change:opacity,transform;
 }
@@ -374,7 +385,7 @@ body.correct        .bear-eye{
   left:33%;top:58%;
   width:34%;height:17%;
   border-radius:42% 42% 58% 58% / 35% 35% 65% 65%;
-  background:rgba(28,5,1,1.00);
+  background:radial-gradient(ellipse at 50% 70%, rgba(210,80,60,1.00) 0%, rgba(28,5,1,1.00) 75%);
   transform-origin:center 20%;
   transform:scaleY(0.18) scaleX(0.80);
   opacity:0;
@@ -409,7 +420,7 @@ body.correct        .bear-eye{
   left:35%;top:60%;
   width:30%;height:13%;
   border-radius:42% 42% 58% 58% / 35% 35% 65% 65%;
-  background:rgba(28,5,1,1.00);
+  background:radial-gradient(ellipse at 50% 70%, rgba(210,80,60,1.00) 0%, rgba(28,5,1,1.00) 75%);
   transform-origin:center 20%;
   animation:mouthFadeOut 0.14s ease forwards !important;
   pointer-events:none;z-index:3;
