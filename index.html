@@ -180,96 +180,191 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
   mix-blend-mode:multiply;
 }
 /* ── Blink overlay: two eyelid divs, top-down sweep ── */
-/* ── Eye highlight overlay ── */
+/* ══════════════════════════════════════
+   EYE ANIMATION SYSTEM
+   Pixel-accurate positions from embedded 386×480 bear PNG:
+   LEFT  eye: center 36.2% x, 23.2% y  — ~12–13% wide
+   RIGHT eye: center 63.1% x, 23.4% y  — ~12–13% wide
+   Each .eye-group and .bear-eyelid is independently
+   absolute-positioned. No shared container box.
+══════════════════════════════════════ */
+
+/* ── Wrapper: invisible zero-footprint, just z-index ── */
 #bear-eye-overlay{
-  position:absolute;
-  top:17%;left:20%;
-  width:60%;height:18%;
+  position:absolute;inset:0;
   pointer-events:none;z-index:3;
-  display:flex;justify-content:space-between;
-  align-items:center;
-  padding:0 5%;
-}
-.bear-eye-highlight{
-  width:28%;height:55%;
-  border-radius:50%;
-  background:radial-gradient(circle,
-    rgba(255,255,255,0.85) 0%,
-    rgba(255,245,210,0.55) 40%,
-    transparent            100%);
-  opacity:0;
-  transform:scale(0.5);
-  will-change:transform,opacity;
-  transition:transform .22s ease, opacity .22s ease;
-}
-/* Idle: soft resting glow */
-#bear-scene.idle .bear-eye-highlight{
-  opacity:0.42;transform:scale(0.82);
-  animation:eyeIdleShimmer 3.8s ease-in-out infinite;
-}
-@keyframes eyeIdleShimmer{
-  0%,100%{opacity:0.38;transform:scale(0.80);}
-  50%    {opacity:0.52;transform:scale(0.90);}
-}
-/* Talking: eyes widen + highlights pulse with voice */
-#bear-scene.talking .bear-eye-highlight{
-  opacity:0.72;transform:scale(1.08);
-  animation:eyeHighlightPulse .48s ease-in-out infinite;
-}
-@keyframes eyeHighlightPulse{
-  0%,100%{opacity:0.60;transform:scale(1.02);}
-  45%    {opacity:0.92;transform:scale(1.18);}
-}
-/* Excited: bright flash on correct scan */
-#bear-scene.excited .bear-eye-highlight{
-  animation:eyeExcitedBurst .55s ease-out forwards;
-}
-@keyframes eyeExcitedBurst{
-  0%  {opacity:0.60;transform:scale(1.00);}
-  25% {opacity:1.00;transform:scale(1.55);}
-  55% {opacity:0.95;transform:scale(1.35);}
-  100%{opacity:0.80;transform:scale(1.20);}
-}
-/* Happy: bright warm glow */
-#bear-scene.happy .bear-eye-highlight{
-  opacity:0.95;transform:scale(1.30);
-  animation:eyeHighlightHappy .42s ease-out 2 forwards;
-}
-@keyframes eyeHighlightHappy{
-  0%  {opacity:0.75;transform:scale(1.10);}
-  35% {opacity:1.00;transform:scale(1.50);}
-  65% {opacity:0.90;transform:scale(1.28);}
-  100%{opacity:0.95;transform:scale(1.30);}
+  /* No width/height/background/display that could render a box */
 }
 
-/* ── Blink overlay ── */
-#bear-blink-overlay{
+/* ── Each eye group: independently positioned over one black eye circle ── */
+.eye-group{
   position:absolute;
-  top:15%;left:20%;
-  width:60%;height:16%;
-  pointer-events:none;z-index:2;
-  display:flex;justify-content:space-between;
-  align-items:flex-start;
-  padding:0 4%;
+  /* 13% = slightly larger than the ~12% eye diameter so highlights fit */
+  width:13%;
+  aspect-ratio:1/1;
+  transform-origin:center center;
+  will-change:transform;
+  /* Fully transparent — only children are visible */
+}
+
+/* LEFT eye center 36.2%, 23.2% → offset by half group (6.5% x, ~5.5% y) */
+#eye-group-left{
+  left:29.7%;
+  top:17.7%;
+}
+/* RIGHT eye center 63.1%, 23.4% */
+#eye-group-right{
+  left:56.6%;
+  top:17.9%;
+}
+
+/* ── Main highlight: upper-left of eye ── */
+.eye-hl-main{
+  position:absolute;
+  top:10%;left:12%;
+  width:40%;height:40%;
+  border-radius:50%;
+  background:#ffffff;
+  opacity:0;
+  will-change:opacity,transform;
+  transition:opacity .15s ease, transform .15s ease;
+}
+
+/* ── Small highlight: lower-right of eye ── */
+.eye-hl-small{
+  position:absolute;
+  bottom:13%;right:11%;
+  width:22%;height:22%;
+  border-radius:50%;
+  background:#ffffff;
+  opacity:0;
+  will-change:opacity,transform;
+  transition:opacity .15s ease, transform .15s ease;
+}
+
+/* ── Sparkle: outside eye, upper-right ── */
+.eye-sparkle{
+  position:absolute;
+  top:-42%;right:-42%;
+  width:54%;height:54%;
+  opacity:0;
+  pointer-events:none;
+  font-size:clamp(9px,2.2vw,14px);
+  line-height:1;text-align:center;
+  color:#ffd700;
+  will-change:opacity,transform;
+  filter:drop-shadow(0 0 3px rgba(255,215,0,0.9));
+}
+
+/* ════ IDLE: soft resting highlights ════ */
+#bear-scene.idle .eye-group{transform:scale(1.00);}
+#bear-scene.idle .eye-hl-main{
+  opacity:0.80;
+  animation:eyeIdleBreath 4.2s ease-in-out infinite;
+}
+#bear-scene.idle .eye-hl-small{
+  opacity:0.44;
+  animation:eyeIdleBreath 4.2s ease-in-out infinite .7s;
+}
+@keyframes eyeIdleBreath{
+  0%,100%{opacity:0.72;transform:scale(0.94);}
+  50%    {opacity:0.90;transform:scale(1.06);}
+}
+
+/* ════ TALKING: slightly bigger, brighter ════ */
+#bear-scene.talking .eye-group{transform:scale(1.09);}
+#bear-scene.talking .eye-hl-main{
+  opacity:0.95;
+  animation:eyeTalkPulse .44s ease-in-out infinite;
+}
+#bear-scene.talking .eye-hl-small{
+  opacity:0.60;
+  animation:eyeTalkPulse .44s ease-in-out infinite .14s;
+}
+@keyframes eyeTalkPulse{
+  0%,100%{opacity:0.82;transform:scale(0.95);}
+  45%    {opacity:1.00;transform:scale(1.12);}
+}
+
+/* ════ EXCITED / CORRECT ANSWER ════ */
+#bear-scene.excited .eye-group,
+#bear-scene.happy   .eye-group,
+body.correct        .eye-group{
+  animation:eyeExcitedScale .55s cubic-bezier(.25,1.6,.55,1) forwards;
+}
+@keyframes eyeExcitedScale{
+  0%  {transform:scale(1.00);}
+  28% {transform:scale(1.70);}
+  55% {transform:scale(1.48);}
+  78% {transform:scale(1.40);}
+  100%{transform:scale(1.35);}
+}
+#bear-scene.excited .eye-hl-main,
+#bear-scene.happy   .eye-hl-main{animation:eyeExcitedMain .55s ease-out forwards;}
+@keyframes eyeExcitedMain{
+  0%  {transform:scale(1.0);opacity:0.80;}
+  25% {transform:scale(1.6);opacity:1.00;}
+  100%{transform:scale(1.2);opacity:1.00;}
+}
+#bear-scene.excited .eye-hl-small,
+#bear-scene.happy   .eye-hl-small{animation:eyeExcitedSmall .55s ease-out .08s forwards;}
+@keyframes eyeExcitedSmall{
+  0%  {transform:scale(1.0);opacity:0.45;}
+  30% {transform:scale(1.9);opacity:1.00;}
+  100%{transform:scale(1.4);opacity:0.90;}
+}
+#bear-scene.excited .eye-sparkle,
+#bear-scene.happy   .eye-sparkle{animation:eyeSparkle1 .65s ease-out forwards;}
+@keyframes eyeSparkle1{
+  0%  {opacity:0;transform:scale(0.2) rotate(-15deg);}
+  20% {opacity:0;}
+  45% {opacity:1;transform:scale(1.8) rotate(10deg);}
+  70% {opacity:1;transform:scale(1.5) rotate(20deg);}
+  100%{opacity:0;transform:scale(1.1) rotate(35deg);}
+}
+/* Golden glow ring behind each eye on excited/happy */
+#bear-scene.excited .eye-group::after,
+#bear-scene.happy   .eye-group::after{
+  content:"";position:absolute;inset:-30%;border-radius:50%;
+  background:radial-gradient(circle,
+    rgba(255,215,60,0.60) 0%,rgba(255,180,20,0.25) 45%,transparent 72%);
+  animation:eyeGlowRing .7s ease-out forwards;
+  pointer-events:none;z-index:-1;
+}
+@keyframes eyeGlowRing{
+  0%  {transform:scale(0.3);opacity:0;}
+  35% {transform:scale(1.2);opacity:1;}
+  100%{transform:scale(1.9);opacity:0;}
+}
+
+/* ════ BLINK: eyelids independently positioned ════ */
+#bear-blink-overlay{
+  position:absolute;inset:0;
+  pointer-events:none;z-index:4;
+  /* Invisible wrapper — no box */
 }
 .bear-eyelid{
-  width:30%;height:100%;
-  background:radial-gradient(ellipse 80% 55% at 50% 0%,
-    rgba(48,18,4,0.38) 0%,
-    rgba(48,18,4,0.10) 60%,
-    transparent        100%);
-  border-radius:0 0 50% 50% / 0 0 120% 120%;
+  position:absolute;
+  width:13%;aspect-ratio:1/1;
+  background:linear-gradient(to bottom,
+    rgba(62,28,10,0.88) 0%,
+    rgba(62,28,10,0.60) 55%,
+    transparent         100%);
+  border-radius:0 0 50% 50% / 0 0 100% 100%;
   transform-origin:top center;
   transform:scaleY(0);
   will-change:transform;
 }
+/* Eyelids co-located with eye groups */
+#eyelid-left {left:29.7%;top:17.7%;}
+#eyelid-right{left:56.6%;top:17.9%;}
 @keyframes beEyelidClose{
   0%  {transform:scaleY(0);}
-  40% {transform:scaleY(1);}
-  60% {transform:scaleY(1);}
+  38% {transform:scaleY(1);}
+  62% {transform:scaleY(1);}
   100%{transform:scaleY(0);}
 }
-.bear-eyelid.blink{animation:beEyelidClose .12s ease-in-out forwards;}
+.bear-eyelid.blink{animation:beEyelidClose .13s ease-in-out forwards;}
 
 /* ══════════════════════════════════════
    BEAR ANIMATIONS
@@ -293,31 +388,58 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
   30%     {transform:translateX(3px)  rotateZ(.5deg);}
   70%     {transform:translateX(-3px) rotateZ(-.5deg);}
 }
-/* Talking: subtle head nod */
-#bear-scene.talking #bear-img{animation:beTalkBody .52s ease-in-out infinite;}
-@keyframes beTalkBody{
-  0%,100%{transform:translateY(0)    scaleY(1);}
-  35%     {transform:translateY(-3px) scaleY(1.008);}
-  65%     {transform:translateY(-1px) scaleY(1.004);}
+/* ════════════════════════════
+   TALKING: 5-shape mouth cycle
+   Guide shapes: closed→small open→wide open→medium open→small open→repeat
+   + subtle head bob for life
+════════════════════════════ */
+
+/* Head bob while talking — tiny natural movement */
+#bear-scene.talking #bear-img{animation:beTalkBob .48s ease-in-out infinite;}
+@keyframes beTalkBob{
+  0%,100%{transform:translateY(0)     scaleY(1);}
+  30%    {transform:translateY(-2.5px) scaleY(1.006);}
+  65%    {transform:translateY(-1px)   scaleY(1.002);}
 }
-/* Mouth pulse — clearly visible oval, synced to .talking */
+
+/* Mouth: 5-shape smooth loop
+   Shape 1 closed:      scaleY(0.18) scaleX(0.80) — rest/pause
+   Shape 2 small open:  scaleY(0.55) scaleX(0.92) — syllable start
+   Shape 3 wide open:   scaleY(1.35) scaleX(1.10) — vowel/emphasis
+   Shape 4 medium open: scaleY(0.90) scaleX(1.05) — transition
+   Shape 5 small open:  scaleY(0.50) scaleX(0.94) — syllable end
+   Each shape also has an opacity pulse for softness */
 #bear-scene.talking::after{
   content:"";
   position:absolute;
-  left:36%;top:61%;
-  width:28%;height:12%;
-  border-radius:45% 45% 55% 55%;
-  background:rgba(55,16,4,0.38);
-  transform-origin:center top;
-  transform:scaleY(0.25) scaleX(0.82);
+  /* Mouth area — sits below muzzle center */
+  left:35%;top:60%;
+  width:30%;height:13%;
+  /* Rounded bottom = natural mouth shape */
+  border-radius:42% 42% 58% 58% / 35% 35% 65% 65%;
+  background:rgba(50,14,4,0.42);
+  transform-origin:center 20%;
+  /* Start closed */
+  transform:scaleY(0.18) scaleX(0.80);
   opacity:0;
-  animation:beMouthPulse .34s ease-in-out infinite;
+  animation:beMouth5Shape .42s ease-in-out infinite;
   pointer-events:none;z-index:3;
 }
-@keyframes beMouthPulse{
-  0%,100%{transform:scaleY(0.25) scaleX(0.82);opacity:0.35;}
-  42%    {transform:scaleY(1.30) scaleX(1.12);opacity:0.92;}
-  75%    {transform:scaleY(0.80) scaleX(1.05);opacity:0.68;}
+@keyframes beMouth5Shape{
+  /* Shape 1: closed */
+  0%   {transform:scaleY(0.18) scaleX(0.80);opacity:0.28;}
+  /* Shape 2: small open */
+  18%  {transform:scaleY(0.55) scaleX(0.92);opacity:0.62;}
+  /* Shape 3: wide open — vowel peak */
+  38%  {transform:scaleY(1.40) scaleX(1.08);opacity:0.94;}
+  /* tiny hold at wide */
+  48%  {transform:scaleY(1.35) scaleX(1.10);opacity:0.92;}
+  /* Shape 4: medium — transition down */
+  64%  {transform:scaleY(0.88) scaleX(1.04);opacity:0.72;}
+  /* Shape 5: small open — syllable end */
+  80%  {transform:scaleY(0.50) scaleX(0.94);opacity:0.55;}
+  /* back to closed */
+  100% {transform:scaleY(0.18) scaleX(0.80);opacity:0.28;}
 }
 /* Happy bounce */
 #bear-scene.happy #bear-img{animation:beHappy 1.3s cubic-bezier(.34,1.56,.64,1);}
@@ -855,6 +977,25 @@ body.started #tap-play{
   bottom:calc(env(safe-area-inset-bottom,0px) + clamp(140px,28vh,200px) + 10px);
 }
 
+/* ── body.talking — mouth active class on body ── */
+/* The mouth itself lives inside #bear-scene.talking::after
+   body.talking keeps them in sync and enables future selectors */
+body.talking #bear-scene{/* intentional — state confirmed */}
+
+/* ── body.correct — screen pop + excited eye shorthand ── */
+body.correct{
+  animation:screenPop .4s ease;
+}
+@keyframes screenPop{
+  0%  {transform:scale(1);}
+  50% {transform:scale(1.025);}
+  100%{transform:scale(1);}
+}
+/* Eye excitement also driveable from body.correct */
+body.correct .eye-group{
+  animation:eyeExcitedScale .55s cubic-bezier(.25,1.6,.55,1) forwards;
+}
+
 </style>
 </head>
 <body>
@@ -898,9 +1039,18 @@ body.started #tap-play{
         <div class="bear-eyelid" id="eyelid-left"></div>
         <div class="bear-eyelid" id="eyelid-right"></div>
       </div>
+      <!-- Eye highlight overlay: main + small per eye, positioned on black circles -->
       <div id="bear-eye-overlay" aria-hidden="true">
-        <div class="bear-eye-highlight" id="eye-hl-left"></div>
-        <div class="bear-eye-highlight" id="eye-hl-right"></div>
+        <div class="eye-group" id="eye-group-left">
+          <div class="eye-hl-main"  id="eye-hl-left-main"></div>
+          <div class="eye-hl-small" id="eye-hl-left-small"></div>
+          <div class="eye-sparkle"  id="eye-sp-left"></div>
+        </div>
+        <div class="eye-group" id="eye-group-right">
+          <div class="eye-hl-main"  id="eye-hl-right-main"></div>
+          <div class="eye-hl-small" id="eye-hl-right-small"></div>
+          <div class="eye-sparkle"  id="eye-sp-right"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1144,15 +1294,15 @@ function preloadOptional(){["talk1","talk2","blink"].forEach(function(k){var img
 function clearBear(){var keep=Array.prototype.slice.call(arguments);ANIM_STATES.forEach(function(s){if(keep.indexOf(s)===-1) bearScene.classList.remove(s);});}
 function setIdle(){clearBear("idle");bearScene.classList.add("idle");if(talkIV){clearInterval(talkIV);talkIV=null;}var bi=$("bear-img");if(bi&&BEAR.idle) bi.src=BEAR.idle;}
 
-// ── BLINK: CSS eyelid divs, no image swap ─────────────────
+// ── BLINK: eyelid divs sweep over eye zones ───────────────
 function doBlink(){
-  var el=$("eyelid-left"),er=$("eyelid-right");
+  var el=document.getElementById("eyelid-left"),
+      er=document.getElementById("eyelid-right");
   if(!el||!er) return;
-  // Remove class to allow re-trigger
   el.classList.remove("blink"); er.classList.remove("blink");
-  void el.offsetWidth; // reflow
+  void el.offsetWidth;
   el.classList.add("blink"); er.classList.add("blink");
-  setTimeout(function(){el.classList.remove("blink");er.classList.remove("blink");},250);
+  setTimeout(function(){el.classList.remove("blink");er.classList.remove("blink");},200);
 }
 function startBlinkLoop(){
   if(blinkTO) clearTimeout(blinkTO);
@@ -1169,15 +1319,16 @@ function startBlinkLoop(){
   loop();
 }
 
-// ── TALKING: class drives CSS mouth pulse ─────────────────
+// ── TALKING: class drives CSS mouth + body.talking for mouth overlay ──
 function startTalk(){
   clearBear("talking");
   bearScene.classList.add("talking");
-  // talkIV not used — mouth handled entirely by CSS beMouthPulse on .talking class
+  document.body.classList.add("talking");
 }
 function stopTalk(){
   clearBear("idle");
   bearScene.classList.add("idle");
+  document.body.classList.remove("talking");
   if(talkIV){clearInterval(talkIV);talkIV=null;}
   var bi=$("bear-img");
   if(bi&&BEAR.idle) bi.src=BEAR.idle;
@@ -1300,21 +1451,44 @@ function correctCelebration(){
 // ── CORRECT-SCAN REWARD — layered payoff ─────────────────
 // Fires immediately on correct scan: excited eyes + scene pulse + particles.
 function playCorrectReward(step){
-  // Layer A: bear excited state → eyes burst + body bounce
+  triggerCelebrationFX(); // body.correct → screenPop CSS
+  // Layer A: bear excited + happy — eyes spring big, glow ring, sparkles
   clearBear("excited","happy");
   bearScene.classList.add("excited","happy");
+
+  // Inject gold sparkle glyphs
+  var spL=document.getElementById("eye-sp-left"),
+      spR=document.getElementById("eye-sp-right");
+  if(spL) spL.textContent="✦";
+  if(spR) spR.textContent="✦";
+
+  // Second sparkle burst at 320ms (staggered, per guide step 3)
+  setTimeout(function(){
+    if(spL){spL.textContent="";void spL.offsetWidth;spL.textContent="✧";}
+    if(spR){spR.textContent="";void spR.offsetWidth;spR.textContent="✧";}
+    // Re-trigger sparkle animation
+    if(spL){spL.style.animation="none";void spL.offsetWidth;spL.style.animation="";}
+    if(spR){spR.style.animation="none";void spR.offsetWidth;spR.style.animation="";}
+  },320);
+
+  // Clean up after full animation settles
   setTimeout(function(){
     bearScene.classList.remove("excited");
+    if(spL){spL.textContent="";}
+    if(spR){spR.textContent="";}
     setIdle();
-  },1300);
+  },1400);
+
   // Layer B: progress dot pop
   popDot(step);
-  // Layer C: warm scene pulse behind bear
+
+  // Layer C: warm scene pulse
   var sceneEl=document.getElementById("scene");
   if(sceneEl){
     sceneEl.classList.add("correct-pulse");
     setTimeout(function(){sceneEl.classList.remove("correct-pulse");},900);
   }
+
   // Layer D: particle burst
   correctCelebration();
 }
@@ -1322,6 +1496,12 @@ function playCorrectReward(step){
 // Unified correct-scan entry point — replaces old playCorrectCelebration.
 function playCorrectCelebration(step){
   playCorrectReward(step);
+}
+
+// Spec-compatible celebration trigger (body.correct + screenPop)
+function triggerCelebrationFX(){
+  document.body.classList.add("correct");
+  setTimeout(function(){document.body.classList.remove("correct");},1200);
 }
 
 // ── CHAPTER LABEL ─────────────────────────────────────────
