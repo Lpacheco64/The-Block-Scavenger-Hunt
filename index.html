@@ -562,140 +562,118 @@ body:not(.started) #rainbow-banner {
   animation:startFloat 3.4s ease-in-out infinite;
 }
 /* ══════════════════════════════════════
-   QR SCANNER — full-screen overlay
+   PERSISTENT QR SCANNER STRIP
+   Sits at the bottom of the hunt screen.
+   Always visible once the hunt starts.
+   camera feed fills the strip, reticle
+   shows the target zone.
 ══════════════════════════════════════ */
-#scan-btn{
-  position:fixed;bottom:env(safe-area-inset-bottom,18px);right:18px;
+
+/* Strip wrapper — fixed bottom bar */
+#scanner-strip{
+  position:fixed;
+  bottom:env(safe-area-inset-bottom,0px);
+  left:0;right:0;
+  height:clamp(140px,28vh,200px);
   z-index:50;
-  display:none; /* shown only after .started */
-  width:56px;height:56px;
-  background:linear-gradient(145deg,#ffe066,#ffd000,#ffb300);
-  border:none;border-radius:50%;
-  box-shadow:0 4px 18px rgba(0,0,0,0.32);
-  cursor:pointer;font-size:24px;
-  align-items:center;justify-content:center;
-  -webkit-tap-highlight-color:transparent;
-  transition:transform .12s ease;
-}
-#scan-btn:active{transform:scale(0.90);}
-body.started #scan-btn{display:flex;}
-
-#scanner-overlay{
-  position:fixed;inset:0;z-index:200;
+  display:none; /* revealed by body.started */
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
   background:#000;
-  display:none;flex-direction:column;
-  align-items:center;justify-content:flex-start;
+  overflow:hidden;
 }
-#scanner-overlay.open{display:flex;}
+body.started #scanner-strip{display:flex;}
 
+/* Live camera feed fills the strip */
 #scanner-video{
+  position:absolute;inset:0;
   width:100%;height:100%;
   object-fit:cover;
   display:block;
 }
 
-#scanner-ui{
-  position:absolute;inset:0;
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:space-between;
-  padding:env(safe-area-inset-top,20px) 0 env(safe-area-inset-bottom,24px);
+/* Reticle overlay — centred square target */
+#scanner-reticle{
+  position:relative;z-index:2;
+  width:min(100px,18vh);
+  height:min(100px,18vh);
   pointer-events:none;
 }
-
-#scanner-header{
-  pointer-events:all;
-  width:100%;display:flex;
-  align-items:center;justify-content:space-between;
-  padding:12px 18px;
-  background:linear-gradient(rgba(0,0,0,0.55),transparent);
+#scanner-reticle::before{
+  content:"";position:absolute;inset:0;
+  border:2.5px solid rgba(255,220,80,0.92);
+  border-radius:10px;
 }
-#scanner-title{
-  font-size:17px;font-weight:bold;
-  color:#fff;letter-spacing:.04em;
-  font-family:'Georgia','Times New Roman',serif;
-}
-#scanner-close{
-  background:rgba(255,255,255,0.18);
-  border:1.5px solid rgba(255,255,255,0.5);
-  border-radius:999px;padding:6px 18px;
-  color:#fff;font-size:15px;font-weight:bold;
-  cursor:pointer;font-family:inherit;
-  -webkit-tap-highlight-color:transparent;
-}
-
-/* Targeting reticle */
-#scanner-reticle{
-  width:min(68vw,260px);height:min(68vw,260px);
-  position:relative;pointer-events:none;
-}
-#scanner-reticle::before,
 #scanner-reticle::after{
   content:"";position:absolute;inset:0;
-  border:3px solid rgba(255,220,80,0.90);
-  border-radius:16px;
-}
-#scanner-reticle::after{
+  border:2.5px solid rgba(255,220,80,0.38);
+  border-radius:10px;
   animation:reticlePulse 1.8s ease-in-out infinite;
-  border-color:rgba(255,220,80,0.45);
 }
 @keyframes reticlePulse{
   0%,100%{transform:scale(1);opacity:1;}
-  50%     {transform:scale(1.06);opacity:.55;}
+  50%     {transform:scale(1.08);opacity:.4;}
 }
-/* Corner brackets */
 #scanner-reticle span{
-  position:absolute;width:22px;height:22px;
+  position:absolute;width:16px;height:16px;
   border-color:rgba(255,220,80,1);border-style:solid;border-width:0;
 }
-#scanner-reticle span:nth-child(1){top:0;left:0;border-top-width:3px;border-left-width:3px;border-radius:8px 0 0 0;}
-#scanner-reticle span:nth-child(2){top:0;right:0;border-top-width:3px;border-right-width:3px;border-radius:0 8px 0 0;}
-#scanner-reticle span:nth-child(3){bottom:0;left:0;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 8px;}
-#scanner-reticle span:nth-child(4){bottom:0;right:0;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 8px 0;}
+#scanner-reticle span:nth-child(1){top:0;left:0;border-top-width:3px;border-left-width:3px;border-radius:6px 0 0 0;}
+#scanner-reticle span:nth-child(2){top:0;right:0;border-top-width:3px;border-right-width:3px;border-radius:0 6px 0 0;}
+#scanner-reticle span:nth-child(3){bottom:0;left:0;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 6px;}
+#scanner-reticle span:nth-child(4){bottom:0;right:0;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 6px 0;}
 
+/* Small hint label below reticle */
 #scanner-hint{
-  color:rgba(255,255,255,0.82);font-size:14px;
-  text-align:center;padding:0 24px 8px;
+  position:relative;z-index:2;
+  color:rgba(255,255,255,0.78);
+  font-size:11px;
+  margin-top:6px;
   font-family:'Georgia','Times New Roman',serif;
-  text-shadow:0 1px 4px rgba(0,0,0,0.7);
+  text-shadow:0 1px 4px rgba(0,0,0,0.8);
   pointer-events:none;
+  letter-spacing:.04em;
 }
+
+/* Error state — overlays the strip */
 #scanner-error{
   display:none;
-  position:absolute;inset:0;
+  position:absolute;inset:0;z-index:5;
   align-items:center;justify-content:center;
-  background:rgba(0,0,0,0.82);padding:32px;
-  text-align:center;
+  background:rgba(0,0,0,0.88);
+  padding:12px 20px;text-align:center;
 }
 #scanner-error.show{display:flex;}
 #scanner-error p{
-  color:#fff;font-size:16px;line-height:1.6;
+  color:#fff;font-size:13px;line-height:1.5;
   font-family:'Georgia','Times New Roman',serif;
+}
+
+/* Push chapter label up so strip doesn't cover it */
+body.started #chapter-label{
+  bottom:calc(env(safe-area-inset-bottom,0px) + clamp(140px,28vh,200px) + 12px);
+}
+/* Push tap-play button above strip */
+body.started #tap-play{
+  bottom:calc(env(safe-area-inset-bottom,0px) + clamp(140px,28vh,200px) + 10px);
 }
 
 </style>
 </head>
 <body>
 
-<!-- QR SCANNER OVERLAY -->
-<div id="scanner-overlay" aria-modal="true" role="dialog" aria-label="QR Scanner">
+<!-- PERSISTENT QR SCANNER STRIP (always on during hunt) -->
+<div id="scanner-strip" aria-label="QR Scanner">
   <video id="scanner-video" muted playsinline autoplay></video>
-  <div id="scanner-ui">
-    <div id="scanner-header">
-      <span id="scanner-title">📖 Scan QR Code</span>
-      <button id="scanner-close" type="button">Close</button>
-    </div>
-    <div id="scanner-reticle">
-      <span></span><span></span><span></span><span></span>
-    </div>
-    <p id="scanner-hint">Point at a Blocky Bear QR code</p>
+  <div id="scanner-reticle">
+    <span></span><span></span><span></span><span></span>
   </div>
+  <p id="scanner-hint">Scan the next QR code</p>
   <div id="scanner-error">
-    <p>📷 Camera access was denied.<br><br>Please allow camera permissions in your browser settings and try again.</p>
+    <p>📷 Allow camera access to scan QR codes</p>
   </div>
 </div>
-
-<!-- PERSISTENT SCAN BUTTON (shown after game starts) -->
-<button id="scan-btn" type="button" aria-label="Scan QR Code">📷</button>
 
 <!-- FULL-SCREEN SCENE BACKGROUND -->
 <div id="scene" data-s="0"></div>
@@ -846,6 +824,7 @@ var TARGET_IDX=getChapterIdx();
 
 // ── STATE ─────────────────────────────────────────────────
 var audioUnlocked=false,blinkTO=null,twitchTO=null,talkIV=null,bgFadeIV=null,celTok=0,correctN=0;
+var currentStep=0; // 0-based index of the clue currently active; scanner validates against this
 var ANIM_STATES=["idle","talking","happy","confused","blinking","twitch","entering"];
 
 // ── DOM ───────────────────────────────────────────────────
@@ -930,6 +909,10 @@ function unlockAudio(){
     bgLoop.volume=BG_FULL;
     bgLoop.play().catch(function(){});
   }
+  // Start the persistent scanner on first user interaction
+  if(document.body.classList.contains("started")){
+    startPersistentScanner();
+  }
 }
 
 // ── BEAR ASSET LOADING ────────────────────────────────────
@@ -999,6 +982,7 @@ function playClue(idx){var ch=CHAPTERS[idx];if(!ch) return;tapPlay.classList.rem
 
 // ── BOOTSTRAP ─────────────────────────────────────────────
 function bootstrap(idx){
+  currentStep=idx; // scanner now validates against this
   startScr.classList.add("hidden");applyScene(idx);renderProg(idx);setChapterLabel(idx);showBear(CHAPTERS[idx].title);startBlinkLoop();startTwitchLoop();
   if(idx===0){
     // Chapter 1: play opening, then start bg_loop, then play clue
@@ -1016,6 +1000,7 @@ function bootstrap(idx){
   }
 }
 function finishHunt(idx){
+  currentStep=-1; // hunt over — reject all further scans
   bearHappy();popDot(idx);renderProg(idx+1);
   // Fade bg_loop out, bring in bg_final underneath final voice
   fadeBg(0,800);
@@ -1043,6 +1028,7 @@ function initStartScreen(){
   btn.addEventListener("click",function(){
     document.body.classList.add("started");
     unlockAudio();
+    startPersistentScanner(); // camera on as soon as hunt begins
     var idx=TARGET_IDX!==null?TARGET_IDX:0;
     if(idx===CHAPTERS.length-1){
       // Last chapter scanned — play correct chime, then clue, then finish
@@ -1070,141 +1056,112 @@ document.body.addEventListener("click",   unlockAudio,{once:true});
 document.body.addEventListener("touchend",unlockAudio,{once:true});
 window.addEventListener("beforeunload",function(){sfx.pause();bgLoop.pause();bgFin.pause();});
 
-// ── QR SCANNER ────────────────────────────────────────────
-(function(){
-  var overlay  = document.getElementById("scanner-overlay");
-  var video    = document.getElementById("scanner-video");
-  var closeBtn = document.getElementById("scanner-close");
-  var scanBtn  = document.getElementById("scan-btn");
-  var errEl    = document.getElementById("scanner-error");
+// ── PERSISTENT QR SCANNER ─────────────────────────────────
+// Single camera session, runs for the full hunt.
+// Validates scanned value against currentStep.
+// Called once after first user interaction (via unlockAudio).
+var scannerStarted=false;
 
-  var reader   = null;   // ZXing reader instance
-  var stream   = null;   // MediaStream — kept so we can stop tracks
-  var scanning = false;
+function startPersistentScanner(){
+  if(scannerStarted) return;
+  scannerStarted=true;
 
-  // Map QR text → 0-based chapter index
-  // Accepts:  URL with ?c=N,  bare "c=N",  or just the digit "N"
+  var video  =document.getElementById("scanner-video");
+  var errEl  =document.getElementById("scanner-error");
+  var scanLock=false;   // debounce: true while processing a scan result
+  var reader =null;
+  var stream =null;
+
+  function stopAllTracks(){
+    if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
+    if(reader){try{reader.reset();}catch(e){}reader=null;}
+    video.srcObject=null;
+  }
+
+  // Parse QR payload → 0-based step index, or null if unrecognised
+  // Accepts: bare digit "3", query string "step=3"/"c=3", or full URL with those params
   function parseQR(text){
     text=(text||"").trim();
-    // Full URL or query string
     try{
       var url=new URL(text.indexOf("http")===-1?"https://x/?"+text:text);
-      var c=parseInt(url.searchParams.get("c"),10);
-      if(c>=1&&c<=8) return c-1;
+      var v=url.searchParams.get("c")||url.searchParams.get("step");
+      var n=parseInt(v,10);
+      if(n>=1&&n<=8) return n-1;
     }catch(e){}
-    // Bare digit
     var d=parseInt(text,10);
     if(d>=1&&d<=8) return d-1;
     return null;
   }
 
-  function stopStream(){
-    if(stream){
-      stream.getTracks().forEach(function(t){t.stop();});
-      stream=null;
-    }
-    if(reader){
-      try{reader.reset();}catch(e){}
-      reader=null;
-    }
-    video.srcObject=null;
-    scanning=false;
-  }
+  function onResult(result){
+    if(!result||scanLock||currentStep<0) return;
+    var scanned=parseQR(result.getText());
+    if(scanned===null) return; // not a hunt QR — keep scanning
 
-  function closeScanner(){
-    stopStream();
-    overlay.classList.remove("open");
-    errEl.classList.remove("show");
-  }
+    scanLock=true;
 
-  function onScanSuccess(idx){
-    closeScanner();
-    handleScannedChapter(idx);
-  }
-
-  function startScanner(){
-    if(scanning) return;
-    errEl.classList.remove("show");
-    overlay.classList.add("open");
-
-    if(!window.ZXing){
-      errEl.querySelector("p").textContent="QR library not loaded. Please check your connection.";
-      errEl.classList.add("show"); return;
-    }
-
-    navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}}
-    }).then(function(str){
-      stream=str;
-      video.srcObject=stream;
-      video.play().catch(function(){});
-      scanning=true;
-
-      reader=new ZXing.BrowserMultiFormatReader();
-      // Use decodeFromStream to avoid creating a second getUserMedia call
-      reader.decodeFromStream(stream, video, function(result, err){
-        if(result){
-          var idx=parseQR(result.getText());
-          if(idx!==null) onScanSuccess(idx);
-          // If idx===null (unrecognised QR) keep scanning silently
-        }
-        // ZXing passes NotFoundException on every empty frame — ignore it
-      });
-    }).catch(function(err){
-      scanning=false;
-      if(err&&(err.name==="NotAllowedError"||err.name==="PermissionDeniedError")){
-        errEl.classList.add("show");
+    if(scanned===currentStep){
+      // ── CORRECT ──────────────────────────────────────────
+      var idx=currentStep;
+      var last=CHAPTERS.length-1;
+      if(idx===last){
+        // Final chapter — finish the hunt
+        finishHunt(idx);
       } else {
-        errEl.querySelector("p").textContent="Camera could not be started. Please try again.";
-        errEl.classList.add("show");
+        // Advance to next chapter
+        bearHappy();
+        popDot(idx);
+        currentStep=idx+1;
+        renderProg(currentStep);
+        playCorrect(idx,function(){
+          spawnFx(20,2800,false);
+          setTimeout(function(){
+            applyScene(currentStep);
+            setChapterLabel(currentStep);
+            showBear(CHAPTERS[currentStep].title);
+            playClue(currentStep);
+            scanLock=false;
+          },2600);
+        });
       }
-    });
+    } else {
+      // ── WRONG ────────────────────────────────────────────
+      playWrong();
+      setTimeout(function(){scanLock=false;},2200); // hold off rescanning briefly
+    }
   }
 
-  scanBtn.addEventListener("click", function(){
-    unlockAudio(); // ensure audio context is alive
-    startScanner();
-  });
-  closeBtn.addEventListener("click", closeScanner);
-
-  // Close on overlay background tap (not on video/UI elements)
-  overlay.addEventListener("click", function(e){
-    if(e.target===overlay) closeScanner();
-  });
-
-  // Pause scanner when tab is hidden, resume when visible
-  document.addEventListener("visibilitychange", function(){
-    if(document.hidden) stopStream();
-  });
-}());
-
-// ── HANDLE SCANNED CHAPTER ────────────────────────────────
-// Called by QR scanner with 0-based chapter idx.
-// Unified routing: works whether game has started or not.
-function handleScannedChapter(idx){
-  unlockAudio();
-  document.body.classList.add("started");
-  var last=CHAPTERS.length-1;
-  if(idx===last){
-    // Final chapter scanned
-    var startScreen=document.getElementById("start-screen");
-    startScreen.classList.add("hidden");
-    applyScene(idx);renderProg(idx);setChapterLabel(idx);
-    showBear(CHAPTERS[idx].title);startBlinkLoop();startTwitchLoop();
-    bearHappy();popDot(idx-1);renderProg(idx);
-    playCorrect(idx-1,function(){
-      spawnFx(20,2800,false);
-      setTimeout(function(){
-        showBear(CHAPTERS[idx].title);
-        var tp=document.getElementById("tap-play");
-        tp.classList.remove("show");
-        tp.onclick=function(){tp.classList.remove("show");finishHunt(idx);};
-        playAudio(CHAPTERS[idx].audio,function(){finishHunt(idx);});
-      },2600);
-    });
-  } else {
-    bootstrap(idx);
+  if(!window.ZXing){
+    errEl.classList.add("show"); return;
   }
+
+  navigator.mediaDevices.getUserMedia({
+    video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}}
+  }).then(function(str){
+    stream=str;
+    video.srcObject=stream;
+    video.play().catch(function(){});
+    reader=new ZXing.BrowserMultiFormatReader();
+    reader.decodeFromStream(stream,video,function(result,err){
+      if(result) onResult(result);
+      // NotFoundException on empty frames — silently ignored
+    });
+  }).catch(function(err){
+    errEl.classList.add("show");
+  });
+
+  // Release camera if tab is hidden, restart on return
+  document.addEventListener("visibilitychange",function(){
+    if(document.hidden){
+      stopAllTracks();
+    } else if(document.body.classList.contains("started")){
+      // Restart after tab becomes visible again
+      scannerStarted=false;
+      startPersistentScanner();
+    }
+  });
+
+  window.addEventListener("beforeunload",function(){stopAllTracks();});
 }
 
 // ── BOOT ──────────────────────────────────────────────────
