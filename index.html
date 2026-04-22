@@ -217,7 +217,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
 /* ── Base eye circle — fully opaque black, glossy ── */
 .bear-eye{
   position:absolute;
-  width:12%;
+  width:10.5%;
   aspect-ratio:1/1;
   border-radius:50%;
   /* Solid black with subtle gloss catch in upper-left */
@@ -235,8 +235,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
              0 2px 8px rgba(0,0,0,0.45);
 }
 
-#bear-eye-left {left:30.2%;top:17.2%;}
-#bear-eye-right{left:57.1%;top:17.4%;}
+#bear-eye-left {left:30.9%;top:17.7%;}
+#bear-eye-right{left:57.8%;top:17.9%;}
 
 /* Eyebrow accent — dark arc above each eye for expression/depth */
 .bear-eye::before{
@@ -244,7 +244,9 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
   position:absolute;
   inset:-2px;
   border-radius:50%;
-  box-shadow:0 0 0 1.5px rgba(30,10,2,0.45);
+  /* Thin white ring for depth against dark fur */
+  box-shadow:0 0 0 1.5px rgba(255,255,255,0.55),
+             0 0 0 3px   rgba(20,8,2,0.25);
   pointer-events:none;
 }
 
@@ -381,8 +383,8 @@ body.correct        .bear-eye{
 #bear-scene.talking #bear-body::after{
   content:"";
   position:absolute;
-  left:39%;top:62%;
-  width:22%;height:9%;
+  left:40%;top:55%;
+  width:20%;height:7%;
   border-radius:42% 42% 58% 58% / 35% 35% 65% 65%;
   background:radial-gradient(ellipse at 50% 70%, rgba(210,80,60,1.00) 0%, rgba(28,5,1,1.00) 75%);
   transform-origin:center 20%;
@@ -1671,7 +1673,7 @@ function bootstrap(idx){
     // Chapter 1: play opening, then start bg_loop, then play clue
     playAudio("opening.mp3",function(){
       startBgLoop();
-      setTimeout(function(){playClue(0);},200);
+      setTimeout(function(){playClue(0);},60);
     });
   } else {
     // Chapters 2–8: play correct chime for arriving at this chapter, then clue
