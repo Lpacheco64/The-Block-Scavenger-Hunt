@@ -182,32 +182,34 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
 /* ── Blink overlay: two eyelid divs, top-down sweep ── */
 #bear-blink-overlay{
   position:absolute;
-  top:15%;left:22%;
-  width:56%;height:14%;
+  top:16%;left:24%;
+  width:52%;height:12%;
   pointer-events:none;z-index:2;
   display:flex;justify-content:space-between;
   align-items:flex-start;
-  padding:0 5%;
+  padding:0 6%;
 }
 .bear-eyelid{
-  width:36%;
+  width:32%;
   height:100%;
-  background:linear-gradient(to bottom,
-    rgba(58,26,8,0.68) 0%,
-    rgba(58,26,8,0.32) 65%,
+  /* Very soft — fades to nothing before halfway */
+  background:radial-gradient(ellipse 100% 60% at 50% 0%,
+    rgba(52,22,6,0.52) 0%,
+    rgba(52,22,6,0.18) 55%,
     transparent        100%);
-  border-radius:0 0 50% 50% / 0 0 80% 80%;
+  /* Strongly curved — reads as eyelid, not rectangle */
+  border-radius:0 0 50% 50% / 0 0 100% 100%;
   transform-origin:top center;
   transform:scaleY(0);
   will-change:transform;
 }
 @keyframes beEyelidClose{
   0%  {transform:scaleY(0);}
-  38% {transform:scaleY(1);}
-  62% {transform:scaleY(1);}
+  42% {transform:scaleY(1);}
+  58% {transform:scaleY(1);}
   100%{transform:scaleY(0);}
 }
-.bear-eyelid.blink{animation:beEyelidClose .17s ease-in-out forwards;}
+.bear-eyelid.blink{animation:beEyelidClose .14s ease-in-out forwards;}
 
 /* Bear animations */
 #bear-scene.entering #bear-img{animation:beEnter .7s cubic-bezier(.34,1.56,.64,1) both;}
@@ -458,6 +460,15 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
 .fx-dot  {position:absolute;opacity:0;pointer-events:none;border-radius:50%;will-change:transform,opacity;}
 @keyframes fxRise{0%{opacity:0;transform:translate(0,0) scale(.5) rotate(var(--rot-start));}15%{opacity:1;}70%{opacity:.8;}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(1.05) rotate(var(--rot));}}
 @keyframes fxFinalBurst{0%{opacity:0;transform:translate(0,0) scale(.4);}8%{opacity:1;}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(1.1) rotate(var(--rot));}}
+
+/* Final mega-celebration: scene pulses gold */
+#scene.final-pulse{
+  animation:scenePulseGold 2s ease-in-out 2;
+}
+@keyframes scenePulseGold{
+  0%,100%{filter:brightness(1)   saturate(1);}
+  45%    {filter:brightness(1.18) saturate(1.35) sepia(0.15);}
+}
 
 /* Final glow + banner */
 #final-glow{position:fixed;left:50%;top:60%;width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,rgba(255,240,100,.95) 0%,rgba(255,220,60,.2) 45%,transparent 70%);transform:translate(-50%,-50%) scale(0);opacity:0;z-index:65;pointer-events:none;}
@@ -922,6 +933,7 @@ var TARGET_IDX=getChapterIdx();
 
 // ── STATE ─────────────────────────────────────────────────
 var audioUnlocked=false,blinkTO=null,twitchTO=null,talkIV=null,bgFadeIV=null,celTok=0,correctN=0;
+var isFinalSequence=false; // true once finishHunt() fires — prevents bgLoop restart
 var currentStep=0; // 0-based index of the clue currently active; scanner validates against this
 var ANIM_STATES=["idle","talking","happy","confused","blinking","twitch","entering"];
 
@@ -958,7 +970,7 @@ function fadeBg(to,ms){
 
 // Start bg_loop if not already running
 function startBgLoop(){
-  if(!audioUnlocked||!bgLoop.paused) return;
+  if(!audioUnlocked||!bgLoop.paused||isFinalSequence) return;
   bgLoop.src=AP+"bg_loop.mp3"; bgLoop.load();
   bgLoop.volume=BG_FULL;
   bgLoop.play().catch(function(){});
@@ -966,11 +978,16 @@ function startBgLoop(){
 
 function playAudio(file,cb){
   if(!audioUnlocked){if(cb) setTimeout(cb,100);return;}
-  startBgLoop();
+  if(!isFinalSequence) startBgLoop();
   fadeBg(BG_DUCK,130);
   sfx.pause();sfx.currentTime=0;sfx.src=AP+file;sfx.load();sfx.onended=sfx.onerror=null;
   startTalk();
-  var done=function(){stopTalk();fadeBg(BG_FULL,380);if(cb) cb();};
+  var done=function(){
+    stopTalk();
+    // During final sequence, do NOT restore bg to BG_FULL — bgFin is in control
+    if(!isFinalSequence) fadeBg(BG_FULL,380);
+    if(cb) cb();
+  };
   sfx.onended=done;sfx.onerror=done;
   var p=sfx.play();
   if(p&&p.catch) p.catch(function(err){
@@ -1120,6 +1137,29 @@ function spawnFx(count,dur,isFinal){
 }
 function bigCelebration(){spawnFx(160,6500,true);[glowEl,bannerEl].forEach(function(el){el.classList.remove("show");void el.offsetWidth;el.classList.add("show");});setTimeout(function(){glowEl.classList.remove("show");bannerEl.classList.remove("show");},7000);}
 
+// ── MEGA CELEBRATION — final step only ───────────────────
+function triggerMegaCelebration(){
+  // 2× particle count, full-screen burst
+  spawnFx(320,8000,true);
+  // Glow + banner
+  [glowEl,bannerEl].forEach(function(el){
+    el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
+  });
+  // Second wave of particles after 1.2s for sustained effect
+  setTimeout(function(){spawnFx(160,6000,true);},1200);
+  // Pulse the scene background gold
+  var sceneEl=document.getElementById("scene");
+  if(sceneEl){
+    sceneEl.classList.add("final-pulse");
+    setTimeout(function(){sceneEl.classList.remove("final-pulse");},4000);
+  }
+  // Clear glow + banner after 10s
+  setTimeout(function(){
+    glowEl.classList.remove("show");
+    bannerEl.classList.remove("show");
+  },10000);
+}
+
 // ── CORRECT-SCAN CELEBRATION ─────────────────────────────
 // Bigger than a no-op, smaller than bigCelebration.
 // ~48 particles, uses fxCorrectBurst for a snappier pop.
@@ -1197,20 +1237,33 @@ function bootstrap(idx){
   }
 }
 function finishHunt(idx){
-  currentStep=-1; // hunt over — reject all further scans
+  currentStep=-1;       // reject all further scans
+  isFinalSequence=true; // prevent playAudio from restarting bgLoop
+
   bearHappy();popDot(idx);renderProg(idx+1);
-  // Fade bg_loop out, bring in bg_final underneath final voice
-  fadeBg(0,800);
+
+  // Fade bgLoop out cleanly, then hand off to bgFin
+  fadeBg(0,700);
   setTimeout(function(){
     bgLoop.pause();
-    bgFin.src=AP+"bg_final.mp3"; bgFin.load();
+    bgLoop.currentTime=0;
+
+    // bgFin plays softly throughout the entire ending
+    bgFin.src=AP+"bg_final.mp3";
+    bgFin.load();
     bgFin.volume=BG_FINAL;
     bgFin.play().catch(function(){});
+
+    // final.mp3 voice plays over bgFin — playAudio won't restart bgLoop
     playAudio("final.mp3",function(){
-      bigCelebration();
-      setTimeout(function(){finalScr.classList.add("show");},5600);
+      // Voice done → mega celebration
+      triggerMegaCelebration();
+      // Card shows after celebration has had room to breathe — ~8s total
+      setTimeout(function(){
+        finalScr.classList.add("show");
+      },8000);
     });
-  },600);
+  },500);
 }
 
 // ── INIT START SCREEN ─────────────────────────────────────
@@ -1247,7 +1300,12 @@ function initStartScreen(){
 }
 
 // ── EVENTS ────────────────────────────────────────────────
-$("btn-replay").addEventListener("click",function(){finalScr.classList.remove("show");bigCelebration();setTimeout(function(){playAudio("final.mp3",null);},300);});
+$("btn-replay").addEventListener("click",function(){
+  finalScr.classList.remove("show");
+  // isFinalSequence stays true — bgFin keeps playing, bgLoop never restarts
+  bigCelebration();
+  setTimeout(function(){playAudio("final.mp3",null);},300);
+});
 $("btn-done").addEventListener("click",function(){finalScr.classList.remove("show");});
 document.body.addEventListener("click",   unlockAudio,{once:true});
 document.body.addEventListener("touchend",unlockAudio,{once:true});
