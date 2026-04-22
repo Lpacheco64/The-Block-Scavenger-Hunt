@@ -155,17 +155,18 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
 /* Warm glow behind bear — masks white edges from PNG */
 #bear-glow{
   position:absolute;
-  inset:-30px;
+  inset:-70px;
   z-index:0;
   pointer-events:none;
   background:radial-gradient(
     circle at 50% 45%,
-    rgba(255,220,140,0.38) 0%,
-    rgba(255,220,140,0.18) 40%,
-    rgba(255,220,140,0.00) 72%
+    rgba(255,210,120,0.75) 0%,
+    rgba(255,210,120,0.42) 35%,
+    rgba(255,210,120,0.15) 60%,
+    rgba(255,210,120,0.00) 78%
   );
-  filter:blur(18px);
-  opacity:0.88;
+  filter:blur(32px);
+  opacity:1;
 }
 #bear-img-wrap{
   position:relative;z-index:1;width:100%;
@@ -370,22 +371,21 @@ body.correct        .bear-eye{
 #bear-scene.talking #bear-body::after{
   content:"";
   position:absolute;
-  left:35%;top:60%;
-  width:30%;height:13%;
+  left:33%;top:58%;
+  width:34%;height:17%;
   border-radius:42% 42% 58% 58% / 35% 35% 65% 65%;
-  background:rgba(50,14,4,0.42);
+  background:rgba(28,5,1,1.00);
   transform-origin:center 20%;
   transform:scaleY(0.18) scaleX(0.80);
   opacity:0;
-  /* Duration driven by JS via --mouth-dur for subtle randomness */
-  animation:mouthFadeIn 0.12s ease forwards,
+  animation:mouthFadeIn 0.10s ease forwards,
             beMouth5Shape var(--mouth-dur,0.42s) ease-in-out 0.10s infinite;
   pointer-events:none;z-index:3;
 }
 /* Fade-in entrance — mouth eases open on start */
 @keyframes mouthFadeIn{
   0%  {opacity:0;transform:scaleY(0.10) scaleX(0.75);}
-  100%{opacity:0.28;transform:scaleY(0.18) scaleX(0.80);}
+  100%{opacity:1.00;transform:scaleY(0.18) scaleX(0.80);}
 }
 /* Excited / correct-answer: slightly bigger, slightly faster */
 #bear-scene.talking-excited #bear-body::after{
@@ -409,30 +409,30 @@ body.correct        .bear-eye{
   left:35%;top:60%;
   width:30%;height:13%;
   border-radius:42% 42% 58% 58% / 35% 35% 65% 65%;
-  background:rgba(50,14,4,0.42);
+  background:rgba(28,5,1,1.00);
   transform-origin:center 20%;
   animation:mouthFadeOut 0.14s ease forwards !important;
   pointer-events:none;z-index:3;
 }
 @keyframes mouthFadeOut{
-  0%  {transform:scaleY(0.55) scaleX(0.92);opacity:0.48;}
+  0%  {transform:scaleY(0.55) scaleX(0.92);opacity:1.00;}
   100%{transform:scaleY(0.10) scaleX(0.76);opacity:0;}
 }
 @keyframes beMouth5Shape{
   /* Shape 1: closed */
-  0%   {transform:scaleY(0.18) scaleX(0.80);opacity:0.28;}
+  0%   {transform:scaleY(0.18) scaleX(0.80);opacity:0.85;}
   /* Shape 2: small open */
-  18%  {transform:scaleY(0.55) scaleX(0.92);opacity:0.62;}
+  18%  {transform:scaleY(0.60) scaleX(0.93);opacity:0.95;}
   /* Shape 3: wide open — vowel peak */
-  38%  {transform:scaleY(1.40) scaleX(1.08);opacity:0.94;}
+  38%  {transform:scaleY(1.45) scaleX(1.10);opacity:1.00;}
   /* tiny hold at wide */
-  48%  {transform:scaleY(1.35) scaleX(1.10);opacity:0.92;}
+  48%  {transform:scaleY(1.38) scaleX(1.12);opacity:1.00;}
   /* Shape 4: medium — transition down */
-  64%  {transform:scaleY(0.88) scaleX(1.04);opacity:0.72;}
+  64%  {transform:scaleY(0.90) scaleX(1.05);opacity:0.95;}
   /* Shape 5: small open — syllable end */
-  80%  {transform:scaleY(0.50) scaleX(0.94);opacity:0.55;}
+  80%  {transform:scaleY(0.52) scaleX(0.95);opacity:0.90;}
   /* back to closed */
-  100% {transform:scaleY(0.18) scaleX(0.80);opacity:0.28;}
+  100% {transform:scaleY(0.18) scaleX(0.80);opacity:0.85;}
 }
 /* Happy bounce */
 #bear-scene.happy #bear-body{animation:beHappy 1.3s cubic-bezier(.34,1.56,.64,1);}
@@ -906,20 +906,33 @@ body:not(.started) #rainbow-banner {
 /* Strip wrapper — fixed bottom bar */
 #scanner-strip{
   position:fixed;
-  bottom:env(safe-area-inset-bottom,0px);
-  left:0;right:0;
-  height:clamp(140px,28vh,200px);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 18px);
+  left:50%;
+  transform:translateX(-50%);
+  width:130px;
   z-index:50;
-  display:none; /* revealed by body.started */
+  display:none;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  background:#000;
-  overflow:hidden;
+  background:transparent;
+  overflow:visible;
 }
 body.started #scanner-strip{display:flex;}
 
-/* Live camera feed fills the strip */
+/* Camera portal — video is clipped to this small window only */
+#scanner-window{
+  position:relative;
+  width:110px;height:110px;
+  border:2.5px solid rgba(255,220,80,0.95);
+  border-radius:14px;
+  overflow:hidden;              /* clips the camera to this box */
+  background:#111;
+  box-shadow:0 0 22px rgba(255,200,50,0.30),
+             0 4px 18px rgba(0,0,0,0.55);
+}
+
+/* Live camera feed fills only the scanner window */
 #scanner-video{
   position:absolute;inset:0;
   width:100%;height:100%;
@@ -927,70 +940,71 @@ body.started #scanner-strip{display:flex;}
   display:block;
 }
 
-/* Reticle overlay — centred square target */
+/* Reticle sits on top of the window, same size */
 #scanner-reticle{
-  position:relative;z-index:2;
-  width:min(100px,18vh);
-  height:min(100px,18vh);
+  position:absolute;inset:0;
+  z-index:2;
   pointer-events:none;
 }
 #scanner-reticle::before{
   content:"";position:absolute;inset:0;
-  border:2.5px solid rgba(255,220,80,0.92);
-  border-radius:10px;
+  border:2px solid rgba(255,220,80,0.88);
+  border-radius:12px;
 }
 #scanner-reticle::after{
   content:"";position:absolute;inset:0;
-  border:2.5px solid rgba(255,220,80,0.38);
-  border-radius:10px;
+  border:2px solid rgba(255,220,80,0.35);
+  border-radius:12px;
   animation:reticlePulse 1.8s ease-in-out infinite;
 }
 @keyframes reticlePulse{
   0%,100%{transform:scale(1);opacity:1;}
-  50%     {transform:scale(1.08);opacity:.4;}
+  50%     {transform:scale(1.06);opacity:.35;}
 }
 #scanner-reticle span{
-  position:absolute;width:16px;height:16px;
+  position:absolute;width:14px;height:14px;
   border-color:rgba(255,220,80,1);border-style:solid;border-width:0;
 }
-#scanner-reticle span:nth-child(1){top:0;left:0;border-top-width:3px;border-left-width:3px;border-radius:6px 0 0 0;}
-#scanner-reticle span:nth-child(2){top:0;right:0;border-top-width:3px;border-right-width:3px;border-radius:0 6px 0 0;}
-#scanner-reticle span:nth-child(3){bottom:0;left:0;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 6px;}
-#scanner-reticle span:nth-child(4){bottom:0;right:0;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 6px 0;}
+#scanner-reticle span:nth-child(1){top:0;left:0;border-top-width:3px;border-left-width:3px;border-radius:5px 0 0 0;}
+#scanner-reticle span:nth-child(2){top:0;right:0;border-top-width:3px;border-right-width:3px;border-radius:0 5px 0 0;}
+#scanner-reticle span:nth-child(3){bottom:0;left:0;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 5px;}
+#scanner-reticle span:nth-child(4){bottom:0;right:0;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 5px 0;}
 
-/* Small hint label below reticle */
+/* Hint text below the window */
 #scanner-hint{
   position:relative;z-index:2;
-  color:rgba(255,255,255,0.78);
+  color:rgba(255,255,255,0.82);
   font-size:11px;
-  margin-top:6px;
+  margin-top:7px;
   font-family:'Georgia','Times New Roman',serif;
-  text-shadow:0 1px 4px rgba(0,0,0,0.8);
+  text-shadow:0 1px 5px rgba(0,0,0,0.9);
   pointer-events:none;
   letter-spacing:.04em;
+  white-space:nowrap;
 }
 
-/* Error state — overlays the strip */
+/* Error state — inside the window only */
 #scanner-error{
   display:none;
   position:absolute;inset:0;z-index:5;
   align-items:center;justify-content:center;
   background:rgba(0,0,0,0.88);
-  padding:12px 20px;text-align:center;
+  padding:8px;text-align:center;
+  border-radius:12px;
 }
 #scanner-error.show{display:flex;}
 #scanner-error p{
-  color:#fff;font-size:13px;line-height:1.5;
+  color:#fff;font-size:11px;line-height:1.4;
   font-family:'Georgia','Times New Roman',serif;
 }
 
-/* Push chapter label up so strip doesn't cover it */
+/* Chapter label — much less push needed now scanner is compact */
 body.started #chapter-label{
-  bottom:calc(env(safe-area-inset-bottom,0px) + clamp(140px,28vh,200px) + 12px);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 160px);
 }
-/* Push tap-play button above strip */
+/* Tap-play button — same */
 body.started #tap-play{
-  bottom:calc(env(safe-area-inset-bottom,0px) + clamp(140px,28vh,200px) + 10px);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 162px);
 }
 
 /* ── body.talking — mouth active class on body ── */
@@ -1013,14 +1027,16 @@ body.correct{
 
 <!-- PERSISTENT QR SCANNER STRIP (always on during hunt) -->
 <div id="scanner-strip" aria-label="QR Scanner">
-  <video id="scanner-video" muted playsinline autoplay></video>
-  <div id="scanner-reticle">
-    <span></span><span></span><span></span><span></span>
+  <div id="scanner-window">
+    <video id="scanner-video" muted playsinline autoplay></video>
+    <div id="scanner-reticle">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <div id="scanner-error">
+      <p>📷 Allow camera access</p>
+    </div>
   </div>
   <p id="scanner-hint">Scan the next QR code</p>
-  <div id="scanner-error">
-    <p>📷 Allow camera access to scan QR codes</p>
-  </div>
 </div>
 
 <!-- FULL-SCREEN SCENE BACKGROUND -->
@@ -1238,18 +1254,12 @@ function playAudio(file,cb){
   if(!isFinalSequence) startBgLoop();
   fadeBg(BG_DUCK,130);
   sfx.pause();sfx.currentTime=0;sfx.src=AP+file;sfx.load();sfx.onended=sfx.onerror=null;
-  // Talking state starts immediately — visible even if audio is loading
+  // Talking starts immediately; stops exactly when audio ends
   startTalk();
-  var talkStarted=Date.now();
   var done=function(){
-    // Ensure talking visible for at least 1200ms (debug/load fallback)
-    var elapsed=Date.now()-talkStarted;
-    var delay=Math.max(0,1200-elapsed);
-    setTimeout(function(){
-      stopTalk();
-      if(!isFinalSequence) fadeBg(BG_FULL,380);
-      if(cb) cb();
-    },delay);
+    stopTalk();
+    if(!isFinalSequence) fadeBg(BG_FULL,380);
+    if(cb) cb();
   };
   sfx.onended=done;sfx.onerror=done;
   var p=sfx.play();
@@ -1683,16 +1693,16 @@ function finishHunt(idx){
   // Immediate final reward
   playFinalReward();
 
-  // Final voice at 200ms
+  // Final voice at 200ms — card appears only after voice fully ends + 3s
   setTimeout(function(){
     _talkMode="excited";
-    playAudio("final.mp3", null);
+    playAudio("final.mp3", function(){
+      // Audio ended — let the celebration breathe for 3 more seconds
+      setTimeout(function(){
+        finalScr.classList.add("show");
+      }, 3000);
+    });
   }, 200);
-
-  // Final card at 4200ms
-  setTimeout(function(){
-    finalScr.classList.add("show");
-  }, 4200);
 }
 
 // Smoothly fade bgFin volume
