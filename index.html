@@ -152,6 +152,21 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
 @keyframes shSq{0%{transform:translateX(-50%) scaleX(1);opacity:1;}14%{transform:translateX(-50%) scaleX(1.22);opacity:.80;}40%{transform:translateX(-50%) scaleX(.62);opacity:.48;}60%{transform:translateX(-50%) scaleX(.62);opacity:.48;}78%{transform:translateX(-50%) scaleX(1.16);opacity:.88;}100%{transform:translateX(-50%) scaleX(1);opacity:1;}}
 @keyframes shTk{0%,100%{transform:translateX(-50%) scaleX(1);opacity:1;}32%{transform:translateX(-50%) scaleX(.85);opacity:.75;}}
 
+/* Warm glow behind bear — masks white edges from PNG */
+#bear-glow{
+  position:absolute;
+  inset:-30px;
+  z-index:0;
+  pointer-events:none;
+  background:radial-gradient(
+    circle at 50% 45%,
+    rgba(255,220,140,0.38) 0%,
+    rgba(255,220,140,0.18) 40%,
+    rgba(255,220,140,0.00) 72%
+  );
+  filter:blur(18px);
+  opacity:0.88;
+}
 #bear-img-wrap{
   position:relative;z-index:1;width:100%;
   /* isolation scopes mix-blend-mode to this container only */
@@ -198,25 +213,25 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
    perfectly centered on the pupil.
 ══════════════════════════════════════ */
 
-/* ── Base eye circle ── */
+/* ── Base eye circle — fully opaque black, glossy ── */
 .bear-eye{
   position:absolute;
   width:13%;
   aspect-ratio:1/1;
   border-radius:50%;
-  /* Glossy black eye: dark center, subtle rim highlight */
+  /* Solid black with subtle gloss catch in upper-left */
   background:
-    radial-gradient(circle at 38% 32%,
-      rgba(80,40,10,0.18) 0%,
-      rgba(10,5,2,0.82)  38%,
-      rgba(4,2,1,0.95)   100%);
+    radial-gradient(circle at 36% 30%,
+      rgba(110,60,20,0.55) 0%,
+      rgba(8,3,1,0.98)    30%,
+      rgba(2,1,0,1.00)    100%);
+  opacity:1 !important;
   transform-origin:center center;
   pointer-events:none;
   will-change:transform;
   z-index:3;
-  /* Soft shadow so edges blend into bear fur */
-  box-shadow:0 0 0 1.5px rgba(30,10,2,0.35),
-             0 2px 6px rgba(0,0,0,0.28);
+  box-shadow:0 0 0 1.5px rgba(20,8,2,0.55),
+             0 2px 8px rgba(0,0,0,0.45);
 }
 
 #bear-eye-left {left:29.7%;top:17.3%;}
@@ -229,7 +244,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
   width:26%;height:26%;
   border-radius:50%;
   background:#ffffff;
-  opacity:0.55;       /* subtle in idle — not a sticker */
+  opacity:0.75;       /* clearly visible white dot */
   pointer-events:none;
   will-change:opacity,transform;
 }
@@ -242,7 +257,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
   0%,100%{transform:scale(1.05);}
   50%    {transform:scale(1.09);}
 }
-#bear-scene.idle .bear-eye-shine{opacity:0.50;}
+#bear-scene.idle .bear-eye-shine{opacity:0.78;}
 
 /* ════ TALKING: bounce with audio rhythm ════ */
 #bear-scene.talking .bear-eye{
@@ -252,7 +267,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Georgia','Times Ne
   0%,100%{transform:scale(1.09);}
   42%    {transform:scale(1.18);}
 }
-#bear-scene.talking .bear-eye-shine{opacity:0.68;}
+#bear-scene.talking .bear-eye-shine{opacity:0.88;}
 
 /* ════ EXCITED / CORRECT: big cartoon pop ════ */
 #bear-scene.excited .bear-eye,
@@ -352,7 +367,7 @@ body.correct        .bear-eye{
    Shape 4 medium open: scaleY(0.90) scaleX(1.05) — transition
    Shape 5 small open:  scaleY(0.50) scaleX(0.94) — syllable end
    Each shape also has an opacity pulse for softness */
-#bear-scene.talking::after{
+#bear-scene.talking #bear-body::after{
   content:"";
   position:absolute;
   left:35%;top:60%;
@@ -373,7 +388,7 @@ body.correct        .bear-eye{
   100%{opacity:0.28;transform:scaleY(0.18) scaleX(0.80);}
 }
 /* Excited / correct-answer: slightly bigger, slightly faster */
-#bear-scene.talking-excited::after{
+#bear-scene.talking-excited #bear-body::after{
   width:32%;height:15%;
   animation:mouthFadeIn 0.10s ease forwards,
             beMouth5ShapeExcited var(--mouth-dur-ex,0.34s) ease-in-out 0.08s infinite;
@@ -388,7 +403,7 @@ body.correct        .bear-eye{
   100% {transform:scaleY(0.20) scaleX(0.80);opacity:0.30;}
 }
 /* Stopping: ease mouth closed before class removal */
-#bear-scene.talking-stopping::after{
+#bear-scene.talking-stopping #bear-body::after{
   content:"";
   position:absolute;
   left:35%;top:60%;
@@ -502,25 +517,52 @@ body.correct        .bear-eye{
    rather than the old floating bubble
 ══════════════════════════════════════ */
 #speech-bubble{
-  position:absolute;bottom:calc(100% + 14px);left:50%;
+  position:absolute;bottom:calc(100% + 18px);left:50%;
   transform:translateX(-50%) translateY(8px);
-  background:rgba(255,245,215,0.88);
-  border:2px solid rgba(255,255,255,0.82);
-  border-radius:20px;padding:11px 18px;
+  /* Parchment scroll card */
+  background:linear-gradient(160deg,
+    rgba(255,248,220,0.97) 0%,
+    rgba(255,240,185,0.96) 50%,
+    rgba(255,248,220,0.97) 100%);
+  border:2.5px solid rgba(210,165,80,0.72);
+  border-radius:18px;
+  padding:14px 20px 14px;
   font-size:clamp(14px,3.8vw,17px);font-weight:bold;color:#3e1604;
-  text-align:center;white-space:nowrap;max-width:min(290px,84vw);
-  box-shadow:0 8px 24px rgba(0,0,0,0.22),inset 0 2px 4px rgba(255,240,200,0.5);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  text-align:left;max-width:min(320px,88vw);
+  box-shadow:0 10px 32px rgba(0,0,0,0.28),
+             0 2px 6px rgba(0,0,0,0.14),
+             inset 0 2px 6px rgba(255,240,160,0.55);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   opacity:0;transition:opacity .35s ease,transform .35s ease;
   pointer-events:none;z-index:12;
+  /* Scroll edge lines */
+  background-image:
+    linear-gradient(160deg,rgba(255,248,220,0.97) 0%,rgba(255,240,185,0.96) 50%,rgba(255,248,220,0.97) 100%),
+    repeating-linear-gradient(transparent,transparent 27px,rgba(185,140,60,0.10) 27px,rgba(185,140,60,0.10) 28px);
 }
 #speech-bubble.visible{opacity:1;transform:translateX(-50%) translateY(0);}
+/* Speaker name badge — sits on top edge */
+#speech-bubble::before{
+  content:"🐻 Blocky Bear";
+  position:absolute;top:-14px;left:18px;
+  background:linear-gradient(135deg,#e8a520,#c47e0a);
+  border:2px solid rgba(255,255,255,0.78);
+  border-radius:999px;
+  padding:3px 12px;
+  font-size:11px;font-weight:900;
+  color:#fff;
+  letter-spacing:.04em;
+  text-shadow:0 1px 2px rgba(0,0,0,0.35);
+  white-space:nowrap;
+  box-shadow:0 2px 8px rgba(0,0,0,0.22);
+}
+/* Tail pointing down to bear */
 #speech-bubble::after{
   content:"";position:absolute;left:50%;transform:translateX(-50%) rotate(45deg);
   bottom:-9px;width:14px;height:14px;
-  background:rgba(255,245,215,0.88);
-  border-right:2px solid rgba(255,255,255,0.82);
-  border-bottom:2px solid rgba(255,255,255,0.82);
+  background:rgba(255,240,185,0.96);
+  border-right:2.5px solid rgba(210,165,80,0.72);
+  border-bottom:2.5px solid rgba(210,165,80,0.72);
 }
 
 /* ══════════════════════════════════════
@@ -536,12 +578,16 @@ body.correct        .bear-eye{
 }
 #chapter-label.hidden{opacity:0;}
 #chapter-pill{
-  background:rgba(255,245,210,0.88);
-  border:2.5px solid rgba(255,255,255,0.82);
-  border-radius:999px;padding:10px 30px;
+  background:linear-gradient(160deg,
+    rgba(255,248,220,0.96) 0%,
+    rgba(255,238,180,0.95) 100%);
+  border:2.5px solid rgba(210,165,80,0.72);
+  border-radius:999px;padding:10px 32px;
   display:flex;flex-direction:column;align-items:center;gap:2px;
-  box-shadow:0 8px 26px rgba(0,0,0,0.28),0 2px 6px rgba(0,0,0,0.18),inset 0 2px 4px rgba(255,240,190,0.5);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 8px 28px rgba(0,0,0,0.30),
+             0 2px 6px rgba(0,0,0,0.18),
+             inset 0 2px 5px rgba(255,240,160,0.55);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
 }
 #chapter-num{
   font-size:10px;font-weight:900;letter-spacing:.20em;
@@ -999,6 +1045,7 @@ body.correct{
     <div id="speech-bubble">Welcome!</div>
     <div id="bear-ground-shadow"></div>
     <div id="bear-img-wrap">
+      <div id="bear-glow" aria-hidden="true"></div>
       <!-- #bear-body receives ALL motion transforms (bounce/talk/twitch/enter).
            bear-img and eye overlays are children so they move together. -->
       <div id="bear-body">
