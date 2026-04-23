@@ -389,7 +389,7 @@ body.correct        .bear-eye{
   width:8.2%;height:2.0%;
   border-radius:999px;
   background:none;
-  border-bottom:2px solid rgba(166,122,94,0.76);
+  border-bottom:2px solid rgba(108,72,50,0.84);
   transform-origin:center center;
   transform:scaleY(1) scaleX(1);
   opacity:0;
@@ -416,7 +416,7 @@ body.correct        .bear-eye{
   width:8.2%;height:2.0%;
   border-radius:999px;
   background:none;
-  border-bottom:2px solid rgba(166,122,94,0.76);
+  border-bottom:2px solid rgba(108,72,50,0.84);
   transform-origin:center center;
   animation:mouthLineFadeOut 0.12s ease forwards !important;
   pointer-events:none;z-index:3;
@@ -426,11 +426,11 @@ body.correct        .bear-eye{
   100%{opacity:0;transform:scaleY(0.72) scaleX(0.9);}
 }
 @keyframes mouthLineTalk{
-  0%  {transform:scaleY(1.00) scaleX(1.00);}
-  25% {transform:scaleY(1.82) scaleX(1.08);}
-  50% {transform:scaleY(0.72) scaleX(0.92);}
-  75% {transform:scaleY(1.55) scaleX(1.05);}
-  100%{transform:scaleY(1.00) scaleX(1.00);}
+  0%   {transform:scaleY(1.00) scaleX(1.00);}
+  28%  {transform:scaleY(1.34) scaleX(1.04);}
+  56%  {transform:scaleY(0.88) scaleX(0.96);}
+  82%  {transform:scaleY(1.20) scaleX(1.02);}
+  100% {transform:scaleY(1.00) scaleX(1.00);}
 }
 /* Happy bounce */
 #bear-scene.happy #bear-body{animation:beHappy 1.3s cubic-bezier(.34,1.56,.64,1);}
@@ -1200,9 +1200,9 @@ var progRow=$("progress-row"),chLabel=$("chapter-label"),chNum=$("chapter-num"),
 var tapPlay=$("tap-play"),fxLayer=$("effects-layer"),finalScr=$("final-screen"),glowEl=$("final-glow"),bannerEl=$("rainbow-banner");
 
 // ── AUDIO ─────────────────────────────────────────────────
-var BG_FULL=0.40,  // bg_loop plays quietly under voice
-    BG_DUCK=0.09,  // ducked while voice is playing
-    BG_FINAL=0.24; // bg_final volume level
+var BG_FULL=0.48,  // bg_loop plays quietly under voice
+    BG_DUCK=0.10,  // ducked while voice is playing
+    BG_FINAL=0.28; // bg_final volume level
 
 var sfx   = new Audio();          // voice / sfx channel
 var bgLoop= new Audio();          // bg_loop.mp3 — looping hunt music
@@ -1542,29 +1542,44 @@ function playFinalReward(){
     bannerEl.classList.remove("show"); void bannerEl.offsetWidth; bannerEl.classList.add("show");
   }, 800);
 
-  // Eyes stay excited + proud for 4s
+  // Eyes stay excited for 5s, proud hold throughout
   setTimeout(function(){
     bearScene.classList.remove("excited");
     document.body.classList.remove("correct");
-    // Keep happy state on for proud hold
-  }, 4000);
-  // Settle fully at 8s
-  setTimeout(function(){ setIdle(); }, 8000);
+  }, 5000);
+  // Settle fully at 30s
+  setTimeout(function(){ setIdle(); }, 30000);
 
-  // Sustained particle waves every 2.5s for ~28s
+  // Eye pops every ~4-5s during the celebration (staggered)
+  [4500,9000,13500,18000,22500,27000].forEach(function(t){
+    setTimeout(function(){
+      bearScene.classList.add("excited");
+      setTimeout(function(){bearScene.classList.remove("excited");},800);
+    },t);
+  });
+
+  // Bear happy bounces every ~6-8s (staggered from eye pops)
+  [6500,12000,17500,23000].forEach(function(t){
+    setTimeout(function(){
+      bearScene.classList.add("happy");
+      setTimeout(function(){bearScene.classList.remove("happy");},1300);
+    },t);
+  });
+
+  // Sustained particle waves across full ~30s
   var _waveIntervals=[3000,5500,8000,10500,13000,15500,18000,20500,23000,25500,28000];
   _waveIntervals.forEach(function(t,i){
     setTimeout(function(){
       var big=(i%3===0);
-      burstParticles(big?36:20, big?180:120);
+      burstParticles(big?40:22, big?190:130);
     }, t);
   });
 
-  // Keep glow + banner alive for full celebration (~30s)
+  // Keep glow + banner alive for full celebration
   setTimeout(function(){
     glowEl.classList.remove("show");
     bannerEl.classList.remove("show");
-  }, 30000);
+  }, 32000);
 }
 
 // ── PARTICLE ALIAS — spec-compatible wrapper ──────────────
@@ -1675,14 +1690,20 @@ function finishHunt(idx){
   popDot(idx);
   renderProg(idx+1);
 
-  // Immediate final reward
+  // Cancel any pending reward/idle reset before final voice starts
+  if(typeof rewardIdleTO!=="undefined"&&rewardIdleTO){clearTimeout(rewardIdleTO);rewardIdleTO=null;}
+  if(typeof _stopTalkTO!=="undefined"&&_stopTalkTO){clearTimeout(_stopTalkTO);_stopTalkTO=null;}
+
+  // Start celebration immediately — runs DURING final.mp3
   playFinalReward();
 
-  // Final voice at 200ms — card appears only after voice fully ends + 3s
+  // Final voice starts at 200ms — mouth stays active for full audio
   setTimeout(function(){
+    // Clear any pre-final state that could interrupt talking
+    if(typeof rewardIdleTO!=="undefined"&&rewardIdleTO){clearTimeout(rewardIdleTO);rewardIdleTO=null;}
     _talkMode="excited";
     playAudio("final.mp3", function(){
-      // Audio ended — let the celebration breathe for 3 more seconds
+      // Voice fully ended — wait 3s then show card
       setTimeout(function(){
         finalScr.classList.add("show");
       }, 3000);
@@ -1817,7 +1838,7 @@ function startPersistentScanner(){
     } else {
       // ── WRONG ────────────────────────────────────────────
       playWrong();
-      setTimeout(function(){scanLock=false;},2200); // hold off rescanning briefly
+      setTimeout(function(){scanLock=false;},1400); // hold off rescanning briefly
     }
   }
 
@@ -1840,7 +1861,7 @@ function startPersistentScanner(){
     // Apply continuous autofocus if available
     try{
       var vt=stream.getVideoTracks()[0];
-      if(vt&&vt.applyConstraints) vt.applyConstraints({advanced:[{focusMode:"continuous"}]}).catch(function(){});
+      if(vt&&vt.applyConstraints) vt.applyConstraints({advanced:[{focusMode:"continuous",exposureMode:"continuous",whiteBalanceMode:"continuous"}]}).catch(function(){});
     }catch(e){}
     reader.decodeFromStream(stream,video,function(result,err){
       if(result) onResult(result);
