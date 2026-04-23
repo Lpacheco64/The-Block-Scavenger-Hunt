@@ -385,7 +385,7 @@ body.correct        .bear-eye{
 #bear-scene.talking #bear-body::after{
   content:"";
   position:absolute;
-  left:44.6%;top:38.1%;
+  left:44.6%;top:37.2%;
   width:8.2%;height:2.0%;
   border-radius:999px;
   background:none;
@@ -412,7 +412,7 @@ body.correct        .bear-eye{
 #bear-scene.talking-stopping #bear-body::after{
   content:"";
   position:absolute;
-  left:44.6%;top:38.1%;
+  left:44.6%;top:37.2%;
   width:8.2%;height:2.0%;
   border-radius:999px;
   background:none;
@@ -1349,59 +1349,53 @@ function startBlinkLoop(){
 // Mouth mode hint — set before calling playAudio for excited mode
 var _talkMode="normal";
 var _stopTalkTO=null; // pending stopTalk timeout handle
+var rewardIdleTO=null;  // pending reward→idle reset; cleared by startTalk
 
 function startTalk(mode){
-  // Accept explicit arg OR consume global hint set by reward callers
   var m=mode||_talkMode; _talkMode="normal";
+  // Cancel reward idle reset so clue audio cannot be interrupted
+  if(rewardIdleTO){clearTimeout(rewardIdleTO);rewardIdleTO=null;}
   // Cancel any pending stop
   if(_stopTalkTO){clearTimeout(_stopTalkTO);_stopTalkTO=null;}
-  // Remove stopping state immediately (re-starting mid-stop)
   bearScene.classList.remove("talking-stopping");
 
-  // Pick a random duration — prevents robotic repetition
   var isExcited=(m==="excited");
   var dur,durEx;
   if(isExcited){
-    dur=(0.30+Math.random()*0.08).toFixed(3);   // 0.30–0.38s excited
+    dur=(0.30+Math.random()*0.08).toFixed(3);
     durEx=dur;
   } else {
-    dur=(0.36+Math.random()*0.16).toFixed(3);   // 0.36–0.52s normal
-    durEx=(0.30+Math.random()*0.06).toFixed(3); // in case class is added later
+    dur=(0.36+Math.random()*0.16).toFixed(3);
+    durEx=(0.30+Math.random()*0.06).toFixed(3);
   }
   bearScene.style.setProperty("--mouth-dur",   dur+"s");
   bearScene.style.setProperty("--mouth-dur-ex", durEx+"s");
 
+  // Add both classes immediately — mouth stays visible for full audio
   clearBear("talking");
+  document.body.classList.add("talking");
   bearScene.classList.add("talking");
   if(isExcited) bearScene.classList.add("talking-excited");
-  document.body.classList.add("talking");
 }
 
 function stopTalk(){
-  document.body.classList.remove("talking");
   if(talkIV){clearInterval(talkIV);talkIV=null;}
-
-  // Swap to stopping class — mouth eases closed over 140ms
-  if(bearScene.classList.contains("talking")){
-    bearScene.classList.add("talking-stopping");
-    _stopTalkTO=setTimeout(function(){
-      _stopTalkTO=null;
-      bearScene.classList.remove("talking","talking-excited","talking-stopping");
-      // Settle into idle
-      clearBear("idle");
-      bearScene.classList.add("idle");
-      var bi=$("bear-img");
-      if(bi&&BEAR.idle) bi.src=BEAR.idle;
-    },150);
-  } else {
+  // Switch to stopping: mouth eases closed, then remove all talking state
+  bearScene.classList.remove("talking","talking-excited");
+  bearScene.classList.add("talking-stopping");
+  if(_stopTalkTO){clearTimeout(_stopTalkTO);_stopTalkTO=null;}
+  _stopTalkTO=setTimeout(function(){
+    _stopTalkTO=null;
+    document.body.classList.remove("talking");
+    bearScene.classList.remove("talking-stopping");
     clearBear("idle");
     bearScene.classList.add("idle");
     var bi=$("bear-img");
     if(bi&&BEAR.idle) bi.src=BEAR.idle;
-  }
+  },120);
 }
 
-function bearHappy(){clearBear("happy");bearScene.classList.add("happy");setTimeout(setIdle,1300);}
+function bearHappy(){clearBear("happy");bearScene.classList.add("happy");if(rewardIdleTO){clearTimeout(rewardIdleTO);rewardIdleTO=null;}rewardIdleTO=setTimeout(function(){rewardIdleTO=null;setIdle();},1300);}
 function startTwitchLoop(){
   if(twitchTO) clearTimeout(twitchTO);
   var next=function(){
@@ -1535,7 +1529,9 @@ function playCorrectReward(step){
 
   popDot(step);
 
-  setTimeout(function(){
+  if(rewardIdleTO){clearTimeout(rewardIdleTO);rewardIdleTO=null;}
+  rewardIdleTO=setTimeout(function(){
+    rewardIdleTO=null;
     bearScene.classList.remove("happy","excited");
     sceneEl && sceneEl.classList.remove("correct-pulse-strong");
     document.body.classList.remove("correct");
