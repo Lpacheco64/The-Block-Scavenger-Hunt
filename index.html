@@ -1644,7 +1644,7 @@ function bootstrap(idx){
   startScr.classList.add("hidden");applyScene(idx);renderProg(idx);setChapterLabel(idx);showBear(CHAPTERS[idx].title);startBlinkLoop();startTwitchLoop();
   if(idx===0){
     // Chapter 1: play opening, then start bg_loop, then play clue
-    playAudio("opening.mp3",function(){
+    playAudio("opening (1).mp3",function(){
       startBgLoop();
       setTimeout(function(){playClue(0);},60);
     });
