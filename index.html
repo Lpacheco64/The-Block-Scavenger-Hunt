@@ -389,7 +389,7 @@ body.correct        .bear-eye{
   width:8.2%;height:2.0%;
   border-radius:999px;
   background:none;
-  border-bottom:2px solid rgba(110,72,46,0.68);
+  border-bottom:2px solid rgba(122,84,58,0.72);
   transform-origin:center center;
   transform:scaleY(1) scaleX(1);
   opacity:0;
@@ -416,7 +416,7 @@ body.correct        .bear-eye{
   width:8.2%;height:2.0%;
   border-radius:999px;
   background:none;
-  border-bottom:2px solid rgba(110,72,46,0.68);
+  border-bottom:2px solid rgba(122,84,58,0.72);
   transform-origin:center center;
   animation:mouthLineFadeOut 0.12s ease forwards !important;
   pointer-events:none;z-index:3;
@@ -426,11 +426,11 @@ body.correct        .bear-eye{
   100%{opacity:0;transform:scaleY(0.72) scaleX(0.9);}
 }
 @keyframes mouthLineTalk{
-  0%  {transform:scaleY(1.0) scaleX(1.0);}
-  25% {transform:scaleY(1.65) scaleX(1.06);}
-  50% {transform:scaleY(0.78) scaleX(0.94);}
-  75% {transform:scaleY(1.45) scaleX(1.04);}
-  100%{transform:scaleY(1.0) scaleX(1.0);}
+  0%  {transform:scaleY(1.00) scaleX(1.00);}
+  25% {transform:scaleY(1.82) scaleX(1.08);}
+  50% {transform:scaleY(0.72) scaleX(0.92);}
+  75% {transform:scaleY(1.55) scaleX(1.05);}
+  100%{transform:scaleY(1.00) scaleX(1.00);}
 }
 /* Happy bounce */
 #bear-scene.happy #bear-body{animation:beHappy 1.3s cubic-bezier(.34,1.56,.64,1);}
@@ -1200,9 +1200,9 @@ var progRow=$("progress-row"),chLabel=$("chapter-label"),chNum=$("chapter-num"),
 var tapPlay=$("tap-play"),fxLayer=$("effects-layer"),finalScr=$("final-screen"),glowEl=$("final-glow"),bannerEl=$("rainbow-banner");
 
 // ── AUDIO ─────────────────────────────────────────────────
-var BG_FULL=0.32,  // bg_loop plays quietly under voice
-    BG_DUCK=0.06,  // ducked while voice is playing
-    BG_FINAL=0.18; // bg_final volume level
+var BG_FULL=0.40,  // bg_loop plays quietly under voice
+    BG_DUCK=0.09,  // ducked while voice is playing
+    BG_FINAL=0.24; // bg_final volume level
 
 var sfx   = new Audio();          // voice / sfx channel
 var bgLoop= new Audio();          // bg_loop.mp3 — looping hunt music
@@ -1491,7 +1491,7 @@ function correctCelebration(){
 function playCorrectReward(step){
   document.body.classList.add("correct");
   _talkMode="excited";
-  playFx("sfx_correct_magic.mp3", 0.42); // optional sparkle accent — fails silently if missing
+  playFx("sfx_correct_magic.mp3", 0.54); // optional sparkle accent — fails silently if missing
 
   bearScene.classList.add("happy","excited");
 
@@ -1518,7 +1518,7 @@ function playCorrectReward(step){
 // ── FINAL REWARD (100% — cinematic, sustained) ────────────
 function playFinalReward(){
   document.body.classList.add("correct");
-  playFx("sfx_final_magic.mp3", 0.38); // optional magical swell — fails silently if missing
+  playFx("sfx_final_magic.mp3", 0.50); // optional magical swell — fails silently if missing
 
   bearScene.classList.add("happy","excited");
 
@@ -1695,7 +1695,7 @@ function initStartScreen(){
     else{info.innerHTML="Chapter "+ch.num+"<br>"+ch.title;sub.textContent="You found the next clue!";btn.textContent="🐻 Continue!";}
   }
   btn.addEventListener("click",function(){
-    playFx("sfx_ui_tap.mp3", 0.28); // optional UI tap — fails silently
+    playFx("sfx_ui_tap.mp3", 0.40); // optional UI tap — fails silently
     document.body.classList.add("started");
     unlockAudio();
     startPersistentScanner(); // camera on as soon as hunt begins
@@ -1721,7 +1721,7 @@ function initStartScreen(){
 
 // ── EVENTS ────────────────────────────────────────────────
 $("btn-replay").addEventListener("click",function(){
-  playFx("sfx_ui_tap.mp3", 0.28);
+  playFx("sfx_ui_tap.mp3", 0.40);
   finalScr.classList.remove("show");
   // isFinalSequence stays true — bgFin keeps playing, bgLoop never restarts
   bigCelebration();
